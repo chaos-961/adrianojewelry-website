@@ -1,0 +1,28 @@
+# LF in the repository, native line endings in the working tree.
+* text=auto
+
+# Explicit for the file types this project actually contains.
+*.html   text
+*.css    text
+*.js     text
+*.json   text
+*.md     text
+*.svg    text
+*.txt    text
+*.xml    text
+*.yml    text
+*.webmanifest text
+VERSION  text
+
+# Never normalise binaries.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.jfif   binary
+*.webp   binary
+*.avif   binary
+*.gif    binary
+*.ico    binary
+*.woff   binary
+*.woff2  binary
+*.pdf    binary

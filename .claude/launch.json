@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/serve.js", "--port", "4173"],
+      "port": 4173
+    },
+    {
+      "name": "site-pages-subpath",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/serve.js",
+        "--port",
+        "4174",
+        "--base",
+        "/adrianojewelry-website/"
+      ],
+      "port": 4174
+    }
+  ]
+}

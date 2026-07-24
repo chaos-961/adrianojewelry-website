@@ -1,0 +1,618 @@
+/* ==========================================================================
+   layout.css — the persistent shell: skip link, header, navigation, footer.
+   Everything here is mobile-first; `min-width: 62em` is the desktop switch.
+   ========================================================================== */
+
+/* ---- Brand lockup -------------------------------------------------------- */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.brand:hover {
+  color: inherit;
+}
+
+.brand__mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-accent);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.brand:hover .brand__mark {
+  transform: rotate(-8deg) scale(1.06);
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-heading);
+}
+
+.brand__sub {
+  margin-top: 0.22em;
+  font-size: var(--fs-2xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+@media (min-width: 62em) {
+  .brand__mark {
+    width: 2.125rem;
+    height: 2.125rem;
+  }
+
+  .brand__name {
+    font-size: 1.625rem;
+  }
+}
+
+/* ---- Header -------------------------------------------------------------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  border-bottom: 1px solid transparent;
+  /* Contains the ::before backdrop layer's negative z-index, so it sits
+     behind the header's own content rather than behind the whole page. */
+  isolation: isolate;
+  transition: border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+  padding-top: env(safe-area-inset-top);
+}
+
+/* The translucent backdrop is painted by a pseudo-element rather than by the
+   header itself, and that is load-bearing: `backdrop-filter` on an element
+   makes it the containing block for its fixed-position descendants. The
+   mobile drawer is one — put the filter on .site-header and the drawer is
+   trapped inside the header's ~68px box instead of filling the viewport. */
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  transition: background-color var(--dur-base) var(--ease-out);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .site-header::before {
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    backdrop-filter: saturate(180%) blur(12px);
+  }
+}
+
+/* Set by site.js once the page has scrolled past the header. */
+.site-header.is-scrolled {
+  border-bottom-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.site-header.is-scrolled::before {
+  background-color: color-mix(in srgb, var(--color-bg) 94%, transparent);
+}
+
+/* While the drawer is open the header must stay fully opaque. */
+[data-nav-open] .site-header {
+  border-bottom-color: var(--color-border);
+}
+
+[data-nav-open] .site-header::before {
+  background-color: var(--color-bg);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--header-h);
+}
+
+/* ---- Menu button (only ever rendered when JS is available) --------------- */
+
+.nav-toggle {
+  display: none;
+}
+
+.js .nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  justify-content: flex-end;
+  color: var(--color-text);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+}
+
+.nav-toggle__box {
+  position: relative;
+  display: block;
+  width: 1.5rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.nav-toggle__bar,
+.nav-toggle__bar::before,
+.nav-toggle__bar::after {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background-color: currentColor;
+  border-radius: var(--radius-pill);
+  transition: transform var(--dur-base) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.nav-toggle__bar {
+  top: calc(50% - 0.75px);
+}
+
+.nav-toggle__bar::before,
+.nav-toggle__bar::after {
+  content: "";
+}
+
+.nav-toggle__bar::before {
+  transform: translateY(-0.4375rem);
+}
+
+.nav-toggle__bar::after {
+  transform: translateY(0.4375rem);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar {
+  transform: rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar::before {
+  opacity: 0;
+  transform: translateY(0);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar::after {
+  transform: translateY(0) rotate(-90deg);
+}
+
+/* ---- Navigation ---------------------------------------------------------- */
+
+/* Baseline (no JS): a plain wrapped list under the brand. Always usable. */
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+}
+
+.nav__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+}
+
+.nav__link {
+  display: inline-block;
+  padding-block: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-text);
+  position: relative;
+}
+
+.nav__link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0.25rem;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.nav__link:hover,
+.nav__link[aria-current="page"] {
+  color: var(--color-accent-text);
+}
+
+.nav__link:hover::after,
+.nav__link[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+/* With JS on small screens the same markup becomes a full-height drawer. */
+.js .nav {
+  position: fixed;
+  inset: calc(var(--header-h) + env(safe-area-inset-top)) 0 0;
+  z-index: var(--z-nav);
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--gutter)
+    calc(var(--space-10) + env(safe-area-inset-bottom));
+  background-color: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-0.75rem);
+  transition: opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out),
+    visibility 0s linear var(--dur-base);
+}
+
+.js[data-nav-open] .nav {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+.js .nav__list {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.js .nav__list li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.js .nav__link {
+  padding-block: var(--space-4);
+  font-size: var(--fs-md);
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-normal);
+  text-transform: none;
+}
+
+.js .nav__link::after {
+  display: none;
+}
+
+.js .nav__cta {
+  margin-top: var(--space-6);
+  width: 100%;
+}
+
+/* Lock the page behind the drawer. */
+[data-nav-open] {
+  overflow: hidden;
+}
+
+@media (min-width: 62em) {
+  .js .nav-toggle {
+    display: none;
+  }
+
+  /* Back to an inline bar — undo every drawer rule above. */
+  .js .nav {
+    position: static;
+    inset: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-8);
+    padding: 0;
+    background: none;
+    border-top: 0;
+    overflow: visible;
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .js .nav__list {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2) var(--space-8);
+  }
+
+  .js .nav__list li + li {
+    border-top: 0;
+  }
+
+  .js .nav__link {
+    padding-block: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--fs-sm);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .js .nav__link::after {
+    display: block;
+  }
+
+  .js .nav__cta {
+    margin-top: 0;
+    width: auto;
+  }
+
+  /* Never leave the page locked once we're on the desktop layout. */
+  [data-nav-open] {
+    overflow: visible;
+  }
+}
+
+/* ---- Footer -------------------------------------------------------------- */
+
+.site-footer {
+  flex-shrink: 0;
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
+  padding-block: var(--space-16) var(--space-8);
+  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+  font-size: var(--fs-sm);
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: var(--color-footer-accent);
+}
+
+.site-footer .brand__name {
+  color: var(--color-footer-heading);
+}
+
+.site-footer .brand__sub {
+  color: var(--color-footer-accent);
+}
+
+.site-footer .brand__mark {
+  color: var(--color-footer-accent);
+}
+
+.site-footer__top {
+  display: grid;
+  gap: var(--space-10) var(--space-8);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 36em) {
+  .site-footer__top {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 62em) {
+  .site-footer__top {
+    /* Brand block gets more room than the link columns. */
+    grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr));
+    gap: var(--space-12) var(--space-8);
+  }
+}
+
+.site-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  align-items: flex-start;
+  max-width: 34ch;
+}
+
+@media (min-width: 36em) {
+  .site-footer__brand {
+    grid-column: 1 / -1;
+    max-width: 42ch;
+  }
+}
+
+@media (min-width: 62em) {
+  .site-footer__brand {
+    grid-column: auto;
+    max-width: 32ch;
+  }
+}
+
+.site-footer__blurb {
+  line-height: var(--lh-loose);
+  color: var(--color-footer-text);
+}
+
+.site-footer__col-title {
+  font-family: var(--font-body);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--color-footer-accent);
+  margin-bottom: var(--space-4);
+}
+
+.site-footer__links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+/* Every footer link clears the 24px minimum target size (WCAG 2.5.8) without
+   stretching the visual rhythm — the box grows, the text doesn't move. */
+.site-footer__links a,
+.site-footer__legal-links a,
+.site-footer__contact a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+}
+
+.site-footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  line-height: var(--lh-loose);
+}
+
+.site-footer__hours {
+  color: color-mix(in srgb, var(--color-footer-text) 70%, transparent);
+}
+
+.site-footer__social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.site-footer__social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--color-footer-border);
+  border-radius: var(--radius-pill);
+  transition: border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.site-footer__social a:hover {
+  border-color: var(--color-footer-accent);
+  background-color: rgb(255 255 255 / 0.04);
+}
+
+.site-footer__social svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* ---- Footer bottom bar --------------------------------------------------- */
+
+.site-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-8);
+  margin-top: var(--space-12);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-footer-border);
+  font-size: var(--fs-xs);
+  color: var(--color-footer-text);
+}
+
+/* The version marker. Always first, always flush left — the `auto` margin
+   pushes the legal block to the opposite edge on wide screens and simply
+   drops it to the next line on narrow ones. */
+.site-version {
+  order: -1;
+  margin-inline-end: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  color: color-mix(in srgb, var(--color-footer-text) 65%, transparent);
+  white-space: nowrap;
+}
+
+.site-version::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-footer-accent);
+  flex-shrink: 0;
+}
+
+.site-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+  color: color-mix(in srgb, var(--color-footer-text) 80%, transparent);
+}
+
+.site-footer__legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+}
+
+/* ---- Hero (the one page-level block the shell ships with) ---------------- */
+
+.hero {
+  display: flex;
+  align-items: center;
+  min-height: clamp(24rem, 78svh, 44rem);
+  padding-block: var(--space-section);
+  background-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    color-mix(in srgb, var(--color-accent) 12%, transparent),
+    transparent 70%
+  );
+}
+
+.hero__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
+  max-width: 52ch;
+  margin-inline: auto;
+}
+
+.hero__title {
+  font-size: var(--fs-4xl);
+  font-weight: 400;
+}
+
+.hero__title em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.hero__rule {
+  width: min(100%, 12rem);
+}
