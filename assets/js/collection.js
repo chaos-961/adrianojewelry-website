@@ -15,7 +15,23 @@
    in index.html.
    ========================================================================== */
 
+import {
+  gemEnvironment,
+  studioEnvironment,
+  createMaterials,
+  createStand,
+  dressPiece,
+} from "./jewel-shading.js";
+
 const MODEL_BASE = "assets/models/";
+
+/* How far the drag may tip the arrangement, in radians. The framing allows for
+   it, so the two have to agree — hence one constant rather than two literals. */
+const PITCH_LIMIT = 0.6;
+
+/* Sat very slightly forward at rest, the way a piece sits in a counter
+   display, rather than dead level with the lens. */
+const PITCH_REST = 0.13;
 
 /* Piece descriptions are authored in the HTML, not here. This module only
    needs to know which file backs each entry, which comes off data-model. */
@@ -65,11 +81,11 @@ const view = {
   renderer: null,
   scene: null,
   camera: null,
-  pivot: null,   // holds the current piece; user drag rotates this
-  piece: null,   // the loaded scene inside the pivot, kept for re-framing
-  gold: null,
-  gem: null,
-  mop: null,
+  pivot: null,   // the drag rotates this
+  rig: null,     // inside the pivot: the stand, plus the piece sat on it
+  stand: null,
+  piece: null,   // the loaded scene, kept so a resize can re-frame it
+  mats: null,
   radius: 1,
   yaw: 0,
   pitch: 0,
@@ -79,106 +95,6 @@ const view = {
   needs: true,
   onScreen: true,
 };
-
-/* A high-frequency "diamond light" probe. Gem facets only sparkle when the
-   environment has small bright panels separated by dark gaps — a single soft
-   dome renders as milky white. */
-function gemEnvironment(pmrem) {
-  const scene = new THREE.Scene();
-  const quad = new THREE.PlaneGeometry(1, 1);
-  const panel = (r, g, b, sx, sy, pos, rot) => {
-    const mesh = new THREE.Mesh(
-      quad,
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(r, g, b),
-        side: THREE.DoubleSide,
-      })
-    );
-    mesh.scale.set(sx, sy, 1);
-    mesh.position.fromArray(pos);
-    mesh.rotation.fromArray(rot);
-    scene.add(mesh);
-  };
-
-  scene.add(
-    new THREE.Mesh(
-      new THREE.BoxGeometry(60, 60, 60),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0.02, 0.021, 0.028),
-        side: THREE.BackSide,
-      })
-    )
-  );
-  for (let i = -3; i <= 3; i++) {
-    for (let j = -3; j <= 3; j++) {
-      const v = 3 + 26 * Math.abs(Math.sin(i * 1.7 + j * 2.3));
-      panel(v, v * 0.965, v * 0.9, 3.4, 3.4, [i * 5.4, 19.5, j * 5.4], [Math.PI / 2, 0, 0]);
-    }
-  }
-  for (let k = -2; k <= 2; k++) {
-    const v = 2.2 + 6 * Math.abs(Math.cos(k * 1.3));
-    panel(v, v * 0.97, v * 0.92, 4.5, 20, [-19.6, k * 4.6, 2], [0, Math.PI / 2, 0]);
-    panel(v * 0.7, v * 0.72, v * 0.85, 4.5, 20, [19.6, k * 4.6, -2], [0, -Math.PI / 2, 0]);
-  }
-  panel(4.2, 4.3, 4.8, 30, 14, [0, -19.5, 0], [-Math.PI / 2, 0, 0]);
-  panel(6.0, 5.7, 5.1, 26, 10, [0, 4, -19.6], [0, 0, 0]);
-  panel(2.6, 2.7, 3.0, 26, 10, [0, -2, 19.6], [0, Math.PI, 0]);
-
-  const tex = pmrem.fromScene(scene, 0.0).texture;
-  scene.traverse((o) => {
-    if (o.isMesh) o.material.dispose();
-  });
-  quad.dispose();
-  return tex;
-}
-
-/* The metal probe. Polished gold is a mirror: it has no shading of its own,
-   only whatever it reflects. A uniformly bright box therefore renders it as
-   flat pale yellow — which is exactly what a jewellery photographer avoids by
-   surrounding the piece with black gobos and one big soft key. That contrast
-   is what this builds: a dark shell, one large bright ceiling, and a couple of
-   narrow strips to draw highlights along the curves. */
-function studioEnvironment(pmrem) {
-  const scene = new THREE.Scene();
-  const quad = new THREE.PlaneGeometry(1, 1);
-  const panel = (v, tint, sx, sy, pos, rot) => {
-    const mesh = new THREE.Mesh(
-      quad,
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(v, v * tint[0], v * tint[1]),
-        side: THREE.DoubleSide,
-      })
-    );
-    mesh.scale.set(sx, sy, 1);
-    mesh.position.fromArray(pos);
-    mesh.rotation.fromArray(rot);
-    scene.add(mesh);
-  };
-
-  const dark = darkScheme.matches ? 0.012 : 0.045;
-  scene.add(
-    new THREE.Mesh(
-      new THREE.BoxGeometry(60, 60, 60),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(dark, dark * 0.97, dark * 0.94),
-        side: THREE.BackSide,
-      })
-    )
-  );
-  panel(7.6, [0.975, 0.925], 26, 20, [0, 19.5, 1], [Math.PI / 2, 0, 0]);    // key softbox
-  panel(3.4, [0.99, 1.07], 5.5, 26, [-19.4, 3, 3], [0, Math.PI / 2, 0]);    // cool edge strip
-  panel(2.1, [0.94, 0.82], 5.5, 26, [19.4, -1, -2], [0, -Math.PI / 2, 0]);  // warm edge strip
-  panel(1.5, [0.96, 0.9], 24, 7, [0, 5, -19.4], [0, 0, 0]);                 // rim
-  panel(1.15, [0.99, 0.97], 30, 24, [0, -19.4, 0], [-Math.PI / 2, 0, 0]);   // floor bounce
-  panel(0.28, [1.0, 1.02], 26, 18, [0, 0, 19.4], [0, Math.PI, 0]);          // dark front gobo
-
-  const tex = pmrem.fromScene(scene, 0.015).texture;
-  scene.traverse((o) => {
-    if (o.isMesh) o.material.dispose();
-  });
-  quad.dispose();
-  return tex;
-}
 
 function buildView() {
   const renderer = new THREE.WebGLRenderer({
@@ -194,7 +110,7 @@ function buildView() {
 
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = studioEnvironment(pmrem);
+  scene.environment = studioEnvironment(THREE, pmrem, darkScheme.matches);
 
   const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 200);
 
@@ -209,56 +125,23 @@ function buildView() {
   rim.position.set(-2, 4, -8);
   scene.add(rim);
 
+  /* pivot turns with the drag; rig holds the stand and the piece together so
+     the whole arrangement tips as one object rather than the piece sliding
+     off its plinth halfway through a pitch. */
   const pivot = new THREE.Group();
+  const rig = new THREE.Group();
+  pivot.add(rig);
   scene.add(pivot);
 
   view.renderer = renderer;
   view.scene = scene;
   view.camera = camera;
   view.pivot = pivot;
+  view.rig = rig;
 
-  view.gold = new THREE.MeshStandardMaterial({
-    color: new THREE.Color().setRGB(1.0, 0.775, 0.365, THREE.LinearSRGBColorSpace),
-    metalness: 1.0,
-    roughness: 0.135,
-    envMapIntensity: 1.7,
-  });
-
-  /* Reflection-only stones. Full refraction costs a second scene pass every
-     frame, which is not a trade worth making on a marketing page.
-
-     The half-metal is deliberate and not physical. A real diamond is a
-     dielectric whose brightness comes from light entering, bouncing off the
-     pavilion and coming back out — i.e. from the transmission we just turned
-     off. Left as a pure dielectric the diffuse term swamps the facets and the
-     stone renders as a white blob. Pushing metalness up trades that diffuse
-     for mirror reflection of the high-frequency probe, which is what restores
-     the bright/dark facet contrast the eye reads as a cut stone. */
-  view.gem = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    metalness: 0.55,
-    roughness: 0.0,
-    ior: 2.417,
-    reflectivity: 1.0,
-    specularIntensity: 1.0,
-    envMap: gemEnvironment(pmrem),
-    envMapIntensity: 1.3,
-  });
-
-  view.mop = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color().setRGB(0.795, 0.79, 0.782, THREE.LinearSRGBColorSpace),
-    metalness: 0.0,
-    roughness: 0.14,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.04,
-    iridescence: 1.0,
-    iridescenceIOR: 1.82,
-    iridescenceThicknessRange: [140, 860],
-    sheen: 0.55,
-    sheenColor: new THREE.Color(0xa9c6e6),
-    sheenRoughness: 0.42,
-    envMapIntensity: 1.4,
-  });
+  view.mats = createMaterials(THREE, gemEnvironment(THREE, pmrem));
+  view.stand = createStand(THREE, view.mats.gold);
+  rig.add(view.stand.group);
 
   resize();
 }
@@ -277,38 +160,50 @@ function resize() {
   view.needs = true;
 }
 
-/* Materials come from the GLB by name — gold / gem / mop — and are swapped for
-   the real shading here, so the files stay small and shader-agnostic. */
-function dress(root) {
-  root.traverse((o) => {
-    if (!o.isMesh) return;
-    const name = ((o.material && o.material.name) || "").toLowerCase();
-    if (name.includes("gem")) o.material = view.gem;
-    else if (name.includes("mop")) o.material = view.mop;
-    else o.material = view.gold;
-  });
-}
+/* Sits the piece on the plinth and fits the pair to the frame.
 
-/* Fit vertically and horizontally rather than to the bounding sphere, which
-   wastes a lot of frame on the flat pieces. The piece spins about Y, so the
-   horizontal half-extent has to be the diagonal of the X/Z footprint or it
+   Fits vertically and horizontally rather than to the bounding sphere, which
+   wastes a lot of frame on the flat pieces. The arrangement spins about Y, so
+   the horizontal half-extent has to be the diagonal of the X/Z footprint or it
    would clip halfway through a turn. */
 function frame(object) {
+  object.position.set(0, 0, 0);
   const box = new THREE.Box3().setFromObject(object);
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
-  object.position.sub(centre);
 
-  const rV = size.y / 2;
-  const rH = Math.hypot(size.x / 2, size.z / 2);
+  /* Centred across, and resting on y = 0 rather than centred on it, because
+     the stand is built downwards from that plane. */
+  object.position.set(-centre.x, -box.min.y, -centre.z);
+
+  const footprint = Math.hypot(size.x / 2, size.z / 2);
+  const drop = view.stand.fit(footprint, 0);
+
+  /* Everything from the base of the plinth to the top of the piece, recentred
+     so the drag turns the arrangement about its own middle. */
+  const total = size.y + drop;
+  view.rig.position.y = -(size.y - drop) / 2;
+
+  /* Horizontal extent is the swept radius, since the arrangement turns about
+     Y and the plinth is wider than the piece it carries. */
+  const rH = Math.max(footprint, view.stand.radius);
+  const halfY = total / 2;
+
+  /* Vertical has to allow for the tilt as well: rolled fully forward, part of
+     the swept radius is presented vertically. Framing for the upright pose
+     alone is what was cropping the top off a ring the moment it was tipped. */
+  const rV = Math.max(
+    halfY,
+    rH * Math.sin(PITCH_LIMIT) + halfY * Math.cos(PITCH_LIMIT)
+  );
   view.radius = Math.max(rV, rH);
 
   const fovV = (view.camera.fov * Math.PI) / 180;
   const fovH = 2 * Math.atan(Math.tan(fovV / 2) * view.camera.aspect);
   const dist =
-    Math.max(rV / Math.tan(fovV / 2), rH / Math.tan(fovH / 2)) * 1.16;
+    Math.max(rV / Math.tan(fovV / 2), rH / Math.tan(fovH / 2)) * 1.08;
 
-  view.camera.position.set(0, rV * 0.14, dist);
+  view.camera.position.set(0, 0, dist);
   view.camera.lookAt(0, 0, 0);
   view.camera.near = Math.max(dist - view.radius * 4, 0.02);
   view.camera.far = dist + view.radius * 8;
@@ -370,7 +265,7 @@ async function show(index) {
       const loader = new GLTFLoader();
       const gltf = await loader.loadAsync(MODEL_BASE + item.file);
       scene = gltf.scene;
-      dress(scene);
+      dressPiece(THREE, scene, view.mats);
       state.cache.set(item.file, scene);
     } catch (err) {
       if (state.loading === token) setStatus("Could not load " + item.name + ".", false);
@@ -380,14 +275,14 @@ async function show(index) {
   }
   if (state.loading !== token) return;   // a newer selection won the race
 
-  view.pivot.clear();
-  scene.position.set(0, 0, 0);
-  view.pivot.add(scene);
+  /* Only the piece is swapped — the stand stays in the rig between selections. */
+  if (view.piece) view.rig.remove(view.piece);
+  view.rig.add(scene);
   view.piece = scene;
   frame(scene);
   view.spin = 0;
   view.yaw = 0;
-  view.pitch = 0;
+  view.pitch = PITCH_REST;
   view.needs = true;
   setStatus(item.name + " — drag to rotate", false);
 }
@@ -416,7 +311,9 @@ function initPointer() {
     if (e.pointerId !== id) return;
     view.yaw += (e.clientX - lastX) * 0.008;
     view.pitch += (e.clientY - lastY) * 0.006;
-    view.pitch = Math.max(-1.2, Math.min(1.2, view.pitch));
+    /* Tighter than it was: the arrangement now has a base, and rolling far
+       enough to look up at the underside of the plinth reads as broken. */
+    view.pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, view.pitch));
     lastX = e.clientX;
     lastY = e.clientY;
     view.needs = true;
@@ -506,7 +403,7 @@ async function bootOnce() {
   window.addEventListener("resize", resize, { passive: true });
   darkScheme.addEventListener("change", () => {
     const pmrem = new THREE.PMREMGenerator(view.renderer);
-    view.scene.environment = studioEnvironment(pmrem);
+    view.scene.environment = studioEnvironment(THREE, pmrem, darkScheme.matches);
     view.needs = true;
   });
 

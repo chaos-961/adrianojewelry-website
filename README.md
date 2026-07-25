@@ -25,7 +25,8 @@ Live: <https://chaos-961.github.io/adrianojewelry-website/>
 │   │   └── collection.css   The 3D collection section on the home page
 │   ├── js/
 │   │   ├── site.js          Shell behaviour (progressive enhancement only)
-│   │   └── collection.js    The collection viewer (ES module, lazy)
+│   │   ├── collection.js    The collection viewer (ES module, lazy)
+│   │   └── jewel-shading.js Materials, lighting probes and the display stand
 │   ├── models/              16 jewelry pieces as .glb, by category
 │   ├── vendor/three/        three.js r170, vendored (see below)
 │   └── favicon.svg
@@ -80,9 +81,32 @@ of view or the tab is hidden.
    fallback.
 
 Materials are assigned by name, not authored in the file: a mesh whose glTF
-material is called `gold`, `gem` or `mop` gets the corresponding shading in
-`collection.js`. That keeps the files small and lets the whole collection be
+material is called `gold`, `gem` or `mop` gets the corresponding shading from
+`jewel-shading.js`. That keeps the files small and lets the whole collection be
 re-lit in one place.
+
+### How the pieces are lit
+
+`jewel-shading.js` holds everything that decides how the collection looks —
+the two lighting probes, the three materials and the display stand — and is
+deliberately free of DOM and loading concerns, so the shading can be built
+against an offscreen renderer without booting the section.
+
+Two probes, because metal and stone need opposite things. Polished gold is a
+mirror with no shading of its own, so it gets a dark shell with one large soft
+key overhead, the way a bench photographer lights it. Stones get the opposite:
+a fine grid of small, hard emitters separated by dark gutters, because facets
+only sparkle when there is something bright *and* something dark to catch.
+
+The stones are reflective rather than refractive, which is a considered choice.
+three.js can do real transmission with dispersion, and it looks worse here:
+every piece carries all of its stones as one merged mesh, so pavé a couple of
+pixels across refracts noise and renders black. See the comment on
+`createMaterials` for the full reasoning.
+
+Each piece is sat on a turned plinth rather than a category-specific holder —
+a ring cone or neck bust would need per-model placement, whereas a plinth only
+has to meet the underside of the bounding box, which is true of all sixteen.
 
 ### Why three.js is vendored
 

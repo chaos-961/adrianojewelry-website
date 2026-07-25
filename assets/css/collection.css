@@ -4,7 +4,8 @@
 
    The section is authored as a plain list and stays that way until
    collection.js sets data-collection-ready, so nothing here may hide content
-   that a no-JS visitor needs.
+   that a no-JS visitor needs. Every rule that assumes the viewer exists is
+   nested under [data-collection-ready].
    ========================================================================== */
 
 .collection {
@@ -35,7 +36,7 @@
 
 @media (min-width: 62em) {
   .collection__body {
-    grid-template-columns: minmax(0, 1fr) 22rem;
+    grid-template-columns: minmax(0, 1fr) 23rem;
     gap: var(--space-12);
     align-items: start;
   }
@@ -52,22 +53,56 @@
   display: block;
   position: relative;
   aspect-ratio: 4 / 3;
-  border: var(--border-hairline);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   background:
     radial-gradient(
-      120% 90% at 50% 12%,
-      color-mix(in srgb, var(--color-accent-soft) 26%, var(--color-surface)) 0%,
-      var(--color-surface) 62%
+        118% 82% at 50% 6%,
+        color-mix(in srgb, var(--color-accent-soft) 34%, var(--color-surface)) 0%,
+        transparent 58%
+      ),
+    linear-gradient(
+      180deg,
+      var(--color-surface) 0%,
+      color-mix(in srgb, var(--color-surface-sunken) 55%, var(--color-surface)) 100%
     );
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
+  /* Keeps the vignette's blend from reaching out to the section behind. */
+  isolation: isolate;
 }
 
 @media (min-width: 48em) {
   [data-collection-ready] .collection__stage {
     aspect-ratio: 16 / 10;
   }
+}
+
+/* The list is taller than the stage and the stage is the thing being talked
+   about, so it follows the reader down rather than scrolling away.
+
+   Has to come after the block above: that sets position: relative at the same
+   specificity, so declaring sticky any earlier in the file loses to it. */
+@media (min-width: 62em) {
+  [data-collection-ready] .collection__stage {
+    position: sticky;
+    top: calc(var(--header-h) + var(--space-6));
+  }
+}
+
+/* Vignette. Sits above the canvas but below the status, and settles the piece
+   into the frame instead of letting it float on a flat wash. */
+[data-collection-ready] .collection__stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    82% 74% at 50% 42%,
+    transparent 52%,
+    color-mix(in srgb, var(--color-heading) 11%, transparent) 100%
+  );
 }
 
 .collection__canvas {
@@ -82,32 +117,36 @@
   cursor: grabbing;
 }
 
-/* A hairline base so the piece reads as sitting on a surface, not floating. */
-.collection__stage::after {
-  content: "";
+.collection__status {
   position: absolute;
-  inset-inline: 12%;
-  bottom: 11%;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    color-mix(in srgb, var(--color-accent) 45%, transparent),
-    transparent
-  );
+  z-index: 2;
+  inset-inline: 0;
+  bottom: var(--space-4);
+  margin: 0 auto;
+  width: fit-content;
+  max-width: calc(100% - var(--space-8));
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  text-align: center;
+  background-color: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
   pointer-events: none;
 }
 
-.collection__status {
-  position: absolute;
-  inset-inline: 0;
-  bottom: var(--space-4);
-  text-align: center;
-  font-size: var(--fs-xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-  pointer-events: none;
+@supports (backdrop-filter: blur(1px)) {
+  .collection__status {
+    backdrop-filter: blur(10px) saturate(1.3);
+  }
+}
+
+/* Empty between selections — an empty pill is just a stray dash of chrome. */
+.collection__status:empty {
+  display: none;
 }
 
 .collection__stage.is-loading .collection__status::before {
@@ -186,19 +225,21 @@
   color: var(--color-text-muted);
 }
 
-/* ---- Enhanced state: each entry becomes a tab ---------------------------- */
+/* ---- Enhanced state: each entry becomes a picker ------------------------- */
 
 [data-collection-ready] .collection__item {
   padding-block: 0;
 }
 
 .collection__pick {
+  position: relative;
   display: block;
   width: 100%;
   text-align: start;
   /* 44px minimum target — WCAG 2.5.8, same floor the buttons use. */
   min-height: 2.75rem;
   padding: var(--space-3) var(--space-4);
+  padding-inline-start: var(--space-5);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background-color: transparent;
@@ -206,9 +247,29 @@
     border-color var(--dur-fast) var(--ease-out);
 }
 
+/* The gold rail. Grows into place on selection, which reads as the list
+   handing over to the stage rather than a colour simply switching on. */
+.collection__pick::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 42%;
+  width: 2px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-accent);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out),
+    inset-block var(--dur-base) var(--ease-out);
+}
+
 .collection__pick:hover {
   background-color: var(--color-surface);
   border-color: var(--color-border);
+}
+
+.collection__pick:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .collection__pick[aria-current="true"] {
@@ -217,24 +278,26 @@
   box-shadow: var(--shadow-sm);
 }
 
+.collection__pick[aria-current="true"]::before {
+  opacity: 1;
+  inset-block: 18%;
+}
+
 .collection__pick[aria-current="true"] .collection__name {
   color: var(--color-accent-text);
 }
 
-.collection__pick[aria-current="true"] .collection__name::after {
-  content: "";
-  display: inline-block;
-  width: 0.34em;
-  height: 0.34em;
-  margin-inline-start: 0.5em;
-  vertical-align: 0.2em;
-  border-radius: 50%;
-  background-color: var(--color-accent);
+@media (prefers-reduced-motion: reduce) {
+  .collection__pick,
+  .collection__pick::before {
+    transition-duration: 1ms;
+  }
 }
 
 .collection__hint {
   margin-block-start: var(--space-6);
   font-size: var(--fs-xs);
+  line-height: var(--lh-normal);
   color: var(--color-text-faint);
 }
 
