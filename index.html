@@ -37,10 +37,11 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
     />
 
-    <!-- Styles: tokens → base → layout. Order matters. -->
+    <!-- Styles: tokens → base → layout → components. Order matters. -->
     <link rel="stylesheet" href="assets/css/tokens.css" />
     <link rel="stylesheet" href="assets/css/base.css" />
     <link rel="stylesheet" href="assets/css/layout.css" />
+    <link rel="stylesheet" href="assets/css/collection.css" />
 
     <!-- Runs before first paint so JS-only chrome never flashes. -->
     <script>
@@ -48,6 +49,20 @@
       document.documentElement.classList.add("js");
     </script>
     <script src="assets/js/site.js" defer></script>
+
+    <!--
+      three.js is vendored, not pulled from a CDN, so the site keeps working
+      offline and owes nothing to a third party at runtime. Nothing here is
+      fetched until the collection section scrolls into view.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./assets/vendor/three/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="assets/js/collection.js"></script>
 
     <!--
       Local-business structured data. Worth keeping accurate: this is what
@@ -170,6 +185,182 @@
           </div>
         </div>
       </section>
+
+      <!-- ================= Collection =================
+           Authored as a plain list of the collection so the section reads and
+           indexes without JavaScript. collection.js upgrades the list into a
+           tablist driving the WebGL stage; if it never runs, or WebGL is
+           unavailable, this is what stays on the page. -->
+      <section class="collection" id="collection" data-collection>
+        <div class="container">
+          <div class="collection__head">
+            <p class="eyebrow">In the workshop</p>
+            <h2 class="collection__title">Sixteen pieces, turned in your hand.</h2>
+            <!-- Reads correctly with or without the viewer, so it must not
+                 promise interaction. The prompt to pick a piece lives in
+                 .collection__hint, which only appears once JS is running. -->
+            <p class="lead collection__intro">
+              A cross-section of what we make at the bench &mdash; claw and
+              bezel settings, bead-set pav&eacute;, hand-linked chain and
+              mother-of-pearl.
+            </p>
+          </div>
+
+          <div class="collection__body">
+            <div class="collection__stage" data-collection-stage>
+              <canvas
+                class="collection__canvas"
+                data-collection-canvas
+                aria-label="Interactive 3D model of the selected piece. Drag to rotate."
+                role="img"
+              ></canvas>
+              <p class="collection__status" data-collection-status aria-live="polite"></p>
+            </div>
+
+            <div class="collection__groups" data-collection-list>
+              <div class="collection__group">
+                <h3 class="collection__group-title">Rings</h3>
+                <ul class="collection__list">
+                  <li class="collection__item" data-model="rings/solitaire_pave_ring.glb">
+                    <span class="collection__name" data-piece-name>Solitaire</span>
+                    <span class="collection__note" data-piece-note>
+                      Round brilliant in a four-claw head, bead-set pav&eacute;
+                      running down the shoulders.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="rings/eternity_band.glb">
+                    <span class="collection__name" data-piece-name>Eternity band</span>
+                    <span class="collection__note" data-piece-note>
+                      Twenty-two stones shared between grain prongs, open
+                      gallery all the way round.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="rings/cushion_halo_ring.glb">
+                    <span class="collection__name" data-piece-name>Cushion halo</span>
+                    <span class="collection__note" data-piece-note>
+                      Round centre stone framed by a cushion-shaped halo on a
+                      pav&eacute; shank.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="rings/bezel_pave_ring.glb">
+                    <span class="collection__name" data-piece-name>Bezel solitaire</span>
+                    <span class="collection__note" data-piece-note>
+                      A rub-over bezel with a rolled lip &mdash; the setting we
+                      recommend for hands that work.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="collection__group">
+                <h3 class="collection__group-title">Earrings</h3>
+                <ul class="collection__list">
+                  <li class="collection__item" data-model="earrings/pave_hoops.glb">
+                    <span class="collection__name" data-piece-name>Pav&eacute; huggies</span>
+                    <span class="collection__note" data-piece-note>
+                      Squared hoop with stones bead-set around the outer edge
+                      and a click closure.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="earrings/solitaire_drop_huggies.glb">
+                    <span class="collection__name" data-piece-name>Huggie drops</span>
+                    <span class="collection__note" data-piece-note>
+                      A pav&eacute; huggie carrying a claw-set round brilliant
+                      on a jump ring.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="earrings/threader_earrings.glb">
+                    <span class="collection__name" data-piece-name>Threaders</span>
+                    <span class="collection__note" data-piece-note>
+                      Fine box chain that threads through the lobe, finished
+                      with a bezel-set stone.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="earrings/clover_studs.glb">
+                    <span class="collection__name" data-piece-name>Clover studs</span>
+                    <span class="collection__note" data-piece-note>
+                      Mother-of-pearl quatrefoil inside a beaded gold rim, post
+                      and butterfly back.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="collection__group">
+                <h3 class="collection__group-title">Bracelets</h3>
+                <ul class="collection__list">
+                  <li class="collection__item" data-model="bracelets/bezel_station_bracelet.glb">
+                    <span class="collection__name" data-piece-name>Station bracelet</span>
+                    <span class="collection__note" data-piece-note>
+                      Four bezel-set stones spliced into a cable chain, with a
+                      lobster clasp and adjuster.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="bracelets/screw_bangle.glb">
+                    <span class="collection__name" data-piece-name>Screw bangle</span>
+                    <span class="collection__note" data-piece-note>
+                      Solid oval bangle, eight screw motifs milled into the
+                      outer face, hinged.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="bracelets/clover_chain_bracelet.glb">
+                    <span class="collection__name" data-piece-name>Clover chain</span>
+                    <span class="collection__note" data-piece-note>
+                      A single mother-of-pearl clover hung from hand-linked
+                      cable chain.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="bracelets/tennis_bracelet.glb">
+                    <span class="collection__name" data-piece-name>Tennis bracelet</span>
+                    <span class="collection__note" data-piece-note>
+                      Forty claw-set stones in articulated box links, box clasp
+                      with a safety.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="collection__group">
+                <h3 class="collection__group-title">Necklaces</h3>
+                <ul class="collection__list">
+                  <li class="collection__item" data-model="necklaces/bezel_solitaire_necklace.glb">
+                    <span class="collection__name" data-piece-name>Bezel solitaire</span>
+                    <span class="collection__note" data-piece-note>
+                      A single rub-over stone that slides on the chain rather
+                      than hanging from a bail.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="necklaces/graduated_curve_necklace.glb">
+                    <span class="collection__name" data-piece-name>Graduated seven</span>
+                    <span class="collection__note" data-piece-note>
+                      Seven claw-set stones stepping down in size from the
+                      centre, linked to sit flat.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="necklaces/clover_pendant_necklace.glb">
+                    <span class="collection__name" data-piece-name>Clover pendant</span>
+                    <span class="collection__note" data-piece-note>
+                      The clover motif again, this time on a fine cable chain.
+                    </span>
+                  </li>
+                  <li class="collection__item" data-model="necklaces/pave_bar_necklace.glb">
+                    <span class="collection__name" data-piece-name>Pav&eacute; bar</span>
+                    <span class="collection__note" data-piece-note>
+                      A vertical bar channelled with small stones, hung from a
+                      wire bail.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <p class="collection__hint">
+                Pick a piece to see it in three dimensions, then drag to turn it
+                in the light.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- ================= Footer ================= -->
@@ -278,7 +469,7 @@
         <div class="site-footer__bottom">
           <p class="site-version">
             <span class="visually-hidden">Site version</span>
-            <span data-site-version>v0.0.1</span>
+            <span data-site-version>v0.0.2</span>
           </p>
           <div class="site-footer__legal">
             <span>&copy; <span data-current-year>2026</span> Adriano Jewelry. All rights reserved.</span>

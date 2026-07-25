@@ -54,6 +54,8 @@ const MIME = {
   ".pdf": "application/pdf",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
 };
 
 /* ---- arguments ------------------------------------------------------------ */

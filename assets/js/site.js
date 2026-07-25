@@ -12,7 +12,7 @@
      Version. AUTO-MANAGED — do not hand-edit the string below.
      `node scripts/version.js bump` rewrites it here and in every .html file.
      ---------------------------------------------------------------------- */
-  var SITE_VERSION = "0.0.1";
+  var SITE_VERSION = "0.0.2";
 
   var DESKTOP_QUERY = "(min-width: 62em)";
 

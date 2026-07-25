@@ -26,3 +26,4 @@ VERSION  text
 *.woff   binary
 *.woff2  binary
 *.pdf    binary
+*.glb    binary

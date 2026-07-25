@@ -21,11 +21,16 @@ Live: <https://chaos-961.github.io/adrianojewelry-website/>
 │   ├── css/
 │   │   ├── tokens.css       Design decisions — colours, type, space, motion
 │   │   ├── base.css         Reset, element defaults, utilities, buttons
-│   │   └── layout.css       Header, navigation, footer, hero
+│   │   ├── layout.css       Header, navigation, footer, hero
+│   │   └── collection.css   The 3D collection section on the home page
 │   ├── js/
-│   │   └── site.js          Shell behaviour (progressive enhancement only)
+│   │   ├── site.js          Shell behaviour (progressive enhancement only)
+│   │   └── collection.js    The collection viewer (ES module, lazy)
+│   ├── models/              16 jewelry pieces as .glb, by category
+│   ├── vendor/three/        three.js r170, vendored (see below)
 │   └── favicon.svg
 ├── scripts/
+│   ├── serve.js             Local preview that behaves like Pages
 │   └── version.js           Version bump + sync tool
 └── .github/workflows/
     └── static.yml           Deploy to Pages on push to main
@@ -44,6 +49,55 @@ replace `<main>`. Two things to remember:
    page missing `<span data-site-version>`.
 
 Then add the page to `sitemap.xml`.
+
+---
+
+## The collection viewer
+
+The home page carries a WebGL viewer for sixteen pieces — four rings, four
+earrings, four bracelets, four necklaces.
+
+**It is progressive enhancement, not a widget.** The section is authored in
+`index.html` as a plain list: every piece's name and description is real markup
+that reads and indexes with JavaScript off. `collection.js` upgrades each entry
+into a button and reveals the canvas by setting `data-collection-ready`, which
+is the only thing `collection.css` keys the stage off. If the module never
+runs, WebGL is missing, or a model 404s, the list stays exactly as authored.
+
+**Nothing heavy loads until it is needed.** The initial home page costs about
+58 kB. three.js is dynamically imported only when an `IntersectionObserver`
+says the section is within 400 px of the viewport, and one model is fetched at
+a time on selection, then cached. Rendering stops when the section scrolls out
+of view or the tab is hidden.
+
+### Adding or replacing a piece
+
+1. Drop the `.glb` in `assets/models/<category>/`.
+2. Add an `<li class="collection__item" data-model="<category>/<file>.glb">` to
+   the matching group in `index.html`, with `data-piece-name` and
+   `data-piece-note` spans inside. That markup is the source of truth — the
+   script reads the file path off the attribute, and the copy is the no-JS
+   fallback.
+
+Materials are assigned by name, not authored in the file: a mesh whose glTF
+material is called `gold`, `gem` or `mop` gets the corresponding shading in
+`collection.js`. That keeps the files small and lets the whole collection be
+re-lit in one place.
+
+### Why three.js is vendored
+
+`assets/vendor/three/` holds three.js **r170** (`three.module.js` plus
+`GLTFLoader` and its one dependency, `BufferGeometryUtils`), mirroring the
+upstream directory layout so the addons' relative imports resolve unmodified.
+It is not pulled from a CDN: a shop's home page should not go flat because a
+third party is having a bad day, and this keeps the site working offline.
+
+Two things to know if you upgrade it:
+
+- The bare specifier `three` is mapped by an **importmap in `index.html`**,
+  which must stay above the module script that uses it.
+- GitHub Pages' Jekyll excludes `/vendor` by default. The repo's `.nojekyll`
+  disables Jekyll entirely, so this is fine — but do not remove that file.
 
 ---
 
