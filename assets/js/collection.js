@@ -30,7 +30,7 @@ const state = {
   status: null,
   items: [],
   current: -1,
-  booted: false,
+  booting: null,
   failed: false,
   cache: new Map(),
   loading: null,
@@ -437,7 +437,11 @@ function initPointer() {
    and keeps ordinary Tab order, which is what people expect from a list. */
 function initPicker() {
   state.items.forEach((item, i) => {
-    item.button.addEventListener("click", () => show(i));
+    /* boot() resolves immediately once the viewer is up, so this only defers
+       the very first clicks — and a later pick still wins the load race. */
+    item.button.addEventListener("click", () => {
+      boot().then(() => show(i));
+    });
   });
 }
 
@@ -471,10 +475,17 @@ function upgradeMarkup() {
   });
 }
 
-async function boot() {
-  if (state.booted || state.failed) return;
-  state.booted = true;
+/* Idempotent *and* awaitable. initPicker() binds its click handlers before the
+   first import resolves, so a visitor who picks a piece while three.js is still
+   in flight has to join the same promise rather than run show() against a
+   loader that is still null. */
+function boot() {
+  if (state.failed) return Promise.resolve();
+  if (!state.booting) state.booting = bootOnce();
+  return state.booting;
+}
 
+async function bootOnce() {
   setStatus("Preparing the viewer…", true);
   try {
     const [core, loaderMod] = await Promise.all([
