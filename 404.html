@@ -10,20 +10,26 @@
          Keep the stone and footer rules in sync with assets/css/site.css. -->
     <style>
       :root {
-        --stone-page: #232527;
-        --stone-footer: #141517;
-        --page-fg: #e6e4e1;
-        --page-muted: #a2a09d;
-        --footer-fg: #cfcdc9;
-        --footer-muted: #8d8b88;
-        --footer-rule: rgba(255, 255, 255, 0.11);
+        --ground-page: #191b1d;
+        --ground-footer: #0e0f11;
+        --page-fg: #e8e6e3;
+        --page-muted: #a4a2a0;
+        --footer-fg: #d2d0cd;
+        --footer-muted: #8e8c8a;
+        --footer-rule: rgba(255, 255, 255, 0.1);
         --accent: #c8a97a;
         --accent-dim: rgba(200, 169, 122, 0.38);
         --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
         --font-display: Georgia, "Times New Roman", serif;
         --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-        --stone-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='5' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.72 0 0 0 -0.30'/%3E%3C/filter%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.05' numOctaves='4' seed='17' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.45 0 0 0 -0.76'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23m)'/%3E%3Crect width='320' height='320' filter='url(%23f)'/%3E%3C/svg%3E");
-        --stone-mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='960'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' seed='29' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0 0 0 -0.26'/%3E%3C/filter%3E%3Crect width='960' height='960' filter='url(%23c)'/%3E%3C/svg%3E");
+        --weave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cdefs%3E%3Cpattern id='a' width='4' height='4' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,4 L4,0 M-1,1 L1,-1 M3,5 L5,3' stroke='%23ffffff' stroke-opacity='0.055' stroke-width='1'/%3E%3C/pattern%3E%3Cpattern id='b' width='4' height='4' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,0 L4,4 M-1,3 L1,5 M3,-1 L5,1' stroke='%23ffffff' stroke-opacity='0.055' stroke-width='1'/%3E%3C/pattern%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0.07'/%3E%3Cstop offset='0.5' stop-color='%23000000' stop-opacity='0.06'/%3E%3Cstop offset='1' stop-color='%23000000' stop-opacity='0.26'/%3E%3C/linearGradient%3E%3ClinearGradient id='d' x1='1' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0.07'/%3E%3Cstop offset='0.5' stop-color='%23000000' stop-opacity='0.06'/%3E%3Cstop offset='1' stop-color='%23000000' stop-opacity='0.26'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='0' width='8' height='8' fill='url(%23c)'/%3E%3Crect x='0' y='0' width='8' height='8' fill='url(%23a)'/%3E%3Crect x='8' y='8' width='8' height='8' fill='url(%23c)'/%3E%3Crect x='8' y='8' width='8' height='8' fill='url(%23a)'/%3E%3Crect x='8' y='0' width='8' height='8' fill='url(%23d)'/%3E%3Crect x='8' y='0' width='8' height='8' fill='url(%23b)'/%3E%3Crect x='0' y='8' width='8' height='8' fill='url(%23d)'/%3E%3Crect x='0' y='8' width='8' height='8' fill='url(%23b)'/%3E%3C/svg%3E");
+        --sheen: linear-gradient(
+          157deg,
+          rgba(255, 255, 255, 0.05) 0%,
+          rgba(255, 255, 255, 0.012) 34%,
+          rgba(0, 0, 0, 0) 58%,
+          rgba(0, 0, 0, 0.2) 100%
+        );
       }
 
       *,
@@ -42,10 +48,10 @@
         min-height: 100dvh;
         display: flex;
         flex-direction: column;
-        background-color: var(--stone-page);
-        background-image: var(--stone-mottle), var(--stone-grain);
-        background-size: 960px 960px, 320px 320px;
-        background-repeat: repeat, repeat;
+        background-color: var(--ground-page);
+        background-image: var(--sheen), var(--weave);
+        background-size: cover, 18px 18px;
+        background-repeat: no-repeat, repeat;
         color: var(--page-fg);
         font-family: var(--font-body);
         font-size: 16px;
@@ -171,9 +177,9 @@
       .site-footer {
         position: relative;
         flex-shrink: 0;
-        background-color: var(--stone-footer);
-        background-image: var(--stone-grain);
-        background-size: 320px 320px;
+        background-color: var(--ground-footer);
+        background-image: var(--weave);
+        background-size: 18px 18px;
         color: var(--footer-fg);
         padding: 0.85rem 1rem;
         padding-right: max(1rem, env(safe-area-inset-right));
@@ -252,7 +258,7 @@
 
     <footer class="site-footer">
       <div class="site-footer__inner">
-        <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.3</p>
+        <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.4</p>
       </div>
     </footer>
 
