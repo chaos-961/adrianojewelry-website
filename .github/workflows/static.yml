@@ -26,8 +26,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # enablement turns Pages on for the repo and sets the source to Actions,
+      # so a fresh clone deploys without anyone visiting the settings page.
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       # Uploads the whole repo, so index.html, 404.html, assets/ and any page
       # added later are published with no further changes to this workflow.
