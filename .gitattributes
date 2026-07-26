@@ -1,29 +1,14 @@
-# LF in the repository, native line endings in the working tree.
-* text=auto
+# Normalize text to LF in the repo; check out native on Windows.
+* text=auto eol=lf
 
-# Explicit for the file types this project actually contains.
-*.html   text
-*.css    text
-*.js     text
-*.json   text
-*.md     text
-*.svg    text
-*.txt    text
-*.xml    text
-*.yml    text
-*.webmanifest text
-VERSION  text
-
-# Never normalise binaries.
-*.png    binary
-*.jpg    binary
-*.jpeg   binary
-*.jfif   binary
-*.webp   binary
-*.avif   binary
-*.gif    binary
-*.ico    binary
-*.woff   binary
-*.woff2  binary
-*.pdf    binary
-*.glb    binary
+# Binaries — never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.glb binary
+*.pdf binary

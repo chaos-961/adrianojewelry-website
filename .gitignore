@@ -1,27 +1,26 @@
-# --- OS cruft ---------------------------------------------------------------
-.DS_Store
-._*
+# OS
 Thumbs.db
 ehthumbs.db
-desktop.ini
-$RECYCLE.BIN/
+Desktop.ini
+.DS_Store
 
-# --- Editors ----------------------------------------------------------------
+# Editors
 .vscode/
 .idea/
 *.swp
 *~
 
-# --- Tooling ----------------------------------------------------------------
+# Node / tooling
 node_modules/
 npm-debug.log*
 yarn-error.log*
-*.log
+.cache/
+dist/
 
-# --- Local only -------------------------------------------------------------
+# Local env
 .env
 .env.*
 !.env.example
-dist/
-build/
-.cache/
+
+# Logs
+*.log

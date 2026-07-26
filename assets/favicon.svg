@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Adriano Jewelry">
-  <rect width="64" height="64" rx="12" fill="#14100c"/>
-  <g fill="none" stroke="#c19a4b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M19 25 L32 12 L45 25 L32 53 Z"/>
-    <path d="M19 25 H45"/>
-    <path d="M25.5 25 L32 12 L38.5 25"/>
-    <path d="M25.5 25 L32 53 L38.5 25"/>
-  </g>
-</svg>

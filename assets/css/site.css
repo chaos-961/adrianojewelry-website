@@ -1,0 +1,116 @@
+/* Adriano Jewelry — base stylesheet
+   Shared shell for every page: white canvas, gray footer pinned to the bottom. */
+
+:root {
+  --page-bg: #ffffff;
+  --page-fg: #1a1a1a;
+  --footer-bg: #3c3c3c;
+  --footer-bg-deep: #333333;
+  --footer-fg: #d6d6d6;
+  --footer-muted: #9d9d9d;
+  --footer-rule: rgba(255, 255, 255, 0.09);
+  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  /* Stop iOS from inflating type when a phone is rotated to landscape. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  /* dvh tracks the collapsing mobile address bar; the line above is the
+     fallback for browsers that don't support it. */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Main grows so the footer always sits at the bottom, even on an empty page. */
+.page {
+  flex: 1 0 auto;
+}
+
+.site-footer {
+  position: relative;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, var(--footer-bg) 0%, var(--footer-bg-deep) 100%);
+  color: var(--footer-fg);
+  padding: 0.85rem 1rem;
+  /* Keeps the version clear of the iPhone home indicator and of the notch
+     when a phone is held sideways, without padding every other device. */
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+
+/* Hairline that fades out at both ends, so the footer meets the white page
+   with an edge rather than a hard block. */
+.site-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--footer-rule) 18%,
+    var(--footer-rule) 82%,
+    transparent 100%
+  );
+}
+
+/* Deliberately unconstrained: the version is anchored to the viewport wall at
+   every width, so no centred max-width column here — on a wide monitor that
+   would push it hundreds of pixels inboard. */
+.site-footer__inner {
+  display: flex;
+  align-items: center;
+}
+
+.site-footer__version {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  color: var(--footer-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The "v" carries the emphasis; the digits stay plain so they keep the
+   tabular width and don't jump when a version segment rolls over. */
+.site-footer__v {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--footer-fg);
+  padding-right: 0.06em;
+}
+
+/* 404.html carries its own copy of these rules inline — GitHub Pages serves it
+   for a miss at any path depth, where a relative stylesheet link would break.
+   Change the footer here and mirror it there. */
+
+@media (max-width: 480px) {
+  /* Tighter to the wall on phones. The max() calls are repeated rather than
+     inherited so the safe-area floors still apply inside this breakpoint. */
+  .site-footer {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+}

@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://chaos-961.github.io/adrianojewelry-website/sitemap.xml

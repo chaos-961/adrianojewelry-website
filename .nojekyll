@@ -1,3 +1,0 @@
-This file switches off Jekyll processing on GitHub Pages.
-Without it, Pages ignores any file or folder whose name starts with an
-underscore and tries to parse Liquid tags inside HTML.
