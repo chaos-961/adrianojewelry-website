@@ -1,16 +1,32 @@
 /* Adriano Jewelry — base stylesheet
-   Shared shell for every page: white canvas, gray footer pinned to the bottom. */
+   Shared shell for every page: dark speckled-stone ground, slim footer.
+
+   The stone is generated, not photographed: two layers of SVG fractal noise
+   (dark mottling + bright mineral flecks) carried in a data URI. It tiles
+   seamlessly thanks to stitchTiles, so none of the grid lines or grout seams
+   from the reference photo appear. Because the texture is transparent, page
+   and footer share one image and differ only in the colour behind it. */
 
 :root {
-  --page-bg: #ffffff;
-  --page-fg: #1a1a1a;
-  --footer-bg: #3c3c3c;
-  --footer-bg-deep: #333333;
-  --footer-fg: #d6d6d6;
-  --footer-muted: #9d9d9d;
-  --footer-rule: rgba(255, 255, 255, 0.09);
+  --stone-page: #232527;
+  --stone-footer: #141517;
+  --page-fg: #e6e4e1;
+  --page-muted: #a2a09d;
+  --footer-fg: #cfcdc9;
+  --footer-muted: #8d8b88;
+  --footer-rule: rgba(255, 255, 255, 0.11);
+  --accent: #c8a97a;
+  --accent-dim: rgba(200, 169, 122, 0.38);
   --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Layer 1 dark mottling, layer 2 bright flecks. Both stitch at the tile edge. */
+  --stone-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='5' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.72 0 0 0 -0.30'/%3E%3C/filter%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.05' numOctaves='4' seed='17' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.45 0 0 0 -0.76'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23m)'/%3E%3Crect width='320' height='320' filter='url(%23f)'/%3E%3C/svg%3E");
+
+  /* A second, much coarser pass. Tiling at a different size breaks up the
+     320px repeat so large screens don't show an obvious checkerboard. */
+  --stone-mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='960'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' seed='29' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0 0 0 -0.26'/%3E%3C/filter%3E%3Crect width='960' height='960' filter='url(%23c)'/%3E%3C/svg%3E");
 }
 
 *,
@@ -23,6 +39,8 @@ html {
   height: 100%;
   /* Stop iOS from inflating type when a phone is rotated to landscape. */
   -webkit-text-size-adjust: 100%;
+  /* Matches scrollbars and form controls to the dark ground. */
+  color-scheme: dark;
 }
 
 body {
@@ -33,7 +51,10 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--page-bg);
+  background-color: var(--stone-page);
+  background-image: var(--stone-mottle), var(--stone-grain);
+  background-size: 960px 960px, 320px 320px;
+  background-repeat: repeat, repeat;
   color: var(--page-fg);
   font-family: var(--font-body);
   font-size: 16px;
@@ -46,10 +67,15 @@ body {
   flex: 1 0 auto;
 }
 
+/* --- Footer --- */
+
 .site-footer {
   position: relative;
   flex-shrink: 0;
-  background: linear-gradient(180deg, var(--footer-bg) 0%, var(--footer-bg-deep) 100%);
+  /* Same stone, darker ground: matches the page but reads as its own band. */
+  background-color: var(--stone-footer);
+  background-image: var(--stone-grain);
+  background-size: 320px 320px;
   color: var(--footer-fg);
   padding: 0.85rem 1rem;
   /* Keeps the version clear of the iPhone home indicator and of the notch
@@ -59,8 +85,8 @@ body {
   padding-left: max(1rem, env(safe-area-inset-left));
 }
 
-/* Hairline that fades out at both ends, so the footer meets the white page
-   with an edge rather than a hard block. */
+/* Hairline that fades out at both ends, so the footer meets the page with an
+   edge rather than a hard block. */
 .site-footer::before {
   content: "";
   position: absolute;
@@ -104,7 +130,7 @@ body {
 
 /* 404.html carries its own copy of these rules inline — GitHub Pages serves it
    for a miss at any path depth, where a relative stylesheet link would break.
-   Change the footer here and mirror it there. */
+   Change the footer or the stone here and mirror it there. */
 
 @media (max-width: 480px) {
   /* Tighter to the wall on phones. The max() calls are repeated rather than
@@ -112,5 +138,14 @@ body {
   .site-footer {
     padding-right: max(0.75rem, env(safe-area-inset-right));
     padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

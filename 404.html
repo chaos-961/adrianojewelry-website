@@ -2,12 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve on iOS. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Page not found — Adriano Jewelry</title>
     <!-- Styles are inlined: GitHub Pages serves this file for a miss at any
          path depth, so a relative stylesheet link would not resolve.
-         Keep in sync with assets/css/site.css. -->
+         Keep the stone and footer rules in sync with assets/css/site.css. -->
     <style>
+      :root {
+        --stone-page: #232527;
+        --stone-footer: #141517;
+        --page-fg: #e6e4e1;
+        --page-muted: #a2a09d;
+        --footer-fg: #cfcdc9;
+        --footer-muted: #8d8b88;
+        --footer-rule: rgba(255, 255, 255, 0.11);
+        --accent: #c8a97a;
+        --accent-dim: rgba(200, 169, 122, 0.38);
+        --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        --font-display: Georgia, "Times New Roman", serif;
+        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --stone-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='5' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.72 0 0 0 -0.30'/%3E%3C/filter%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.05' numOctaves='4' seed='17' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.45 0 0 0 -0.76'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23m)'/%3E%3Crect width='320' height='320' filter='url(%23f)'/%3E%3C/svg%3E");
+        --stone-mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='960'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' seed='29' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0 0 0 -0.26'/%3E%3C/filter%3E%3Crect width='960' height='960' filter='url(%23c)'/%3E%3C/svg%3E");
+      }
+
       *,
       *::before,
       *::after { box-sizing: border-box; }
@@ -15,6 +33,7 @@
       html {
         height: 100%;
         -webkit-text-size-adjust: 100%;
+        color-scheme: dark;
       }
 
       body {
@@ -23,9 +42,12 @@
         min-height: 100dvh;
         display: flex;
         flex-direction: column;
-        background: #ffffff;
-        color: #1a1a1a;
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background-color: var(--stone-page);
+        background-image: var(--stone-mottle), var(--stone-grain);
+        background-size: 960px 960px, 320px 320px;
+        background-repeat: repeat, repeat;
+        color: var(--page-fg);
+        font-family: var(--font-body);
         font-size: 16px;
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
@@ -34,31 +56,125 @@
       .page {
         flex: 1 0 auto;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        padding: clamp(2rem, 8vw, 3rem) 1.25rem;
+        padding: clamp(2.5rem, 9vw, 5rem) 1.25rem;
+      }
+
+      .notfound {
+        width: 100%;
+        max-width: 34rem;
         text-align: center;
       }
 
       .notfound__code {
         margin: 0;
-        font-size: clamp(2.75rem, 12vw, 4rem);
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        line-height: 1;
+        font-family: var(--font-display);
+        /* Scales with the viewport instead of overflowing a 320px phone. */
+        font-size: clamp(4rem, 19vw, 8.5rem);
+        font-weight: 400;
+        line-height: 0.9;
+        letter-spacing: 0.02em;
+        color: var(--accent);
       }
 
-      .notfound__message { margin: 0; color: #555555; }
+      /* Brushed-metal sheen across the numerals. Gated on support, because
+         `color: transparent` without a working text clip renders nothing at
+         all — the flat accent above stays the fallback. */
+      @supports (-webkit-background-clip: text) or (background-clip: text) {
+        .notfound__code {
+          color: transparent;
+          background-image: linear-gradient(
+            170deg,
+            #f2ede4 0%,
+            var(--accent) 38%,
+            #8d7448 62%,
+            #e8dfd0 100%
+          );
+          -webkit-background-clip: text;
+          background-clip: text;
+        }
+      }
 
-      .notfound__home { margin-top: 1rem; }
+      /* A short rule under the numerals, echoing the footer hairline. */
+      .notfound__rule {
+        width: 3.5rem;
+        height: 1px;
+        margin: clamp(1.25rem, 4vw, 1.75rem) auto;
+        border: 0;
+        background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+      }
+
+      .notfound__title {
+        margin: 0 0 0.6rem;
+        font-family: var(--font-display);
+        font-size: clamp(1.25rem, 4.5vw, 1.6rem);
+        font-weight: 400;
+        letter-spacing: 0.03em;
+        color: var(--page-fg);
+      }
+
+      .notfound__message {
+        margin: 0 auto;
+        max-width: 26rem;
+        color: var(--page-muted);
+        font-size: 0.95rem;
+      }
+
+      .notfound__home {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        /* 48px floor keeps it a comfortable tap target on a phone. */
+        min-height: 48px;
+        margin-top: clamp(1.75rem, 5vw, 2.5rem);
+        padding: 0.7rem 1.6rem;
+        border: 1px solid var(--accent-dim);
+        border-radius: 999px;
+        color: var(--accent);
+        font-size: 0.8rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.02);
+        transition: border-color 0.25s ease, background-color 0.25s ease,
+          color 0.25s ease;
+      }
+
+      .notfound__home:hover,
+      .notfound__home:focus-visible {
+        border-color: var(--accent);
+        background: rgba(200, 169, 122, 0.09);
+        color: #e3cfa8;
+      }
+
+      .notfound__home:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .notfound__home:active {
+        transform: translateY(1px);
+      }
+
+      /* The arrow slides on hover; it is decorative, so it is hidden from
+         assistive tech rather than read out as a character. */
+      .notfound__arrow {
+        transition: transform 0.25s ease;
+      }
+
+      .notfound__home:hover .notfound__arrow {
+        transform: translateX(-3px);
+      }
 
       .site-footer {
         position: relative;
         flex-shrink: 0;
-        background: linear-gradient(180deg, #3c3c3c 0%, #333333 100%);
-        color: #d6d6d6;
+        background-color: var(--stone-footer);
+        background-image: var(--stone-grain);
+        background-size: 320px 320px;
+        color: var(--footer-fg);
         padding: 0.85rem 1rem;
         padding-right: max(1rem, env(safe-area-inset-right));
         padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
@@ -73,8 +189,8 @@
         background: linear-gradient(
           90deg,
           transparent 0%,
-          rgba(255, 255, 255, 0.09) 18%,
-          rgba(255, 255, 255, 0.09) 82%,
+          var(--footer-rule) 18%,
+          var(--footer-rule) 82%,
           transparent 100%
         );
       }
@@ -86,18 +202,18 @@
 
       .site-footer__version {
         margin: 0;
-        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        font-family: var(--font-mono);
         font-size: 0.75rem;
         font-weight: 500;
         letter-spacing: 0.11em;
-        color: #9d9d9d;
+        color: var(--footer-muted);
         font-variant-numeric: tabular-nums;
       }
 
       .site-footer__v {
         font-style: italic;
         font-weight: 700;
-        color: #d6d6d6;
+        color: var(--footer-fg);
         padding-right: 0.06em;
       }
 
@@ -107,18 +223,36 @@
           padding-left: max(0.75rem, env(safe-area-inset-left));
         }
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
     </style>
   </head>
   <body>
     <main class="page">
-      <p class="notfound__code">404</p>
-      <p class="notfound__message">This page doesn't exist.</p>
-      <p class="notfound__home"><a id="home-link" href="/">Back to the home page</a></p>
+      <div class="notfound">
+        <p class="notfound__code">404</p>
+        <hr class="notfound__rule" />
+        <h1 class="notfound__title">This page doesn't exist</h1>
+        <p class="notfound__message">
+          The link may be out of date, or the address mistyped.
+        </p>
+        <a class="notfound__home" id="home-link" href="/">
+          <span class="notfound__arrow" aria-hidden="true">&#8592;</span>
+          Return to the site
+        </a>
+      </div>
     </main>
 
     <footer class="site-footer">
       <div class="site-footer__inner">
-        <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.2</p>
+        <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.3</p>
       </div>
     </footer>
 
