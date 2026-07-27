@@ -16,7 +16,11 @@
  *     <!-- @partial top -->   ...generated...   <!-- @end top -->
  *
  * Everything between the markers is replaced wholesale, so never hand-edit it.
- * The markers themselves are the contract; a page missing one is reported.
+ * A page opts in to the regions it wants, which is how one page can take a
+ * different variant of the same slot — the contact page declares top-return
+ * (a way back) where every other page declares top (a way to contact). What is
+ * checked is that each page fills every slot in REQUIRED with one variant, so
+ * a page cannot silently ship with no footer or no header.
  *
  * URLs are extensionless: every page except the home page and 404 lives at
  * <slug>/index.html, so it is served at /<slug>/ with no .html anywhere. A
@@ -40,6 +44,14 @@ const VERSION_FILE = path.join(ROOT, "VERSION");
  * These pages get root-absolute hrefs plus the data-root-link marker that their
  * inline script rewrites for a github.io project page. */
 const DEPTH_AGNOSTIC = new Set(["404.html"]);
+
+/* Every page must fill each of these slots with exactly one of the variants
+   listed. Catches a page that lost its footer, or a marker typo that would
+   otherwise just leave the region empty. */
+const REQUIRED = [
+  { slot: "header", variants: ["top", "top-return"] },
+  { slot: "footer", variants: ["footer"] },
+];
 
 /* Not pages, and not worth walking. */
 const SKIP_DIRS = new Set([
@@ -130,14 +142,28 @@ function stamp(page, source, partials, version) {
   const self = depthAgnostic ? null : `${root}${selfHref(page)}`;
   let out = source;
 
-  for (const [name, body] of Object.entries(partials)) {
+  // The page decides which regions it has; the build fills what it declares.
+  const declared = [...source.matchAll(/<!-- @partial ([a-z][a-z0-9-]*) -->/g)]
+    .map((m) => m[1]);
+
+  for (const { slot, variants } of REQUIRED) {
+    const filled = variants.filter((v) => declared.includes(v));
+    if (filled.length === 0) {
+      warnings.push(`${page}: no ${slot} region (expected one of ${variants.join(", ")})`);
+    } else if (filled.length > 1) {
+      warnings.push(`${page}: ${filled.length} ${slot} regions (${filled.join(", ")})`);
+    }
+  }
+
+  for (const name of declared) {
+    const body = partials[name];
+    if (body === undefined) {
+      warnings.push(`${page}: declares "${name}", but partials/${name}.html does not exist`);
+      continue;
+    }
     const marker = new RegExp(
       `([ \\t]*)<!-- @partial ${name} -->[\\s\\S]*?<!-- @end ${name} -->`
     );
-    if (!marker.test(out)) {
-      warnings.push(`${page}: no "${name}" region`);
-      continue;
-    }
     out = out.replace(marker, (_match, pad) => {
       let block = body
         .replace(/\{\{version\}\}/g, version)

@@ -43,13 +43,25 @@
      compensates for it with an equal text-indent — see .u-caps below. */
   --caps-track: 0.15em;
 
-  /* The optical nudge that centres all-caps text in a pill. Derived, not
-     guessed: with `align-items: center` the browser centres the *line box*,
-     which reserves descender depth below the baseline. All-caps text has no
-     descenders, so its ink sits high inside that box by half the descender.
-     Jost's descender is 0.2145em of its 1em body, so the ink is 0.107em high
-     and this pushes it back down. Measured at 1.07px for a 10.6px label. */
-  --caps-drop: 0.107em;
+  /* How far all-caps text must move DOWN to sit optically centred in a pill,
+     as a fraction of its own size. Measured by rasterising Jost at 200px and
+     reading the ink rows, not from the metrics API — at 11px that API reports a
+     cap height of 0.80em, which is rounding noise; the true value is 0.735em,
+     with ascent 1.07em and descent 0.375em. In a line box the baseline lands at
+     (lineHeight + ascent - descent) / 2 from the top, so caps — which have no
+     descenders to fill the space reserved below the baseline — centre at 0.48
+     of the box rather than 0.5. Geometry therefore asks for 0.02em; this is set
+     a shade beyond that, because all-caps in a tall pill reads high to the eye
+     at the mathematical centre. It is the one knob: raise it to sit lower.
+
+     Applied as `+drop` on padding-top and `-drop` on padding-bottom, never as
+     padding-top alone. `align-items: center` centres the *content* box, so a
+     one-sided pad delivers only half its value as movement, and the pill would
+     also grow. Splitting it keeps the height identical and lands the full
+     shift. Each pill spells this out in its own padding, because a shorthand
+     `padding` in the component would silently overwrite a `padding-top` set
+     here — which is exactly the bug this replaced. */
+  --caps-drop: 0.03em;
 
   --font-body: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
@@ -85,6 +97,9 @@ html {
   -webkit-text-size-adjust: 100%;
   /* Matches scrollbars and form controls to the dark ground. */
   color-scheme: dark;
+  /* Owns the base colour so it fills the canvas, including the area revealed
+     by an overscroll bounce. */
+  background-color: var(--ground-page);
 }
 
 body {
@@ -95,18 +110,39 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background-color: var(--ground-page);
-  /* Sheen sits over the lattice; it is sized to the viewport so the light
-     pools once across the page rather than repeating with the tile. */
-  background-image: var(--sheen), var(--damask);
-  background-size: cover, cover, 68px 68px;
-  background-repeat: no-repeat, no-repeat, repeat;
   color: var(--page-fg);
   font-family: var(--font-body);
   font-size: 16px;
   font-weight: 300;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* The ground is painted by its own fixed layer rather than by the body's
+   background, and that is not decoration — it is the fix for a visible seam.
+
+   A background set on <body> propagates to the canvas and paints over the
+   whole page, but it is still *sized* against the root element's box. <html>
+   here is exactly one viewport tall, so `cover` sized the sheen to one
+   viewport and `no-repeat` left everything below it unpainted: every page
+   longer than the screen had a hard horizontal edge at 100vh where the sheen
+   stopped and the flat base colour took over. It read as two different shades
+   of background on one page.
+
+   Pinned to the viewport instead, the sheen cannot seam at any page length,
+   and the lattice reads as a surface the content moves over. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--ground-page);
+  /* Sheen over the lattice: the light pools once across the viewport rather
+     than repeating with the tile. */
+  background-image: var(--sheen), var(--damask);
+  background-size: cover, cover, 68px 68px;
+  background-repeat: no-repeat, no-repeat, repeat;
+  pointer-events: none;
 }
 
 /* Main grows so the footer always sits at the bottom, even on an empty page.
@@ -117,23 +153,20 @@ body {
   flex-direction: column;
 }
 
-/* --- All-caps pill labels ---
-   Two corrections that every tracked pill on the site needs, kept in one place
-   so a new button cannot be added without them.
+/* --- All-caps labels ---
+   The horizontal half of the correction, plus the tracking itself. Letter-
+   spacing is applied to the right of every glyph including the last, so a
+   centred label sits left of true centre by half the tracking; an equal
+   text-indent widens the line by the same amount on the left and the glyphs
+   land dead centre.
 
-   Horizontal: letter-spacing is applied to the right of every glyph including
-   the last, so a centred label sits left of true centre by half the tracking.
-   An equal text-indent widens the line by the same amount on the left, and the
-   glyphs land dead centre.
-
-   Vertical: see --caps-drop. `line-height: 1` first, so the correction is
-   applied to a predictable box rather than to inherited 1.5 leading. */
+   The vertical half lives in each pill's padding — see --caps-drop for why it
+   cannot live here. */
 .u-caps {
   letter-spacing: var(--caps-track);
-  text-indent: var(--caps-track);
   text-transform: uppercase;
+  text-indent: var(--caps-track);
   line-height: 1;
-  padding-top: var(--caps-drop);
 }
 
 /* --- Contact button, top right of main --- */
@@ -151,9 +184,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Separates the arrow from the label on the return variant; no effect on the
+     plain one, which has a single child. */
+  gap: 0.5rem;
   /* 44px floor: a full tap target on a phone. */
   min-height: 44px;
-  padding: 0.5rem clamp(1rem, 3.5vw, 1.45rem);
+  padding: calc(0.5rem + var(--caps-drop)) clamp(1rem, 3.5vw, 1.45rem)
+    calc(0.5rem - var(--caps-drop));
   border: 1px solid var(--gold-dim);
   border-radius: 999px;
   color: var(--gold);
@@ -178,11 +215,28 @@ body {
   transform: translateY(1px);
 }
 
-/* Marks the contact page you are already on. */
-.page-contact[aria-current="page"] {
-  border-color: var(--gold);
-  color: var(--gold-strong);
-  background: rgba(242, 207, 133, 0.13);
+/* The contact page has no use for a button pointing at itself, so it takes the
+   way back instead — see partials/top-return.html. Quieter than the contact
+   call to action it replaces: on that page the content is the destination, and
+   this is just the exit. */
+.page-contact--back {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.page-contact--back:hover,
+.page-contact--back:focus-visible {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* The arrow is decorative and sits outside the label, so it must not inherit
+   the label's tracking indent. */
+.page-contact--back [aria-hidden] {
+  text-indent: 0;
 }
 
 /* --- Legal / prose pages ---
@@ -202,7 +256,7 @@ body {
 
 .legal__head {
   text-align: center;
-  margin-bottom: clamp(2.25rem, 6vw, 3.5rem);
+  margin-bottom: clamp(1.5rem, 4vw, 2.25rem);
 }
 
 /* The store name doubles as the way home — a full nav bar would be more chrome
@@ -216,13 +270,16 @@ body {
   justify-content: center;
   min-height: 44px;
   margin: 0;
-  padding: 0.35rem 0.15rem;
+  padding: calc(0.35rem + var(--caps-drop)) 0.15rem calc(0.35rem - var(--caps-drop));
   color: var(--page-muted);
   font-size: 0.68rem;
   font-weight: 400;
   letter-spacing: 0.34em;
   /* Same trailing-space correction as .u-caps, at this element's tracking. */
   text-indent: 0.34em;
+  /* And the same predictable line box, so --caps-drop lands here exactly as it
+     does on every other capitalised label. */
+  line-height: 1;
   text-transform: uppercase;
   text-decoration: none;
   transition: color 0.25s ease;
@@ -254,6 +311,14 @@ a.legal__eyebrow:focus-visible {
   margin: clamp(1.15rem, 4vw, 1.6rem) auto;
   border: 0;
   background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+/* On a page with no dated line under it, the rule ends the header — and its
+   own bottom margin then stacks on top of the header's, opening a gap half
+   again as large as on the pages that do have one. Dropping it here keeps the
+   space below the rule identical either way. */
+.legal__head > .legal__rule:last-child {
+  margin-bottom: 0;
 }
 
 .legal__updated {
@@ -389,7 +454,7 @@ a.legal__eyebrow:focus-visible {
   margin-top: clamp(2.25rem, 6vw, 3rem);
   /* The caps drop goes on the pill, not on the label: the arrow beside it must
      move by the same amount or the two stop sharing a baseline. */
-  padding: calc(0.7rem + var(--caps-drop)) 1.6rem 0.7rem;
+  padding: calc(0.7rem + var(--caps-drop)) 1.6rem calc(0.7rem - var(--caps-drop));
   border: 1px solid var(--accent-dim);
   border-radius: 999px;
   color: var(--accent);
@@ -400,10 +465,10 @@ a.legal__eyebrow:focus-visible {
     color 0.25s ease;
 }
 
-/* The pill above already carries the vertical drop for both children, so the
-   label only needs the horizontal half of the correction. */
-.legal__home .u-caps {
-  padding-top: 0;
+/* The arrow is decorative and sits outside the label, so it must not inherit
+   the label's tracking indent. */
+.legal__home [aria-hidden] {
+  text-indent: 0;
 }
 
 .legal__home:hover,
@@ -421,7 +486,7 @@ a.legal__eyebrow:focus-visible {
 
 .contact {
   width: 100%;
-  max-width: 52rem;
+  max-width: 56rem;
   margin: 0 auto;
   padding: clamp(1.5rem, 5vw, 3rem) clamp(1.15rem, 5vw, 2rem)
     clamp(3rem, 9vw, 6rem);
@@ -438,19 +503,31 @@ a.legal__eyebrow:focus-visible {
   text-align: center;
 }
 
-/* auto-fit means one column on a phone and two or three on a wider screen,
-   with no breakpoint to keep in sync. The 15rem floor is the narrowest a card
-   can get before the address starts breaking awkwardly. */
+/* Three cards, so this is explicitly one column or three — never auto-fit.
+   auto-fit would pass through a two-column stage on a tablet and leave the
+   third card stranded on a row of its own. */
 .contact__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  grid-template-columns: 1fr;
   gap: clamp(0.9rem, 2.5vw, 1.25rem);
+}
+
+/* 56em is the point where three columns leave the address comfortable room to
+   sit on one line — measured against "Boston, Massachusetts 02108", the widest
+   thing in any card, with slack for the fallback face if the webfont never
+   arrives. Below it they go to a single column rather than getting narrower. */
+@media (min-width: 56em) {
+  .contact__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .contact__card {
   display: flex;
   flex-direction: column;
-  padding: clamp(1.35rem, 4vw, 1.85rem);
+  /* Capped tighter than the page gutters: at three across, a 4vw pad would eat
+     the width the address needs. */
+  padding: clamp(1.25rem, 3vw, 1.75rem);
   border: 1px solid var(--footer-rule);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.22);
@@ -543,7 +620,7 @@ a.legal__eyebrow:focus-visible {
   justify-content: center;
   gap: 0.5rem;
   min-height: 44px;
-  padding: 0.5rem 1.15rem;
+  padding: calc(0.5rem + var(--caps-drop)) 1.15rem calc(0.5rem - var(--caps-drop));
   border: 1px solid var(--gold-dim);
   border-radius: 999px;
   color: var(--gold);
@@ -564,6 +641,66 @@ a.legal__eyebrow:focus-visible {
 
 .contact__action:active {
   transform: translateY(1px);
+}
+
+/* --- Map ---
+   The shop's actual corner of Boston, framed to match the cards above it. The
+   iframe is lazy so it costs nothing until it scrolls into view, and it is
+   only lightly desaturated — enough to stop a white map glaring out of a
+   near-black page, not enough to alter the map or dim its attribution. */
+
+.contact__map {
+  margin-top: clamp(0.9rem, 2.5vw, 1.25rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  /* Clips the iframe's square corners to the frame's radius. */
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.22);
+  /* Its own stacking context, so the frame's rounding is not painted over by
+     the iframe on WebKit. */
+  isolation: isolate;
+}
+
+.contact__map iframe {
+  display: block;
+  width: 100%;
+  /* Grows with the viewport and stays a sensible letterbox at both ends: a
+     fixed height would be a slot on a phone and a stripe on a wide monitor. */
+  height: clamp(16rem, 42vw, 26rem);
+  border: 0;
+  filter: grayscale(0.3) brightness(0.95);
+}
+
+/* --- Find us --- */
+
+.contact__find {
+  margin-top: clamp(1.75rem, 4.5vw, 2.5rem);
+  text-align: center;
+}
+
+.contact__find-title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4.4vw, 1.65rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.015em;
+  color: var(--page-fg);
+}
+
+.contact__find p {
+  margin: 0 auto;
+  max-width: 30rem;
+  color: var(--page-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+/* The auto margin above is for pushing actions to the foot of a flex card;
+   outside one it would collapse the gap, so restate it. */
+.contact__find .contact__actions {
+  margin-top: 0;
+  padding-top: 1.1rem;
 }
 
 .contact__action svg {
@@ -736,7 +873,8 @@ a.legal__eyebrow:focus-visible {
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0.5rem clamp(0.9rem, 3.5vw, 1.35rem);
+  padding: calc(0.5rem + var(--caps-drop)) clamp(0.9rem, 3.5vw, 1.35rem)
+    calc(0.5rem - var(--caps-drop));
   border: 1px solid var(--gold-dim);
   border-radius: 999px;
   color: var(--gold);

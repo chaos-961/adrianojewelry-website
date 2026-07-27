@@ -32,7 +32,7 @@
         --caps-track: 0.15em;
         /* See site.css: cancels the descender space that pushes all-caps text
            high inside a flex-centred pill. */
-        --caps-drop: 0.107em;
+        --caps-drop: 0.03em;
         --font-body: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;
         --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
         --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -59,6 +59,7 @@
         height: 100%;
         -webkit-text-size-adjust: 100%;
         color-scheme: dark;
+        background-color: var(--ground-page);
       }
 
       body {
@@ -67,16 +68,28 @@
         min-height: 100dvh;
         display: flex;
         flex-direction: column;
-        background-color: var(--ground-page);
-        background-image: var(--sheen), var(--damask);
-        background-size: cover, cover, 68px 68px;
-        background-repeat: no-repeat, no-repeat, repeat;
         color: var(--page-fg);
         font-family: var(--font-body);
         font-size: 16px;
         font-weight: 300;
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
+      }
+
+      /* Fixed ground layer, not a body background: a background on <body> is
+         sized against the root box, which is one viewport tall, so on a long
+         page the sheen stopped dead at 100vh and left a visible seam. See the
+         longer note in assets/css/site.css. */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-color: var(--ground-page);
+        background-image: var(--sheen), var(--damask);
+        background-size: cover, cover, 68px 68px;
+        background-repeat: no-repeat, no-repeat, repeat;
+        pointer-events: none;
       }
 
       .page {
@@ -89,10 +102,9 @@
          the .u-caps note in assets/css/site.css. */
       .u-caps {
         letter-spacing: var(--caps-track);
-        text-indent: var(--caps-track);
         text-transform: uppercase;
+        text-indent: var(--caps-track);
         line-height: 1;
-        padding-top: var(--caps-drop);
       }
 
       .page-top {
@@ -107,8 +119,10 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        gap: 0.5rem;
         min-height: 44px;
-        padding: 0.5rem clamp(1rem, 3.5vw, 1.45rem);
+        padding: calc(0.5rem + var(--caps-drop))
+          clamp(1rem, 3.5vw, 1.45rem) calc(0.5rem - var(--caps-drop));
         border: 1px solid var(--gold-dim);
         border-radius: 999px;
         color: var(--gold);
@@ -221,7 +235,8 @@
         margin-top: clamp(1.75rem, 5vw, 2.5rem);
         /* The caps drop goes on the pill, not the label, so the arrow beside
            it moves by the same amount. */
-        padding: calc(0.7rem + var(--caps-drop)) 1.6rem 0.7rem;
+        padding: calc(0.7rem + var(--caps-drop)) 1.6rem
+          calc(0.7rem - var(--caps-drop));
         border: 1px solid var(--accent-dim);
         border-radius: 999px;
         color: var(--accent);
@@ -230,12 +245,6 @@
         background: rgba(255, 255, 255, 0.02);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease;
-      }
-
-      /* The pill above already carries the vertical drop for both children, so
-         the label only needs the horizontal half of the correction. */
-      .notfound__home .u-caps {
-        padding-top: 0;
       }
 
       .notfound__home:hover,
@@ -391,7 +400,8 @@
         align-items: center;
         justify-content: center;
         min-height: 44px;
-        padding: 0.5rem clamp(0.9rem, 3.5vw, 1.35rem);
+        padding: calc(0.5rem + var(--caps-drop))
+          clamp(0.9rem, 3.5vw, 1.35rem) calc(0.5rem - var(--caps-drop));
         border: 1px solid var(--gold-dim);
         border-radius: 999px;
         color: var(--gold);
@@ -555,7 +565,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.7</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.8</p>
           <p class="site-footer__copy">
             Copyright &copy; 2026 Adriano Jewelry - All Rights Reserved.
           </p>
