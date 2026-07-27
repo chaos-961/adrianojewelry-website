@@ -1,40 +1,45 @@
 /* Adriano Jewelry — base stylesheet
-   Shared shell for every page: woven carbon ground, slim footer.
+   Shared shell for every page: quilted gold lattice, slim footer.
 
-   The weave is generated, not photographed: a 2x2 twill drawn as SVG and
-   carried in a data URI, so there is no image request. Each 8-unit cell gets
-   a diagonal hatch and a corner-to-corner sheen, with the hatch direction
-   alternating between cells — the same way real carbon cloth reads. The
-   hatch period divides the tile evenly, so it repeats with no seam.
+   The texture is generated, not photographed: a diamond lattice drawn as SVG
+   and carried in a data URI, so there is no image request. Two families of
+   45-degree lines, evenly spaced, cross into a field of equal diamonds — the
+   quilting on a jewelry box lining. Every line lands on the tile edge where
+   its opposite number starts, so the field repeats with no seam.
 
-   Every stroke is semi-transparent, so page and footer share one weave and
-   differ only in the colour behind it. */
+   The palette is greyscale throughout — black to white, no hue anywhere. The
+   lattice belongs to the page ground alone: the nav and footer bars stay one
+   flat grey, so they frame the patterned field instead of extending it. */
 
 :root {
-  --ground-page: #191b1d;
-  --ground-footer: #0e0f11;
-  --page-fg: #e8e6e3;
-  --page-muted: #a4a2a0;
-  --footer-fg: #d2d0cd;
-  --footer-muted: #8e8c8a;
+  --ground-page: #161616;
+  --ground-footer: #0b0b0b;
+  --page-fg: #ededed;
+  --page-muted: #a3a3a3;
+  --footer-fg: #d4d4d4;
   --footer-rule: rgba(255, 255, 255, 0.1);
-  --accent: #c8a97a;
-  --accent-dim: rgba(200, 169, 122, 0.38);
+  --accent: #d6d6d6;
+  --accent-dim: rgba(255, 255, 255, 0.34);
   --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  --weave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cdefs%3E%3Cpattern id='a' width='4' height='4' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,4 L4,0 M-1,1 L1,-1 M3,5 L5,3' stroke='%23ffffff' stroke-opacity='0.055' stroke-width='1'/%3E%3C/pattern%3E%3Cpattern id='b' width='4' height='4' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,0 L4,4 M-1,3 L1,5 M3,-1 L5,1' stroke='%23ffffff' stroke-opacity='0.055' stroke-width='1'/%3E%3C/pattern%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0.07'/%3E%3Cstop offset='0.5' stop-color='%23000000' stop-opacity='0.06'/%3E%3Cstop offset='1' stop-color='%23000000' stop-opacity='0.26'/%3E%3C/linearGradient%3E%3ClinearGradient id='d' x1='1' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0.07'/%3E%3Cstop offset='0.5' stop-color='%23000000' stop-opacity='0.06'/%3E%3Cstop offset='1' stop-color='%23000000' stop-opacity='0.26'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='0' width='8' height='8' fill='url(%23c)'/%3E%3Crect x='0' y='0' width='8' height='8' fill='url(%23a)'/%3E%3Crect x='8' y='8' width='8' height='8' fill='url(%23c)'/%3E%3Crect x='8' y='8' width='8' height='8' fill='url(%23a)'/%3E%3Crect x='8' y='0' width='8' height='8' fill='url(%23d)'/%3E%3Crect x='8' y='0' width='8' height='8' fill='url(%23b)'/%3E%3Crect x='0' y='8' width='8' height='8' fill='url(%23d)'/%3E%3Crect x='0' y='8' width='8' height='8' fill='url(%23b)'/%3E%3C/svg%3E");
+  --damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M0,0 L60,60 M30,0 L60,30 M0,30 L30,60 M60,0 L0,60 M30,0 L0,30 M60,30 L30,60' fill='none' stroke='%23ffffff' stroke-opacity='0.075' stroke-width='0.9'/%3E%3C/svg%3E");
 
-  /* A single slow pass of light across the weave, so a large empty page has
-     depth instead of reading as one flat fill. */
-  --sheen: linear-gradient(
-    157deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.012) 34%,
-    rgba(0, 0, 0, 0) 58%,
-    rgba(0, 0, 0, 0.2) 100%
-  );
+  /* A pool of light over the lattice, so a large empty page has depth instead
+     of reading as one flat fill. Sized to the viewport, not the tile. */
+  --sheen: radial-gradient(
+      120% 90% at 50% 0%,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0.02) 38%,
+      rgba(0, 0, 0, 0) 70%
+    ),
+    linear-gradient(
+      163deg,
+      rgba(255, 255, 255, 0.035) 0%,
+      rgba(0, 0, 0, 0) 46%,
+      rgba(0, 0, 0, 0.28) 100%
+    );
 }
 
 *,
@@ -60,11 +65,11 @@ body {
   display: flex;
   flex-direction: column;
   background-color: var(--ground-page);
-  /* Sheen sits over the weave; it is sized to the viewport so the sweep runs
-     once across the page rather than repeating with the tile. */
-  background-image: var(--sheen), var(--weave);
-  background-size: cover, 18px 18px;
-  background-repeat: no-repeat, repeat;
+  /* Sheen sits over the lattice; it is sized to the viewport so the light
+     pools once across the page rather than repeating with the tile. */
+  background-image: var(--sheen), var(--damask);
+  background-size: cover, cover, 68px 68px;
+  background-repeat: no-repeat, no-repeat, repeat;
   color: var(--page-fg);
   font-family: var(--font-body);
   font-size: 16px;
@@ -77,15 +82,26 @@ body {
   flex: 1 0 auto;
 }
 
+/* --- Chrome bars (nav + footer) ---
+   Both are deliberately flat: the lattice belongs to the page ground only. */
+
+.site-nav {
+  position: relative;
+  flex-shrink: 0;
+  background-color: var(--ground-footer);
+  background-image: none;
+  color: var(--footer-fg);
+}
+
 /* --- Footer --- */
 
 .site-footer {
   position: relative;
   flex-shrink: 0;
-  /* Same weave, deeper ground: matches the page but reads as its own band. */
+  /* Flat, deeper ground — no lattice. The bars stay one solid grey at every
+     size so they read as edges of the frame, not more patterned surface. */
   background-color: var(--ground-footer);
-  background-image: var(--weave);
-  background-size: 18px 18px;
+  background-image: none;
   color: var(--footer-fg);
   padding: 0.85rem 1rem;
   /* Keeps the version clear of the iPhone home indicator and of the notch
@@ -125,22 +141,23 @@ body {
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.11em;
-  color: var(--footer-muted);
+  color: var(--footer-fg);
   font-variant-numeric: tabular-nums;
 }
 
-/* The "v" carries the emphasis; the digits stay plain so they keep the
-   tabular width and don't jump when a version segment rolls over. */
+/* The "v" carries the emphasis through weight and slant alone — it shares the
+   digits' colour, and the digits stay plain so they keep the tabular width and
+   don't jump when a version segment rolls over. */
 .site-footer__v {
   font-style: italic;
   font-weight: 700;
-  color: var(--footer-fg);
+  color: inherit;
   padding-right: 0.06em;
 }
 
 /* 404.html carries its own copy of these rules inline — GitHub Pages serves it
    for a miss at any path depth, where a relative stylesheet link would break.
-   Change the weave or the footer here and mirror it there. */
+   Change the lattice or the footer here and mirror it there. */
 
 @media (max-width: 480px) {
   /* Tighter to the wall on phones. The max() calls are repeated rather than
