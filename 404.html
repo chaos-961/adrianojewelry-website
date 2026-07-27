@@ -5,9 +5,16 @@
     <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve on iOS. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Page not found — Adriano Jewelry</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
     <!-- Styles are inlined: GitHub Pages serves this file for a miss at any
          path depth, so a relative stylesheet link would not resolve.
-         Keep the lattice and footer rules in sync with assets/css/site.css. -->
+         Keep the lattice, the gold and the footer in sync with
+         assets/css/site.css. -->
     <style>
       :root {
         --ground-page: #161616;
@@ -18,8 +25,16 @@
         --footer-rule: rgba(255, 255, 255, 0.1);
         --accent: #d6d6d6;
         --accent-dim: rgba(255, 255, 255, 0.34);
-        --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
-        --font-display: Georgia, "Times New Roman", serif;
+        --gold: #f2cf85;
+        --gold-strong: #ffe7b0;
+        --gold-dim: rgba(242, 207, 133, 0.42);
+        --gold-wash: rgba(242, 207, 133, 0.06);
+        --caps-track: 0.15em;
+        /* See site.css: cancels the descender space that pushes all-caps text
+           high inside a flex-centred pill. */
+        --caps-drop: 0.107em;
+        --font-body: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
         --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
         --damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M0,0 L60,60 M30,0 L60,30 M0,30 L30,60 M60,0 L0,60 M30,0 L0,30 M60,30 L30,60' fill='none' stroke='%23ffffff' stroke-opacity='0.075' stroke-width='0.9'/%3E%3C/svg%3E");
         --sheen: radial-gradient(
@@ -59,6 +74,7 @@
         color: var(--page-fg);
         font-family: var(--font-body);
         font-size: 16px;
+        font-weight: 300;
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
       }
@@ -66,9 +82,66 @@
       .page {
         flex: 1 0 auto;
         display: flex;
+        flex-direction: column;
+      }
+
+      /* Horizontal and vertical correction for tracked all-caps labels — see
+         the .u-caps note in assets/css/site.css. */
+      .u-caps {
+        letter-spacing: var(--caps-track);
+        text-indent: var(--caps-track);
+        text-transform: uppercase;
+        line-height: 1;
+        padding-top: var(--caps-drop);
+      }
+
+      .page-top {
+        display: flex;
+        justify-content: flex-end;
+        padding: clamp(1rem, 3.5vw, 1.75rem)
+          max(1rem, env(safe-area-inset-right)) 0
+          max(1rem, env(safe-area-inset-left));
+      }
+
+      .page-contact {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: clamp(2.5rem, 9vw, 5rem) 1.25rem;
+        min-height: 44px;
+        padding: 0.5rem clamp(1rem, 3.5vw, 1.45rem);
+        border: 1px solid var(--gold-dim);
+        border-radius: 999px;
+        color: var(--gold);
+        font-size: clamp(0.68rem, 2.5vw, 0.74rem);
+        font-weight: 400;
+        text-decoration: none;
+        white-space: nowrap;
+        background: var(--gold-wash);
+        transition: border-color 0.25s ease, background-color 0.25s ease,
+          color 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .page-contact:hover,
+      .page-contact:focus-visible {
+        border-color: var(--gold);
+        background: rgba(242, 207, 133, 0.15);
+        color: var(--gold-strong);
+        box-shadow: 0 0 0 1px rgba(242, 207, 133, 0.14);
+      }
+
+      .page-contact:active {
+        transform: translateY(1px);
+      }
+
+      /* Takes the space the contact bar leaves and centres the 404 in it, so
+         the numerals stay optically centred rather than pushed down by the
+         bar's height. */
+      .page__center {
+        flex: 1 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(2rem, 7vw, 4rem) 1.25rem clamp(2.5rem, 9vw, 5rem);
       }
 
       .notfound {
@@ -79,7 +152,7 @@
 
       .notfound__code {
         margin: 0;
-        /* Georgia is the display face everywhere else, but it sets old-style
+        /* Cormorant is the display face everywhere else, but it sets old-style
            figures: its 0 sits at x-height while the 4s drop below the
            baseline, so "404" reads as a low-high-low stagger. Times keeps all
            three numerals on one lining height; lining-nums is the belt and
@@ -125,7 +198,7 @@
       .notfound__title {
         margin: 0 0 0.6rem;
         font-family: var(--font-display);
-        font-size: clamp(1.25rem, 4.5vw, 1.6rem);
+        font-size: clamp(1.45rem, 5vw, 1.9rem);
         font-weight: 400;
         letter-spacing: 0.03em;
         color: var(--page-fg);
@@ -146,17 +219,23 @@
         /* 48px floor keeps it a comfortable tap target on a phone. */
         min-height: 48px;
         margin-top: clamp(1.75rem, 5vw, 2.5rem);
-        padding: 0.7rem 1.6rem;
+        /* The caps drop goes on the pill, not the label, so the arrow beside
+           it moves by the same amount. */
+        padding: calc(0.7rem + var(--caps-drop)) 1.6rem 0.7rem;
         border: 1px solid var(--accent-dim);
         border-radius: 999px;
         color: var(--accent);
         font-size: 0.8rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
         text-decoration: none;
         background: rgba(255, 255, 255, 0.02);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease;
+      }
+
+      /* The pill above already carries the vertical drop for both children, so
+         the label only needs the horizontal half of the correction. */
+      .notfound__home .u-caps {
+        padding-top: 0;
       }
 
       .notfound__home:hover,
@@ -164,11 +243,6 @@
         border-color: var(--accent);
         background: rgba(255, 255, 255, 0.09);
         color: #ffffff;
-      }
-
-      .notfound__home:focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 3px;
       }
 
       .notfound__home:active {
@@ -183,6 +257,11 @@
 
       .notfound__home:hover .notfound__arrow {
         transform: translateX(-3px);
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 3px;
       }
 
       /* Flat, deeper ground — no lattice. The chrome bars stay one solid grey
@@ -201,10 +280,13 @@
         background-color: var(--ground-footer);
         background-image: none;
         color: var(--footer-fg);
-        padding: 0.85rem 1rem;
-        padding-right: max(1rem, env(safe-area-inset-right));
-        padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
-        padding-left: max(1rem, env(safe-area-inset-left));
+        /* Open at the top, tight at the bottom and the walls, so the version
+           sits into the corner. The bottom still clears the iPhone home
+           indicator when there is one. */
+        padding: clamp(1.5rem, 4vw, 2rem)
+          max(0.85rem, env(safe-area-inset-right))
+          max(0.7rem, env(safe-area-inset-bottom))
+          max(0.85rem, env(safe-area-inset-left));
       }
 
       .site-footer::before {
@@ -221,12 +303,141 @@
         );
       }
 
+      /* Rows spaced with margins, not one grid gap: the meta line is a
+         footnote to the blocks above and sits tighter to them. */
       .site-footer__inner {
+        display: grid;
+        justify-items: center;
+        text-align: center;
+      }
+
+      .site-social {
         display: flex;
         align-items: center;
+        justify-content: center;
+        /* One value for the whole cluster, so disc-to-disc matches
+           disc-to-rule exactly. */
+        gap: var(--social-gap, 0.75rem);
+        width: 100%;
+        max-width: 22rem;
+      }
+
+      .site-social__rule {
+        flex: 1 1 0;
+        max-width: 5rem;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--gold-dim));
+      }
+
+      .site-social__rule:last-child {
+        background: linear-gradient(90deg, var(--gold-dim), transparent);
+      }
+
+      .site-social__links {
+        display: flex;
+        gap: var(--social-gap, 0.75rem);
+      }
+
+      .site-social__link {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--gold-dim);
+        border-radius: 50%;
+        color: var(--gold);
+        background: var(--gold-wash);
+        transition: border-color 0.25s ease, background-color 0.25s ease,
+          color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+      }
+
+      .site-social__link svg {
+        width: 15px;
+        height: 15px;
+        fill: currentColor;
+        transition: transform 0.25s ease;
+      }
+
+      .site-social__link:hover,
+      .site-social__link:focus-visible {
+        border-color: var(--gold);
+        background: rgba(242, 207, 133, 0.15);
+        color: var(--gold-strong);
+        box-shadow: 0 0 0 1px rgba(242, 207, 133, 0.18),
+          0 4px 18px rgba(242, 207, 133, 0.16);
+      }
+
+      .site-social__link:hover svg,
+      .site-social__link:focus-visible svg {
+        transform: scale(1.08);
+      }
+
+      .site-social__link:active {
+        transform: translateY(1px);
+      }
+
+      .site-footer__nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.6rem 0.75rem;
+        margin-top: clamp(1.05rem, 3vw, 1.4rem);
+      }
+
+      .site-footer__link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0.5rem clamp(0.9rem, 3.5vw, 1.35rem);
+        border: 1px solid var(--gold-dim);
+        border-radius: 999px;
+        color: var(--gold);
+        font-size: clamp(0.66rem, 2.4vw, 0.72rem);
+        font-weight: 400;
+        text-decoration: none;
+        white-space: nowrap;
+        background: var(--gold-wash);
+        transition: border-color 0.25s ease, background-color 0.25s ease,
+          color 0.25s ease;
+      }
+
+      .site-footer__link:hover,
+      .site-footer__link:focus-visible {
+        border-color: var(--gold);
+        background: rgba(242, 207, 133, 0.15);
+        color: var(--gold-strong);
+      }
+
+      .site-footer__link:active {
+        transform: translateY(1px);
+      }
+
+      /* Three columns, the outer two equal and flexible with only the left one
+         filled — the empty right column is what holds the copyright on the
+         footer's true centre line rather than centring it in the space the
+         version leaves over. */
+      .site-footer__meta {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 0.6rem 1rem;
+        width: 100%;
+        margin-top: clamp(0.95rem, 2.5vw, 1.2rem);
+      }
+
+      .site-footer__copy {
+        margin: 0;
+        color: var(--page-muted);
+        font-size: clamp(0.7rem, 2.5vw, 0.78rem);
+        letter-spacing: 0.045em;
+        text-align: center;
       }
 
       .site-footer__version {
+        justify-self: start;
         margin: 0;
         font-family: var(--font-mono);
         font-size: 0.75rem;
@@ -245,8 +456,26 @@
 
       @media (max-width: 480px) {
         .site-footer {
+          padding-right: max(0.7rem, env(safe-area-inset-right));
+          padding-left: max(0.7rem, env(safe-area-inset-left));
+        }
+
+        .page-top {
           padding-right: max(0.75rem, env(safe-area-inset-right));
           padding-left: max(0.75rem, env(safe-area-inset-left));
+        }
+      }
+
+      /* Too narrow for the copyright to be centred on the page with the version
+         beside it — it drops to its own line and the version keeps the wall. */
+      @media (max-width: 30em) {
+        .site-footer__meta {
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+        }
+
+        .site-footer__copy {
+          order: -1;
         }
       }
 
@@ -262,32 +491,93 @@
   </head>
   <body>
     <main class="page">
-      <div class="notfound">
-        <p class="notfound__code">404</p>
-        <hr class="notfound__rule" />
-        <h1 class="notfound__title">This page doesn't exist</h1>
-        <p class="notfound__message">
-          The link may be out of date, or the address mistyped.
-        </p>
-        <a class="notfound__home" id="home-link" href="/">
-          <span class="notfound__arrow" aria-hidden="true">&#8592;</span>
-          Return to the site
-        </a>
+      <!-- @partial top -->
+      <div class="page-top">
+        <a class="page-contact u-caps" href="/contact-us/" data-root-link="contact-us/">Contact Us</a>
+      </div>
+      <!-- @end top -->
+
+      <div class="page__center">
+        <div class="notfound">
+          <p class="notfound__code">404</p>
+          <hr class="notfound__rule" />
+          <h1 class="notfound__title">This page doesn't exist</h1>
+          <p class="notfound__message">
+            The link may be out of date, or the address mistyped.
+          </p>
+          <a class="notfound__home" id="home-link" href="/">
+            <span class="notfound__arrow" aria-hidden="true">&#8592;</span>
+            <span class="u-caps">Return to the site</span>
+          </a>
+        </div>
       </div>
     </main>
 
+    <!-- @partial footer -->
     <footer class="site-footer">
       <div class="site-footer__inner">
-        <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.5</p>
+        <div class="site-social">
+          <span class="site-social__rule" aria-hidden="true"></span>
+          <nav class="site-social__links" aria-label="Adriano Jewelry on social media">
+            <a
+              class="site-social__link"
+              href="https://www.facebook.com/profile.php?id=100095448876299"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Adriano Jewelry on Facebook"
+            >
+              <svg viewBox="0 0 320 512" aria-hidden="true" focusable="false">
+                <path d="M80 299.3V512h116V299.3h86.5l18-97.8H196v-33.3c0-51.6 20.2-71.8 72.5-71.8 16.3 0 29.4.4 37 1.2V7.9C291.4 4 256.4 0 236.2 0 129.3 0 80 50.5 80 159.4v42.1H14v97.8h66z"/>
+              </svg>
+            </a>
+            <a
+              class="site-social__link"
+              href="https://www.instagram.com/adrianojewelry"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Adriano Jewelry on Instagram"
+            >
+              <svg viewBox="0 0 448 512" aria-hidden="true" focusable="false">
+                <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/>
+              </svg>
+            </a>
+          </nav>
+          <span class="site-social__rule" aria-hidden="true"></span>
+        </div>
+
+        <nav class="site-footer__nav" aria-label="Legal">
+          <a class="site-footer__link u-caps" href="/terms-and-conditions/" data-root-link="terms-and-conditions/"
+            >Terms &amp; Conditions</a
+          >
+          <a class="site-footer__link u-caps" href="/privacy-policy/" data-root-link="privacy-policy/"
+            >Privacy Policy</a
+          >
+        </nav>
+
+        <div class="site-footer__meta">
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.6</p>
+          <p class="site-footer__copy">
+            Copyright &copy; 2026 Adriano Jewelry - All Rights Reserved.
+          </p>
+        </div>
       </div>
     </footer>
+    <!-- @end footer -->
 
     <script>
       // On a github.io project page the site root is /<repo>/, not /.
-      if (location.hostname.endsWith("github.io")) {
-        var repo = location.pathname.split("/")[1];
-        if (repo) document.getElementById("home-link").href = "/" + repo + "/";
-      }
+      (function () {
+        var root = "/";
+        if (location.hostname.endsWith("github.io")) {
+          var repo = location.pathname.split("/")[1];
+          if (repo) root = "/" + repo + "/";
+        }
+        document.getElementById("home-link").href = root;
+        var links = document.querySelectorAll("[data-root-link]");
+        for (var i = 0; i < links.length; i++) {
+          links[i].href = root + links[i].getAttribute("data-root-link");
+        }
+      })();
     </script>
   </body>
 </html>

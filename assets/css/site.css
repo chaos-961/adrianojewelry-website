@@ -1,5 +1,6 @@
 /* Adriano Jewelry — base stylesheet
-   Shared shell for every page: quilted gold lattice, slim footer.
+   Shared shell for every page: quilted lattice ground, the contact button in
+   the top-right of main, prose pages, and the universal footer.
 
    The texture is generated, not photographed: a diamond lattice drawn as SVG
    and carried in a data URI, so there is no image request. Two families of
@@ -7,9 +8,17 @@
    quilting on a jewelry box lining. Every line lands on the tile edge where
    its opposite number starts, so the field repeats with no seam.
 
-   The palette is greyscale throughout — black to white, no hue anywhere. The
-   lattice belongs to the page ground alone: the nav and footer bars stay one
-   flat grey, so they frame the patterned field instead of extending it. */
+   The ground stays greyscale — black to white, no hue in the surfaces. Gold
+   appears only where the eye should go: the contact button, the footer's two
+   policy buttons, the rules under a page title, a link. Metal reads as metal
+   because everything around it is stone.
+
+   Type is Cormorant Garamond over Jost. The Garamond is a high-contrast
+   old-style serif — thin hairlines, small counters, the letterform a jeweler's
+   engraver would cut — and it carries every title. Jost is a geometric sans
+   with a wide, even colour, so long paragraphs of policy stay readable at
+   small sizes underneath it. Both fall back to the old stacks if the webfont
+   never arrives, and nothing in the layout depends on the webfont's metrics. */
 
 :root {
   --ground-page: #161616;
@@ -20,8 +29,30 @@
   --footer-rule: rgba(255, 255, 255, 0.1);
   --accent: #d6d6d6;
   --accent-dim: rgba(255, 255, 255, 0.34);
-  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-display: Georgia, "Times New Roman", serif;
+
+  /* Bright, warm gold — light enough to hold its colour against the near-black
+     chrome bars, where a traditional #d4af37 goes muddy. The dim variant is the
+     same hue at low alpha, so borders sit on the ground instead of on top of
+     it, and the strong variant is the hover state. */
+  --gold: #f2cf85;
+  --gold-strong: #ffe7b0;
+  --gold-dim: rgba(242, 207, 133, 0.42);
+  --gold-wash: rgba(242, 207, 133, 0.06);
+
+  /* Every tracked, all-caps control uses this one value, and each of them
+     compensates for it with an equal text-indent — see .u-caps below. */
+  --caps-track: 0.15em;
+
+  /* The optical nudge that centres all-caps text in a pill. Derived, not
+     guessed: with `align-items: center` the browser centres the *line box*,
+     which reserves descender depth below the baseline. All-caps text has no
+     descenders, so its ink sits high inside that box by half the descender.
+     Jost's descender is 0.2145em of its 1em body, so the ink is 0.107em high
+     and this pushes it back down. Measured at 1.07px for a 10.6px label. */
+  --caps-drop: 0.107em;
+
+  --font-body: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   --damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M0,0 L60,60 M30,0 L60,30 M0,30 L30,60 M60,0 L0,60 M30,0 L0,30 M60,30 L30,60' fill='none' stroke='%23ffffff' stroke-opacity='0.075' stroke-width='0.9'/%3E%3C/svg%3E");
@@ -73,27 +104,479 @@ body {
   color: var(--page-fg);
   font-family: var(--font-body);
   font-size: 16px;
+  font-weight: 300;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Main grows so the footer always sits at the bottom, even on an empty page. */
+/* Main grows so the footer always sits at the bottom, even on an empty page.
+   Column, so the contact bar can sit above whatever the page holds. */
 .page {
   flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
-/* --- Chrome bars (nav + footer) ---
-   Both are deliberately flat: the lattice belongs to the page ground only. */
+/* --- All-caps pill labels ---
+   Two corrections that every tracked pill on the site needs, kept in one place
+   so a new button cannot be added without them.
 
-.site-nav {
-  position: relative;
+   Horizontal: letter-spacing is applied to the right of every glyph including
+   the last, so a centred label sits left of true centre by half the tracking.
+   An equal text-indent widens the line by the same amount on the left, and the
+   glyphs land dead centre.
+
+   Vertical: see --caps-drop. `line-height: 1` first, so the correction is
+   applied to a predictable box rather than to inherited 1.5 leading. */
+.u-caps {
+  letter-spacing: var(--caps-track);
+  text-indent: var(--caps-track);
+  text-transform: uppercase;
+  line-height: 1;
+  padding-top: var(--caps-drop);
+}
+
+/* --- Contact button, top right of main --- */
+
+.page-top {
+  display: flex;
+  justify-content: flex-end;
+  /* Clears the notch when a phone is held sideways; the floors keep the
+     button off the wall on every other device. */
+  padding: clamp(1rem, 3.5vw, 1.75rem) max(1rem, env(safe-area-inset-right))
+    0 max(1rem, env(safe-area-inset-left));
+}
+
+.page-contact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px floor: a full tap target on a phone. */
+  min-height: 44px;
+  padding: 0.5rem clamp(1rem, 3.5vw, 1.45rem);
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: clamp(0.68rem, 2.5vw, 0.74rem);
+  font-weight: 400;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--gold-wash);
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.page-contact:hover,
+.page-contact:focus-visible {
+  border-color: var(--gold);
+  background: rgba(242, 207, 133, 0.15);
+  color: var(--gold-strong);
+  box-shadow: 0 0 0 1px rgba(242, 207, 133, 0.14);
+}
+
+.page-contact:active {
+  transform: translateY(1px);
+}
+
+/* Marks the contact page you are already on. */
+.page-contact[aria-current="page"] {
+  border-color: var(--gold);
+  color: var(--gold-strong);
+  background: rgba(242, 207, 133, 0.13);
+}
+
+/* --- Legal / prose pages ---
+   One measure-limited column. Policy text is read, not scanned, so the column
+   is capped near 62 characters and the type is set a shade larger than the UI
+   default. */
+
+.legal {
+  width: 100%;
+  max-width: 44rem;
+  /* auto margins centre the column; the contact bar above it already supplies
+     the top space, so this only tops up. */
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1.15rem, 5vw, 2rem)
+    clamp(3rem, 9vw, 6rem);
+}
+
+.legal__head {
+  text-align: center;
+  margin-bottom: clamp(2.25rem, 6vw, 3.5rem);
+}
+
+/* The store name doubles as the way home — a full nav bar would be more chrome
+   than a policy page needs. */
+.legal__eyebrow {
+  display: inline-block;
+  margin: 0;
+  padding: 0.35rem 0.15rem;
+  color: var(--page-muted);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  /* Same trailing-space correction as .u-caps, at this element's tracking. */
+  text-indent: 0.34em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+a.legal__eyebrow:hover,
+a.legal__eyebrow:focus-visible {
+  color: var(--gold);
+}
+
+.legal__title {
+  margin: 0.6rem 0 0;
+  font-family: var(--font-display);
+  /* Scales from a 320px phone to a wide monitor without a media query. */
+  font-size: clamp(2.15rem, 8.5vw, 3.4rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: 0.015em;
+  color: var(--page-fg);
+}
+
+/* Short gold rule under a title — the one place gold touches the page ground,
+   so the buttons don't read as the only warm thing on the site. */
+.legal__rule {
+  width: 4.5rem;
+  height: 1px;
+  margin: clamp(1.15rem, 4vw, 1.6rem) auto;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+.legal__updated {
+  margin: 0;
+  color: var(--page-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.legal__intro {
+  margin: 0 0 clamp(2rem, 5vw, 2.75rem);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 3.4vw, 1.3rem);
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--page-muted);
+  text-align: center;
+}
+
+/* A titled block within a policy — "Return and Refund Policy" inside the terms
+   page. Set apart by a full-width hairline rather than another size step. */
+.legal__part {
+  margin-top: clamp(3rem, 8vw, 4.5rem);
+  padding-top: clamp(2rem, 6vw, 3rem);
+  border-top: 1px solid var(--footer-rule);
+}
+
+/* Scoped with .legal so it outranks the `.legal h2` element rule below — this
+   is an h2 too, and without the extra class it would inherit the ordinary
+   section size instead of standing as a second title. */
+.legal .legal__part-title {
+  margin: 0 0 clamp(1.25rem, 4vw, 1.75rem);
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 6vw, 2.4rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.015em;
+  text-align: center;
+  color: var(--page-fg);
+}
+
+.legal h2 {
+  margin: clamp(2rem, 5vw, 2.6rem) 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 4.4vw, 1.6rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: var(--page-fg);
+}
+
+.legal h3 {
+  margin: clamp(1.5rem, 4vw, 1.9rem) 0 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.legal p,
+.legal li {
+  color: var(--page-muted);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.legal p {
+  margin: 0 0 1rem;
+}
+
+.legal ul,
+.legal ol {
+  /* Bullets hang outside the measure so the text edge stays flush with the
+     paragraphs above and below it. */
+  margin: 0 0 1.15rem;
+  padding-left: 1.15rem;
+}
+
+.legal li {
+  margin-bottom: 0.55rem;
+  padding-left: 0.15rem;
+}
+
+.legal li::marker {
+  color: var(--gold-dim);
+}
+
+.legal strong {
+  color: var(--page-fg);
+  font-weight: 500;
+}
+
+.legal a:not(.legal__eyebrow):not(.legal__home) {
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold-dim);
+  /* Long links (a phone number, an address) must be able to break rather than
+     push the column wider than a 320px screen. */
+  overflow-wrap: anywhere;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.legal a:not(.legal__eyebrow):not(.legal__home):hover,
+.legal a:not(.legal__eyebrow):not(.legal__home):focus-visible {
+  color: var(--gold-strong);
+  border-bottom-color: var(--gold);
+}
+
+/* Contact block at the foot of each policy — a quiet card, not another
+   patterned surface. */
+.legal__contact {
+  margin-top: clamp(2rem, 5vw, 2.6rem);
+  padding: clamp(1.25rem, 4vw, 1.75rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.legal__contact p:last-child {
+  margin-bottom: 0;
+}
+
+.legal__home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  /* 48px floor keeps it a comfortable tap target on a phone. */
+  min-height: 48px;
+  margin-top: clamp(2.25rem, 6vw, 3rem);
+  /* The caps drop goes on the pill, not on the label: the arrow beside it must
+     move by the same amount or the two stop sharing a baseline. */
+  padding: calc(0.7rem + var(--caps-drop)) 1.6rem 0.7rem;
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+/* The pill above already carries the vertical drop for both children, so the
+   label only needs the horizontal half of the correction. */
+.legal__home .u-caps {
+  padding-top: 0;
+}
+
+.legal__home:hover,
+.legal__home:focus-visible {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+}
+
+.legal__foot {
+  text-align: center;
+}
+
+/* --- Contact page --- */
+
+.contact {
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1.15rem, 5vw, 2rem)
+    clamp(3rem, 9vw, 6rem);
+}
+
+.contact__lead {
+  margin: 0 auto clamp(2.25rem, 6vw, 3.25rem);
+  max-width: 34rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 3.4vw, 1.35rem);
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--page-muted);
+  text-align: center;
+}
+
+/* auto-fit means one column on a phone and two or three on a wider screen,
+   with no breakpoint to keep in sync. The 15rem floor is the narrowest a card
+   can get before the address starts breaking awkwardly. */
+.contact__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: clamp(0.9rem, 2.5vw, 1.25rem);
+}
+
+.contact__card {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.35rem, 4vw, 1.85rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+
+.contact__card-title {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4.4vw, 1.65rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.015em;
+  color: var(--page-fg);
+}
+
+.contact__card p {
+  margin: 0 0 0.65rem;
+  color: var(--page-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.contact__card p:last-child {
+  margin-bottom: 0;
+}
+
+.contact__name {
+  color: var(--page-fg);
+  font-weight: 500;
+}
+
+/* A quiet label in front of a value — "Store", "Mobile". Fixed-width so the
+   two numbers line up under one another. */
+.contact__label {
+  display: inline-block;
+  min-width: 4.25rem;
+  color: var(--page-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Both scoped with .contact__card so they outrank the `.contact__card p` rule
+   above — these are paragraphs too, and the element rule would otherwise win
+   on specificity and flatten them back to body text. */
+.contact__card .contact__hours {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4.5vw, 1.6rem);
+  line-height: 1.3;
+  color: var(--page-fg);
+  /* Old-style figures would stagger the clock times; lining keeps them level. */
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1, "onum" 0;
+}
+
+.contact__card .contact__note {
+  font-size: 0.85rem;
+}
+
+.contact a:not(.contact__action) {
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold-dim);
+  overflow-wrap: anywhere;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.contact a:not(.contact__action):hover,
+.contact a:not(.contact__action):focus-visible {
+  color: var(--gold-strong);
+  border-bottom-color: var(--gold);
+}
+
+/* Pushed to the bottom of the card by the auto margin, so the actions sit on
+   one line across cards of different content heights. */
+.contact__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 1.35rem;
+}
+
+.contact__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 1.15rem;
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 0.7rem;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--gold-wash);
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.contact__action:hover,
+.contact__action:focus-visible {
+  border-color: var(--gold);
+  background: rgba(242, 207, 133, 0.15);
+  color: var(--gold-strong);
+}
+
+.contact__action:active {
+  transform: translateY(1px);
+}
+
+.contact__action svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+  /* The label carries a text-indent for its tracking; the icon must not be
+     pushed by it. */
+  text-indent: 0;
   flex-shrink: 0;
-  background-color: var(--ground-footer);
-  background-image: none;
-  color: var(--footer-fg);
 }
 
-/* --- Footer --- */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* --- Footer ---
+   Universal across every page. Three centred rows — social, policies, meta —
+   with one gap value between them and equal space above the first and below
+   the last, so the block reads as symmetric at any width. */
 
 .site-footer {
   position: relative;
@@ -103,12 +586,13 @@ body {
   background-color: var(--ground-footer);
   background-image: none;
   color: var(--footer-fg);
-  padding: 0.85rem 1rem;
-  /* Keeps the version clear of the iPhone home indicator and of the notch
-     when a phone is held sideways, without padding every other device. */
-  padding-right: max(1rem, env(safe-area-inset-right));
-  padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
-  padding-left: max(1rem, env(safe-area-inset-left));
+  /* Open at the top, where the hairline needs air under it; tight at the
+     bottom and the walls, so the version sits into the corner rather than
+     floating off it. The bottom still takes the iPhone home indicator when
+     there is one, so it is never clipped. */
+  padding: clamp(1.5rem, 4vw, 2rem) max(0.85rem, env(safe-area-inset-right))
+    max(0.7rem, env(safe-area-inset-bottom))
+    max(0.85rem, env(safe-area-inset-left));
 }
 
 /* Hairline that fades out at both ends, so the footer meets the page with an
@@ -127,15 +611,181 @@ body {
   );
 }
 
-/* Deliberately unconstrained: the version is anchored to the viewport wall at
-   every width, so no centred max-width column here — on a wide monitor that
-   would push it hundreds of pixels inboard. */
+/* Deliberately unconstrained: the meta row spans the full width so the version
+   sits at the viewport wall at every size. A centred max-width column here
+   would push it hundreds of pixels inboard on a wide monitor.
+
+   The rows are spaced with margins rather than one grid gap: the meta line is
+   a footnote to the two blocks above it and wants to sit tighter to them than
+   they do to each other. */
 .site-footer__inner {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+/* --- Social medallions ---
+   Two gold discs held between short hairlines, like the clasp on a chain. One
+   gap value governs the whole cluster, so disc-to-disc and disc-to-rule are
+   identical and the ornament is symmetric about its centre. The rules flex to
+   fill whatever is left, so it is as wide as the footer allows and collapses
+   gracefully on a 320px phone.
+
+   The glyphs are inline SVG rather than an icon font: two paths cost less than
+   a font request, they inherit `currentColor` so the hover state is one
+   property, and they can't flash a fallback box before a font loads. */
+
+.site-social {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: var(--social-gap, 0.75rem);
+  width: 100%;
+  max-width: 22rem;
+}
+
+.site-social__rule {
+  flex: 1 1 0;
+  /* Caps the hairline so the discs stay near the middle on a wide monitor
+     instead of drifting to the far walls. */
+  max-width: 5rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim));
+}
+
+/* The right-hand rule fades the other way, so both taper away from the pair. */
+.site-social__rule:last-child {
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+
+/* Inherits the cluster gap, so the space between the two discs matches the
+   space between a disc and its rule exactly. */
+.site-social__links {
+  display: flex;
+  gap: var(--social-gap, 0.75rem);
+}
+
+.site-social__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px across: a full tap target, and a disc small enough that two of them
+     plus both rules still fit inside 320px. */
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 50%;
+  color: var(--gold);
+  background: var(--gold-wash);
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.site-social__link svg {
+  width: 15px;
+  height: 15px;
+  /* The glyph is the only fill, and it tracks the link colour — so warming the
+     disc on hover warms the mark with it. */
+  fill: currentColor;
+  transition: transform 0.25s ease;
+}
+
+.site-social__link:hover,
+.site-social__link:focus-visible {
+  border-color: var(--gold);
+  background: rgba(242, 207, 133, 0.15);
+  color: var(--gold-strong);
+  /* A held light rather than a glow — tight, low alpha, the sheen a polished
+     bezel throws under a display lamp. */
+  box-shadow: 0 0 0 1px rgba(242, 207, 133, 0.18),
+    0 4px 18px rgba(242, 207, 133, 0.16);
+}
+
+.site-social__link:hover svg,
+.site-social__link:focus-visible svg {
+  transform: scale(1.08);
+}
+
+.site-social__link:active {
+  transform: translateY(1px);
+}
+
+/* --- Policy buttons --- */
+
+.site-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem 0.75rem;
+  margin-top: clamp(1.05rem, 3vw, 1.4rem);
+}
+
+/* Gold on near-black, pill-shaped, sized so both still sit side by side at
+   360px and wrap to one column only below that. */
+.site-footer__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem clamp(0.9rem, 3.5vw, 1.35rem);
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: clamp(0.66rem, 2.4vw, 0.72rem);
+  font-weight: 400;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--gold-wash);
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.site-footer__link:hover,
+.site-footer__link:focus-visible {
+  border-color: var(--gold);
+  background: rgba(242, 207, 133, 0.15);
+  color: var(--gold-strong);
+}
+
+.site-footer__link:active {
+  transform: translateY(1px);
+}
+
+/* Marks the policy page you are already on, so the pair reads as navigation
+   rather than two identical buttons. */
+.site-footer__link[aria-current="page"] {
+  border-color: var(--gold);
+  color: var(--gold-strong);
+  background: rgba(242, 207, 133, 0.13);
+}
+
+/* --- Meta row: version at the left wall, copyright centred on the page ---
+   Three columns, the outer two equal and flexible with only the left one
+   filled. The empty right column is what keeps the copyright on the true
+   centre line of the footer rather than centred in the space the version
+   leaves over. */
+
+.site-footer__meta {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  width: 100%;
+  margin-top: clamp(0.95rem, 2.5vw, 1.2rem);
+}
+
+.site-footer__copy {
+  margin: 0;
+  color: var(--page-muted);
+  font-size: clamp(0.7rem, 2.5vw, 0.78rem);
+  letter-spacing: 0.045em;
+  text-align: center;
 }
 
 .site-footer__version {
+  /* First column, hard against the wall. */
+  justify-self: start;
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -157,14 +807,34 @@ body {
 
 /* 404.html carries its own copy of these rules inline — GitHub Pages serves it
    for a miss at any path depth, where a relative stylesheet link would break.
-   Change the lattice or the footer here and mirror it there. */
+   Change the lattice, the gold or the footer here and mirror it there. */
 
 @media (max-width: 480px) {
   /* Tighter to the wall on phones. The max() calls are repeated rather than
      inherited so the safe-area floors still apply inside this breakpoint. */
   .site-footer {
+    padding-right: max(0.7rem, env(safe-area-inset-right));
+    padding-left: max(0.7rem, env(safe-area-inset-left));
+  }
+
+  .page-top {
     padding-right: max(0.75rem, env(safe-area-inset-right));
     padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+}
+
+/* Narrow enough that the copyright can no longer be centred on the page with
+   the version beside it — the two would collide. It drops to its own line,
+   still centred, and the version keeps the wall underneath it. */
+@media (max-width: 30em) {
+  .site-footer__meta {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .site-footer__copy {
+    /* Back above the version, so the block still ends on the wall. */
+    order: -1;
   }
 }
 

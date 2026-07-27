@@ -33,6 +33,17 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      # The shared chrome lives in partials/ and is stamped into each page by
+      # scripts/build.js at author time. This fails the deploy if someone edited
+      # a partial and forgot to re-run it, rather than shipping a page whose
+      # footer has silently drifted.
+      - name: Check generated chrome is current
+        run: node scripts/build.js --check
+
+      # Sources and editor config, not output — no reason to serve them.
+      - name: Drop build sources
+        run: rm -rf scripts partials .claude
+
       # Uploads the whole repo, so index.html, 404.html, assets/ and any page
       # added later are published with no further changes to this workflow.
       - name: Upload site
