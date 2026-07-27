@@ -208,7 +208,13 @@ body {
 /* The store name doubles as the way home — a full nav bar would be more chrome
    than a policy page needs. */
 .legal__eyebrow {
-  display: inline-block;
+  /* inline-flex with a 44px floor rather than inline-block: this is a link a
+     thumb has to hit, and at 0.68rem the text alone only makes a 28px target.
+     The extra height is padding around the same type, not bigger type. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   margin: 0;
   padding: 0.35rem 0.15rem;
   color: var(--page-muted);
@@ -228,7 +234,9 @@ a.legal__eyebrow:focus-visible {
 }
 
 .legal__title {
-  margin: 0.6rem 0 0;
+  /* Small top margin because the eyebrow above now carries its own tap-target
+     padding — together they add up to the gap the 0.6rem used to give. */
+  margin: 0.1rem 0 0;
   font-family: var(--font-display);
   /* Scales from a 320px phone to a wide monitor without a media query. */
   font-size: clamp(2.15rem, 8.5vw, 3.4rem);
