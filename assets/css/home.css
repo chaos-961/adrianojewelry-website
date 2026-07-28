@@ -307,7 +307,33 @@
 /* The lamp again, but local and much stronger — a pool thrown across the top
    right of the hero only. Decorative, so it is aria-hidden in the markup and
    pointer-events:none here. */
-/* DRAWN, NOT PHOTOGRAPHED. This was a raster of gold caustics and it is now
+/* The WebGL caustic layer. Sits over the gradient fallback and screens onto
+   the ground the same way. It is only ever inserted by light.js after the
+   context and both shaders have compiled, so its mere presence in the DOM means
+   it is working. */
+.hero__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+  /* No mix-blend-mode. The shader already emits an alpha that is near zero
+     everywhere the light is not, so ordinary alpha compositing gives exactly
+     the additive result wanted — and unlike screen it cannot amplify a pixel
+     the compositor has already mishandled. Predictable beats clever on the one
+     layer that sits behind the headline. */
+}
+
+/* Once the caustics are live the gradient underneath them is doing nothing but
+   muddying the blacks, so it steps back to a faint bed of warmth rather than
+   trying to be the light itself. */
+.has-webgl .hero__light {
+  opacity: 0.3;
+}
+
+/* DRAWN, NOT PHOTOGRAPHED (the fallback). This was a raster of gold caustics and it is now
    four gradients, which is better on every axis that matters here: it costs no
    request and no bytes, it cannot band on an OLED the way a compressed dark
    image does, it scales to any viewport without resampling, and — the point —
@@ -365,9 +391,38 @@
     );
 }
 
+/* THE SCRIM. A directional shadow across the text column, sitting between the
+   caustic layer and the copy.
+
+   It is an accessibility control first: measured on the built page, the gold
+   eyebrow — 11px, the smallest type in the hero — sat inside the lit band at
+   2.82:1 against a 4.5:1 requirement. Everything else cleared its floor, but
+   one failing line is a failing page.
+
+   It is also the physically correct reading, which is why it does not look
+   like a patch. There is one lamp, off to the right; the bench in front of it
+   is in its own shadow. The text lives in that shadow and the light rakes past
+   it. Angled at 96deg rather than 90 so the shadow line follows the rake
+   instead of cutting square across it. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    96deg,
+    var(--ink) 0%,
+    rgba(14, 13, 11, 0.94) 26%,
+    rgba(14, 13, 11, 0.66) 46%,
+    rgba(14, 13, 11, 0.22) 64%,
+    rgba(14, 13, 11, 0) 80%
+  );
+}
+
 .hero__inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   width: 100%;
   max-width: 78rem;
   margin: 0 auto;
@@ -424,6 +479,7 @@
    measurement — where you are on the page. */
 .hero__cue {
   position: absolute;
+  z-index: 2;
   left: var(--gutter);
   bottom: clamp(1.5rem, 4vw, 2.5rem);
   display: flex;
@@ -435,7 +491,6 @@
   font-weight: 400;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  z-index: 1;
 }
 
 .hero__cue::after {
