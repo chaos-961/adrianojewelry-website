@@ -109,6 +109,20 @@
        all. Driving Lenis from GSAP's ticker rather than its own rAF keeps both
        on one clock, which is what stops the scrub jittering. */
     lenis.on("scroll", window.ScrollTrigger.update);
+
+    /* And again on the native event, which is not redundant. Lenis only emits
+       its own `scroll` for movement it drives; anything that sets the scroll
+       position out from under it — an in-page anchor, the browser restoring a
+       position on reload, find-in-page walking down the document, a keyboard
+       Home/End — moves the page without Lenis noticing. ScrollTrigger then
+       keeps evaluating against a stale position and every trigger below freezes
+       at whatever state it last saw. That is exactly the failure that left the
+       process drawings stuck on stage 02 while the text carried on. Cheap to
+       subscribe, passive, and it makes the two sources of truth agree. */
+    window.addEventListener("scroll", window.ScrollTrigger.update, {
+      passive: true,
+    });
+
     gsap.ticker.add(function (time) {
       lenis.raf(time * 1000);
     });
@@ -273,18 +287,51 @@
           });
         };
 
-        stages.forEach(function (stage, i) {
-          window.ScrollTrigger.create({
-            trigger: stage,
-            /* A band across the middle of the viewport: a stage becomes active
-               when it reaches it and stays active until the next one does, so
-               there is never a gap where nothing is lit. */
-            start: "top 62%",
-            end: "bottom 62%",
-            onToggle: function (self) {
-              if (self.isActive) show(i);
-            },
+        /* ONE trigger for the whole column, not one per stage.
+           Per-stage triggers with onToggle look right and are subtly wrong in
+           two ways. The stages do not touch — there is a gap of six to eleven
+           rem between them — so at any scroll position that lands in a gap NO
+           stage is active and the drawing is whatever was last lit rather than
+           what the reader is looking at. Worse, onToggle only fires if a
+           sampled frame falls inside a stage's range: a fast flick, a trackpad
+           throw, or a jump to an anchor can cross an entire 160px stage between
+           two frames, and that stage is then never activated at all. Measured
+           on the built page, jumping 400px at a time skipped stage 03 outright
+           and the drawing stuck on 02 for the rest of the section.
+
+           Nearest-centre-to-a-reading-line cannot skip and cannot gap: whatever
+           the scroll position, exactly one stage is closest, so there is always
+           an answer and it is always the one level with the reader. */
+        var centres = [];
+        var measure = function () {
+          centres = stages.map(function (s) {
+            var r = s.getBoundingClientRect();
+            return r.top + window.scrollY + r.height / 2;
           });
+        };
+        measure();
+        /* Re-measure on refresh rather than reading layout every frame — this
+           runs on scroll, and five getBoundingClientRect calls per frame would
+           force a synchronous layout on the scroll path for no reason. */
+        window.ScrollTrigger.addEventListener("refresh", measure);
+
+        window.ScrollTrigger.create({
+          trigger: ".process__stages",
+          start: "top bottom",
+          end: "bottom top",
+          onUpdate: function () {
+            var line = window.scrollY + window.innerHeight * 0.62;
+            var best = 0;
+            var bestDist = Infinity;
+            for (var i = 0; i < centres.length; i++) {
+              var d = Math.abs(centres[i] - line);
+              if (d < bestDist) {
+                bestDist = d;
+                best = i;
+              }
+            }
+            show(best);
+          },
         });
 
         show(0);

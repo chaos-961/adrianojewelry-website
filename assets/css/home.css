@@ -307,46 +307,62 @@
 /* The lamp again, but local and much stronger — a pool thrown across the top
    right of the hero only. Decorative, so it is aria-hidden in the markup and
    pointer-events:none here. */
+/* DRAWN, NOT PHOTOGRAPHED. This was a raster of gold caustics and it is now
+   four gradients, which is better on every axis that matters here: it costs no
+   request and no bytes, it cannot band on an OLED the way a compressed dark
+   image does, it scales to any viewport without resampling, and — the point —
+   it is unambiguously a lighting effect rather than a photograph of something.
+   On a page whose whole argument is that nothing here is borrowed, the
+   background should not be an image of a thing that was never in the room.
+
+   The four layers are one light, built the way a light actually falls:
+     1. the core, small and hot, where the beam is most concentrated;
+     2. a long shallow streak — 74% wide by 8% tall is what makes it read as
+        raking across a surface rather than glowing in mid-air;
+     3. a second, thinner streak offset below it, so the rake has structure
+        instead of being one smooth blob;
+     4. a broad dim halo in --gold-deep, the light the room bounces back.
+   Rotating the whole element is what sets the rake angle; doing it here rather
+   than baking the angle into each gradient keeps all four consistent.
+
+   Every layer ends at transparent, so the element has no edge to hide and needs
+   neither a mask nor a blur. screen blending keeps it additive, which is what
+   light does. */
 .hero__light {
   position: absolute;
-  top: -18%;
-  right: -22%;
-  width: min(82vw, 60rem);
-  aspect-ratio: 16 / 9;
-  background-size: cover;
-  background-position: center;
-  /* Low enough to read as light in the room rather than as a photograph of
-     light. Blurring kills the last of the image's own structure so nothing in
-     it can be mistaken for an object. */
-  opacity: 0.55;
-  filter: blur(8px);
+  top: -16%;
+  right: -20%;
+  width: min(88vw, 64rem);
+  aspect-ratio: 16 / 10;
+  transform: rotate(-13deg);
+  transform-origin: 60% 50%;
+  opacity: 0.85;
+  mix-blend-mode: screen;
   pointer-events: none;
   z-index: 0;
-
-  /* screen is what makes this a light source instead of a picture of one.
-     The asset is bright streaks on a black field; under normal compositing the
-     black is opaque and the element paints as a visible rectangle sitting on
-     the page — which is exactly how it looked before this line. Under `screen`
-     black is the identity, so the black field disappears entirely and only the
-     streaks survive to lighten what is under them. That is also physically the
-     right model: light adds. */
-  mix-blend-mode: screen;
-
-  /* Even with screen, the blur leaves a faint edge where the element ends.
-     The mask feathers the element's own bounds to nothing so the light has no
-     border at all. */
-  -webkit-mask-image: radial-gradient(
-    closest-side,
-    #000 35%,
-    rgba(0, 0, 0, 0.55) 62%,
-    transparent 100%
-  );
-  mask-image: radial-gradient(
-    closest-side,
-    #000 35%,
-    rgba(0, 0, 0, 0.55) 62%,
-    transparent 100%
-  );
+  background-image:
+    radial-gradient(
+      34% 22% at 58% 44%,
+      rgba(255, 240, 208, 0.5) 0%,
+      rgba(240, 216, 156, 0.2) 40%,
+      rgba(240, 216, 156, 0) 72%
+    ),
+    radial-gradient(
+      74% 8% at 54% 50%,
+      rgba(240, 216, 156, 0.3) 0%,
+      rgba(240, 216, 156, 0.09) 42%,
+      rgba(240, 216, 156, 0) 78%
+    ),
+    radial-gradient(
+      62% 4.5% at 63% 62%,
+      rgba(240, 216, 156, 0.22) 0%,
+      rgba(240, 216, 156, 0) 80%
+    ),
+    radial-gradient(
+      60% 46% at 57% 50%,
+      rgba(184, 148, 63, 0.18) 0%,
+      rgba(184, 148, 63, 0) 70%
+    );
 }
 
 .hero__inner {
@@ -564,6 +580,12 @@
 @media (min-width: 64em) {
   .process__stages {
     gap: clamp(6rem, 14vh, 11rem);
+    /* Extends the grid row past the last stage so the sticky plate keeps its
+       travel all the way through stage 05. A sticky box releases when its
+       bottom meets its container bottom, which is half a plate-height before
+       the column actually ends — without this the final drawing slides away
+       while its own paragraph is still being read. */
+    padding-bottom: clamp(0rem, 16vh, 12rem);
   }
 }
 
