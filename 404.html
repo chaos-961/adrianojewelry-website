@@ -33,8 +33,11 @@
 }
 
       :root {
-        --ground-page: #0e0d0b;
-        --ground-footer: #171613;
+        /* Mirrors assets/css/site.css, which this page cannot link because it
+           is served at any depth. One flat jeweller's green, page and footer
+           alike — keep these two in step with --ink over there. */
+        --ground-page: #0a2e22;
+        --ground-footer: #0a2e22;
         --page-fg: #ede7dc;
         --page-muted: #9a948a;
         --footer-fg: #ede7dc;
@@ -52,33 +55,6 @@
         --font-body: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
         --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
         --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-
-        --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cfilter id='g' x='0' y='0' width='320' height='320' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect x='0' y='0' width='320' height='320' filter='url(%23g)' opacity='0.03'/%3E%3C/svg%3E");
-
-        --lamp: radial-gradient(
-            95% 70% at -12% 32%,
-            rgba(240, 216, 156, 0.08) 0%,
-            rgba(240, 216, 156, 0.038) 26%,
-            rgba(240, 216, 156, 0.012) 48%,
-            rgba(0, 0, 0, 0) 70%
-          ),
-          radial-gradient(
-            120% 90% at 92% 96%,
-            rgba(0, 0, 0, 0.5) 0%,
-            rgba(0, 0, 0, 0) 58%
-          );
-        --sheen: radial-gradient(
-            120% 90% at 50% 0%,
-            rgba(255, 255, 255, 0.07) 0%,
-            rgba(255, 255, 255, 0.02) 38%,
-            rgba(0, 0, 0, 0) 70%
-          ),
-          linear-gradient(
-            163deg,
-            rgba(255, 255, 255, 0.035) 0%,
-            rgba(0, 0, 0, 0) 46%,
-            rgba(0, 0, 0, 0.28) 100%
-          );
       }
 
       *,
@@ -107,18 +83,16 @@
       }
 
       /* Fixed ground layer, not a body background: a background on <body> is
-         sized against the root box, which is one viewport tall, so on a long
-         page the sheen stopped dead at 100vh and left a visible seam. See the
-         longer note in assets/css/site.css. */
+         sized against the root box, which is one viewport tall, so anything
+         sized with `cover` stopped dead at 100vh and left a visible seam. The
+         ground is one flat colour now and could not seam, but the layer stays
+         so re-adding a gradient here is safe. See assets/css/site.css. */
       body::before {
         content: "";
         position: fixed;
         inset: 0;
         z-index: -1;
         background-color: var(--ground-page);
-        background-image: var(--grain), var(--lamp);
-        background-size: 320px 320px, cover;
-        background-repeat: repeat, no-repeat;
         pointer-events: none;
       }
 
@@ -595,7 +569,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.1</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.2</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                assets/js/year.js. Stamping it from Date() at build time instead
                would make `build.js --check` fail every New Year's Day and block the
