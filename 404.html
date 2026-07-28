@@ -7,7 +7,7 @@
     <title>Page not found — Adriano Jewelry</title>
     <!-- Styles are inlined: GitHub Pages serves this file for a miss at any
          path depth, so a relative stylesheet link would not resolve.
-         Keep the lattice, the gold and the footer in sync with
+         Keep the ground, the silver and the footer in sync with
          assets/css/site.css. -->
     <style>
       @font-face {
@@ -34,20 +34,21 @@
 
       :root {
         /* Mirrors assets/css/site.css, which this page cannot link because it
-           is served at any depth. One flat jeweller's green, page and footer
-           alike — keep these two in step with --ink over there. */
-        --ground-page: #0a2e22;
-        --ground-footer: #0a2e22;
-        --page-fg: #ede7dc;
-        --page-muted: #9a948a;
-        --footer-fg: #ede7dc;
+           is served at any depth. One flat near-black, page and footer alike —
+           keep these two in step with --ink over there. Black, white and grey
+           only: every value here has R, G and B equal. */
+        --ground-page: #101010;
+        --ground-footer: #101010;
+        --page-fg: #f2f2f2;
+        --page-muted: #9a9a9a;
+        --footer-fg: #f2f2f2;
         --footer-rule: rgba(255, 255, 255, 0.1);
-        --accent: #ede7dc;
-        --accent-dim: rgba(237, 231, 220, 0.3);
-        --gold: #f0d89c;
-        --gold-strong: #fbecc4;
-        --gold-dim: rgba(240, 216, 156, 0.42);
-        --gold-wash: rgba(240, 216, 156, 0.06);
+        --accent: #f2f2f2;
+        --accent-dim: rgba(242, 242, 242, 0.3);
+        --silver: #cfcfcf;
+        --silver-strong: #f5f5f5;
+        --silver-dim: rgba(214, 214, 214, 0.42);
+        --silver-wash: rgba(214, 214, 214, 0.06);
         --caps-track: 0.15em;
         /* See site.css: cancels the descender space that pushes all-caps text
            high inside a flex-centred pill. */
@@ -127,24 +128,24 @@
         min-height: 44px;
         padding: calc(0.5rem + var(--caps-drop))
           clamp(1rem, 3.5vw, 1.45rem) calc(0.5rem - var(--caps-drop));
-        border: 1px solid var(--gold-dim);
+        border: 1px solid var(--silver-dim);
         border-radius: 999px;
-        color: var(--gold);
+        color: var(--silver);
         font-size: clamp(0.68rem, 2.5vw, 0.74rem);
         font-weight: 400;
         text-decoration: none;
         white-space: nowrap;
-        background: var(--gold-wash);
+        background: var(--silver-wash);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease, box-shadow 0.25s ease;
       }
 
       .page-contact:hover,
       .page-contact:focus-visible {
-        border-color: var(--gold);
-        background: rgba(240, 216, 156, 0.15);
-        color: var(--gold-strong);
-        box-shadow: 0 0 0 1px rgba(240, 216, 156, 0.14);
+        border-color: var(--silver);
+        background: rgba(214, 214, 214, 0.15);
+        color: var(--silver-strong);
+        box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.14);
       }
 
       .page-contact:active {
@@ -273,12 +274,12 @@
       }
 
       :focus-visible {
-        outline: 2px solid var(--gold);
+        outline: 2px solid var(--silver);
         outline-offset: 3px;
       }
 
-      /* Flat, deeper ground — no lattice. The chrome bars stay one solid grey
-         so they frame the patterned field instead of extending it. */
+      /* The chrome bars sit on the same flat ground as the page, so they add
+         no second tone — the hairline is what separates them. */
       .site-nav {
         position: relative;
         flex-shrink: 0;
@@ -339,11 +340,11 @@
         flex: 1 1 0;
         max-width: 5rem;
         height: 1px;
-        background: linear-gradient(90deg, transparent, var(--gold-dim));
+        background: linear-gradient(90deg, transparent, var(--silver-dim));
       }
 
       .site-social__rule:last-child {
-        background: linear-gradient(90deg, var(--gold-dim), transparent);
+        background: linear-gradient(90deg, var(--silver-dim), transparent);
       }
 
       .site-social__links {
@@ -358,10 +359,10 @@
         justify-content: center;
         width: 44px;
         height: 44px;
-        border: 1px solid var(--gold-dim);
+        border: 1px solid var(--silver-dim);
         border-radius: 50%;
-        color: var(--gold);
-        background: var(--gold-wash);
+        color: var(--silver);
+        background: var(--silver-wash);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
       }
@@ -375,11 +376,11 @@
 
       .site-social__link:hover,
       .site-social__link:focus-visible {
-        border-color: var(--gold);
-        background: rgba(240, 216, 156, 0.15);
-        color: var(--gold-strong);
-        box-shadow: 0 0 0 1px rgba(240, 216, 156, 0.18),
-          0 4px 18px rgba(240, 216, 156, 0.16);
+        border-color: var(--silver);
+        background: rgba(214, 214, 214, 0.15);
+        color: var(--silver-strong);
+        box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.18),
+          0 4px 18px rgba(214, 214, 214, 0.16);
       }
 
       .site-social__link:hover svg,
@@ -406,23 +407,23 @@
         min-height: 44px;
         padding: calc(0.5rem + var(--caps-drop))
           clamp(0.9rem, 3.5vw, 1.35rem) calc(0.5rem - var(--caps-drop));
-        border: 1px solid var(--gold-dim);
+        border: 1px solid var(--silver-dim);
         border-radius: 999px;
-        color: var(--gold);
+        color: var(--silver);
         font-size: clamp(0.66rem, 2.4vw, 0.72rem);
         font-weight: 400;
         text-decoration: none;
         white-space: nowrap;
-        background: var(--gold-wash);
+        background: var(--silver-wash);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease;
       }
 
       .site-footer__link:hover,
       .site-footer__link:focus-visible {
-        border-color: var(--gold);
-        background: rgba(240, 216, 156, 0.15);
-        color: var(--gold-strong);
+        border-color: var(--silver);
+        background: rgba(214, 214, 214, 0.15);
+        color: var(--silver-strong);
       }
 
       .site-footer__link:active {
@@ -569,7 +570,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.2</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.3</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                assets/js/year.js. Stamping it from Date() at build time instead
                would make `build.js --check` fail every New Year's Day and block the

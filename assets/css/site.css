@@ -4,16 +4,22 @@
    adds assets/css/home.css on top of this; nothing else loads it.
 
    THE GROUND. One colour, flat, everywhere. It carried film grain and a raking
-   warm lamp until v0.1.2; both are gone, and what is left is a single deep
-   emerald held from the top of the viewport to the bottom of the footer. The
-   layer is still painted by a fixed pseudo-element rather than by the body's
-   own background — see the note above body::before, which is a seam fix and
-   still applies the moment anything is layered back on.
+   warm lamp until v0.1.2, and a jeweller's-case green until v0.1.3; all of it
+   is gone, and what is left is a single near-black held from the top of the
+   viewport to the bottom of the footer. The layer is still painted by a fixed
+   pseudo-element rather than by the body's own background — see the note above
+   body::before, which is a seam fix and still applies the moment anything is
+   layered back on.
 
-   THE COLOUR. Jeweller's-case green, never lightened, and never pure white on
-   it. Gold is under 5% of the pixels and it always means "this is where you
-   act" — a button, a rule under a title, a link. The type is bone, not white,
-   because #FFF on a dark ground glares and reads cheap.
+   THE COLOUR. Nothing but black, white and the greys between them — there is
+   no hue anywhere on this site, so a piece of jewelry photographed against it
+   is the only colour a visitor will ever see. The palette is a single ramp:
+   #101010 ground, #7A7A7A hairlines, #9A9A9A muted type, #CFCFCF accents,
+   #F2F2F2 body copy, #FFFFFF reserved for the moment a control is pressed.
+   Silver — the #CFCFCF step — sits where gold used to, under 5% of the pixels,
+   and it always means "this is where you act": a button, a rule under a title,
+   a link. Body type stops at #F2F2F2 rather than pure white, because #FFF held
+   across a paragraph on a dark ground glares and reads cheap.
 
    THE TYPE, three roles that never overlap. Instrument Serif carries display
    only: it is condensed and drawn for large sizes, with a 3:1 stroke contrast
@@ -51,38 +57,39 @@
 }
 
 :root {
-  /* THE GROUND IS ONE FLAT COLOUR. It was a warm black under a raking lamp;
-     it is now a single deep emerald, held everywhere with no gradient, no
-     grain and no second tone — the green a jeweller's case is lined in, which
-     is the one colour that reads as jewelry before a word is on the page. Gold
-     sits on it the way gold sits on that velvet.
+  /* THE GROUND IS ONE FLAT COLOUR. It was a warm black under a raking lamp,
+     then a deep emerald; it is now a neutral near-black, held everywhere with
+     no gradient, no grain and no second tone.
 
-     Dark on purpose. A mid green would be prettier in isolation and would take
-     every muted line on the site below the 4.5:1 floor; at this luminance
-     --smoke measures 4.82:1, --bone 11.96:1, --gold 10.5:1 and the --gold-deep
-     hairlines 5.15:1. If this value is ever lightened, re-measure --smoke
-     first — it is the one that has no headroom.
+     Not #000. Pure black closes the page against the browser's own chrome and
+     turns every hairline drawn on it into a scratch; #101010 still reads as a
+     surface, and leaves somewhere darker to go if a panel is ever needed.
+
+     Neutral on purpose: R, G and B are equal in every token below, so there is
+     no hue anywhere on the site to argue with a piece of jewelry.
 
      --ink-raised is the same value, not a lighter step: the footer used to sit
      one stop toward the light and now shares the single ground, so the page is
      literally one colour from the top of the viewport to the bottom bar. */
-  --ink: #0a2e22;
-  --ink-raised: #0a2e22;
-  --bone: #ede7dc;
-  /* Lifted from the #8A857C this started as. See the contrast note below —
-     it is the tightest value on the page and the one the ground is chosen
-     around. */
-  --smoke: #9a948a;
+  --ink: #101010;
+  --ink-raised: #101010;
+  /* Was a warm bone, #EDE7DC. Held below pure white for the reason in the
+     header note: #FFF across a paragraph on a dark ground glares. */
+  --bone: #f2f2f2;
+  /* The muted step, and the tightest text value on the page — see the contrast
+     note below before touching it. */
+  --smoke: #9a9a9a;
 
-  /* Gold, light enough to hold its colour where a traditional #d4af37 goes
-     muddy on a dark ground. --gold-deep is the hairline partner: at 5.15:1 on
-     the green it clears the 3:1 UI floor with room to spare, so borders drawn
-     in it are still perceivable, not decorative. */
-  --gold: #f0d89c;
-  --gold-strong: #fbecc4;
-  --gold-deep: #b8943f;
-  --gold-dim: rgba(240, 216, 156, 0.42);
-  --gold-wash: rgba(240, 216, 156, 0.06);
+  /* Where gold used to sit: the one step that means "act here". Bright enough
+     to lead the eye, dimmer than --bone so it never competes with body copy.
+     --silver-deep is the hairline partner — at 4.43:1 on the ground it clears
+     the 3:1 UI floor with room to spare, so borders drawn in it are
+     perceivable, not decorative. */
+  --silver: #cfcfcf;
+  --silver-strong: #f5f5f5;
+  --silver-deep: #7a7a7a;
+  --silver-dim: rgba(214, 214, 214, 0.42);
+  --silver-wash: rgba(214, 214, 214, 0.06);
 
   /* Motion. Nothing on this site is under 400ms: cheap sites snap, expensive
      ones drift. --ease-out is an expo curve with a long tail, for anything
@@ -99,14 +106,16 @@
      background colour on the site, so every ratio below is the ratio that is
      actually painted, with no composited light to re-measure against.
 
-     On #0A2E22: --smoke 4.82:1, --gold-deep 5.15:1, --gold 10.5:1, --bone
-     11.96:1. Text needs 4.5:1 and UI hairlines 3:1, so everything clears —
-     but --smoke clears by 0.32, which is the whole reason the green is this
-     dark rather than the richer emerald it wants to be.
+     On #101010: --smoke 6.76:1, --bone 17.0:1, --silver 12.2:1, --silver-deep
+     4.43:1, and --silver-dim composited over the ground 3.17:1. Text needs
+     4.5:1 and UI hairlines 3:1, so everything clears — and dropping the hue
+     bought headroom the green never had: --smoke used to clear by 0.32 and now
+     clears by 2.26.
 
      THE RULE THIS LEAVES: the ground and --smoke move together. Lighten the
-     green by any meaningful amount and --smoke must be lifted in the same
-     commit, or the muted lines fall under the floor. */
+     ground by any meaningful amount and --smoke must be darkened in the same
+     commit, or the muted lines fall under the floor. --silver-dim is the other
+     one to watch — at 0.42 alpha it is the thinnest margin on the page. */
 
   /* Legacy aliases. The four prose pages were authored against these names and
      go on working unchanged; this file is the single place the palette moved. */
@@ -115,9 +124,9 @@
   --page-fg: var(--bone);
   --page-muted: var(--smoke);
   --footer-fg: var(--bone);
-  --footer-rule: rgba(237, 231, 220, 0.1);
+  --footer-rule: rgba(242, 242, 242, 0.1);
   --accent: var(--bone);
-  --accent-dim: rgba(237, 231, 220, 0.3);
+  --accent-dim: rgba(242, 242, 242, 0.3);
 
   /* Every tracked, all-caps control uses this one value, and each of them
      compensates for it with an equal text-indent — see .u-caps below. */
@@ -257,24 +266,24 @@ body::before {
   min-height: 44px;
   padding: calc(0.5rem + var(--caps-drop)) clamp(1rem, 3.5vw, 1.45rem)
     calc(0.5rem - var(--caps-drop));
-  border: 1px solid var(--gold-dim);
+  border: 1px solid var(--silver-dim);
   border-radius: 999px;
-  color: var(--gold);
+  color: var(--silver);
   font-size: clamp(0.68rem, 2.5vw, 0.74rem);
   font-weight: 400;
   text-decoration: none;
   white-space: nowrap;
-  background: var(--gold-wash);
+  background: var(--silver-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .page-contact:hover,
 .page-contact:focus-visible {
-  border-color: var(--gold);
-  background: rgba(240, 216, 156, 0.15);
-  color: var(--gold-strong);
-  box-shadow: 0 0 0 1px rgba(240, 216, 156, 0.14);
+  border-color: var(--silver);
+  background: rgba(214, 214, 214, 0.15);
+  color: var(--silver-strong);
+  box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.14);
 }
 
 .page-contact:active {
@@ -353,7 +362,7 @@ body::before {
 
 a.legal__eyebrow:hover,
 a.legal__eyebrow:focus-visible {
-  color: var(--gold);
+  color: var(--silver);
 }
 
 .legal__title {
@@ -369,14 +378,14 @@ a.legal__eyebrow:focus-visible {
   color: var(--page-fg);
 }
 
-/* Short gold rule under a title — the one place gold touches the page ground,
-   so the buttons don't read as the only warm thing on the site. */
+/* Short silver rule under a title — the one place the accent touches the page
+   ground, so the buttons don't read as the only lit thing on the site. */
 .legal__rule {
   width: 4.5rem;
   height: 1px;
   margin: clamp(1.15rem, 4vw, 1.6rem) auto;
   border: 0;
-  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  background: linear-gradient(90deg, transparent, var(--silver-dim), transparent);
 }
 
 /* On a page with no dated line under it, the rule ends the header — and its
@@ -472,7 +481,7 @@ a.legal__eyebrow:focus-visible {
 }
 
 .legal li::marker {
-  color: var(--gold-dim);
+  color: var(--silver-dim);
 }
 
 .legal strong {
@@ -481,9 +490,9 @@ a.legal__eyebrow:focus-visible {
 }
 
 .legal a:not(.legal__eyebrow):not(.legal__home) {
-  color: var(--gold);
+  color: var(--silver);
   text-decoration: none;
-  border-bottom: 1px solid var(--gold-dim);
+  border-bottom: 1px solid var(--silver-dim);
   /* Long links (a phone number, an address) must be able to break rather than
      push the column wider than a 320px screen. */
   overflow-wrap: anywhere;
@@ -492,8 +501,8 @@ a.legal__eyebrow:focus-visible {
 
 .legal a:not(.legal__eyebrow):not(.legal__home):hover,
 .legal a:not(.legal__eyebrow):not(.legal__home):focus-visible {
-  color: var(--gold-strong);
-  border-bottom-color: var(--gold);
+  color: var(--silver-strong);
+  border-bottom-color: var(--silver);
 }
 
 /* Contact block at the foot of each policy — a quiet card, not another
@@ -656,17 +665,17 @@ a.legal__eyebrow:focus-visible {
 }
 
 .contact a:not(.contact__action) {
-  color: var(--gold);
+  color: var(--silver);
   text-decoration: none;
-  border-bottom: 1px solid var(--gold-dim);
+  border-bottom: 1px solid var(--silver-dim);
   overflow-wrap: anywhere;
   transition: color 0.25s ease, border-color 0.25s ease;
 }
 
 .contact a:not(.contact__action):hover,
 .contact a:not(.contact__action):focus-visible {
-  color: var(--gold-strong);
-  border-bottom-color: var(--gold);
+  color: var(--silver-strong);
+  border-bottom-color: var(--silver);
 }
 
 /* Pushed to the bottom of the card by the auto margin, so the actions sit on
@@ -687,22 +696,22 @@ a.legal__eyebrow:focus-visible {
   gap: 0.5rem;
   min-height: 44px;
   padding: calc(0.5rem + var(--caps-drop)) 1.15rem calc(0.5rem - var(--caps-drop));
-  border: 1px solid var(--gold-dim);
+  border: 1px solid var(--silver-dim);
   border-radius: 999px;
-  color: var(--gold);
+  color: var(--silver);
   font-size: 0.7rem;
   text-decoration: none;
   white-space: nowrap;
-  background: var(--gold-wash);
+  background: var(--silver-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease;
 }
 
 .contact__action:hover,
 .contact__action:focus-visible {
-  border-color: var(--gold);
-  background: rgba(240, 216, 156, 0.15);
-  color: var(--gold-strong);
+  border-color: var(--silver);
+  background: rgba(214, 214, 214, 0.15);
+  color: var(--silver-strong);
 }
 
 .contact__action:active {
@@ -711,9 +720,11 @@ a.legal__eyebrow:focus-visible {
 
 /* --- Map ---
    The shop's actual corner of Boston, framed to match the cards above it. The
-   iframe is lazy so it costs nothing until it scrolls into view, and it is
-   only lightly desaturated — enough to stop a white map glaring out of a
-   near-black page, not enough to alter the map or dim its attribution. */
+   iframe is lazy so it costs nothing until it scrolls into view, and it is now
+   fully desaturated: the site carries no hue anywhere else, so the map's road
+   colours were the last thing on it that did. Only the saturation is taken —
+   the brightness is left near full so the map stays legible and its
+   attribution stays readable, which the licence requires. */
 
 .contact__map {
   margin-top: clamp(0.9rem, 2.5vw, 1.25rem);
@@ -734,7 +745,7 @@ a.legal__eyebrow:focus-visible {
      fixed height would be a slot on a phone and a stripe on a wide monitor. */
   height: clamp(16rem, 42vw, 26rem);
   border: 0;
-  filter: grayscale(0.3) brightness(0.95);
+  filter: grayscale(1) brightness(0.95);
 }
 
 /* --- Find us --- */
@@ -780,7 +791,7 @@ a.legal__eyebrow:focus-visible {
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--silver);
   outline-offset: 3px;
 }
 
@@ -792,8 +803,8 @@ a.legal__eyebrow:focus-visible {
 .site-footer {
   position: relative;
   flex-shrink: 0;
-  /* Not a panel any more. --ground-footer resolves to the same green as the
-     page, so this paints nothing the ground was not already painting; what
+  /* Not a panel any more. --ground-footer resolves to the same near-black as
+     the page, so this paints nothing the ground was not already painting; what
      separates the footer from the page above it is the hairline below, and
      nothing else. Kept as a declaration rather than deleted so a future step
      back toward a raised footer is one token, not a rewrite. */
@@ -839,7 +850,7 @@ a.legal__eyebrow:focus-visible {
 }
 
 /* --- Social medallions ---
-   Two gold discs held between short hairlines, like the clasp on a chain. One
+   Two silver discs held between short hairlines, like the clasp on a chain. One
    gap value governs the whole cluster, so disc-to-disc and disc-to-rule are
    identical and the ornament is symmetric about its centre. The rules flex to
    fill whatever is left, so it is as wide as the footer allows and collapses
@@ -864,12 +875,12 @@ a.legal__eyebrow:focus-visible {
      instead of drifting to the far walls. */
   max-width: 5rem;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-dim));
+  background: linear-gradient(90deg, transparent, var(--silver-dim));
 }
 
 /* The right-hand rule fades the other way, so both taper away from the pair. */
 .site-social__rule:last-child {
-  background: linear-gradient(90deg, var(--gold-dim), transparent);
+  background: linear-gradient(90deg, var(--silver-dim), transparent);
 }
 
 /* Inherits the cluster gap, so the space between the two discs matches the
@@ -888,10 +899,10 @@ a.legal__eyebrow:focus-visible {
      plus both rules still fit inside 320px. */
   width: 44px;
   height: 44px;
-  border: 1px solid var(--gold-dim);
+  border: 1px solid var(--silver-dim);
   border-radius: 50%;
-  color: var(--gold);
-  background: var(--gold-wash);
+  color: var(--silver);
+  background: var(--silver-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
@@ -899,21 +910,21 @@ a.legal__eyebrow:focus-visible {
 .site-social__link svg {
   width: 15px;
   height: 15px;
-  /* The glyph is the only fill, and it tracks the link colour — so warming the
-     disc on hover warms the mark with it. */
+  /* The glyph is the only fill, and it tracks the link colour — so lifting the
+     disc on hover lifts the mark with it. */
   fill: currentColor;
   transition: transform 0.25s ease;
 }
 
 .site-social__link:hover,
 .site-social__link:focus-visible {
-  border-color: var(--gold);
-  background: rgba(240, 216, 156, 0.15);
-  color: var(--gold-strong);
+  border-color: var(--silver);
+  background: rgba(214, 214, 214, 0.15);
+  color: var(--silver-strong);
   /* A held light rather than a glow — tight, low alpha, the sheen a polished
      bezel throws under a display lamp. */
-  box-shadow: 0 0 0 1px rgba(240, 216, 156, 0.18),
-    0 4px 18px rgba(240, 216, 156, 0.16);
+  box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.18),
+    0 4px 18px rgba(214, 214, 214, 0.16);
 }
 
 .site-social__link:hover svg,
@@ -935,7 +946,7 @@ a.legal__eyebrow:focus-visible {
   margin-top: clamp(1.05rem, 3vw, 1.4rem);
 }
 
-/* Gold on near-black, pill-shaped, sized so both still sit side by side at
+/* Silver on near-black, pill-shaped, sized so both still sit side by side at
    360px and wrap to one column only below that. */
 .site-footer__link {
   display: inline-flex;
@@ -944,23 +955,23 @@ a.legal__eyebrow:focus-visible {
   min-height: 44px;
   padding: calc(0.5rem + var(--caps-drop)) clamp(0.9rem, 3.5vw, 1.35rem)
     calc(0.5rem - var(--caps-drop));
-  border: 1px solid var(--gold-dim);
+  border: 1px solid var(--silver-dim);
   border-radius: 999px;
-  color: var(--gold);
+  color: var(--silver);
   font-size: clamp(0.66rem, 2.4vw, 0.72rem);
   font-weight: 400;
   text-decoration: none;
   white-space: nowrap;
-  background: var(--gold-wash);
+  background: var(--silver-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease;
 }
 
 .site-footer__link:hover,
 .site-footer__link:focus-visible {
-  border-color: var(--gold);
-  background: rgba(240, 216, 156, 0.15);
-  color: var(--gold-strong);
+  border-color: var(--silver);
+  background: rgba(214, 214, 214, 0.15);
+  color: var(--silver-strong);
 }
 
 .site-footer__link:active {
@@ -970,9 +981,9 @@ a.legal__eyebrow:focus-visible {
 /* Marks the policy page you are already on, so the pair reads as navigation
    rather than two identical buttons. */
 .site-footer__link[aria-current="page"] {
-  border-color: var(--gold);
-  color: var(--gold-strong);
-  background: rgba(240, 216, 156, 0.13);
+  border-color: var(--silver);
+  color: var(--silver-strong);
+  background: rgba(214, 214, 214, 0.13);
 }
 
 /* --- Meta row: version at the left wall, copyright centred on the page ---
@@ -1022,7 +1033,7 @@ a.legal__eyebrow:focus-visible {
 
 /* 404.html carries its own copy of these rules inline — GitHub Pages serves it
    for a miss at any path depth, where a relative stylesheet link would break.
-   Change the ground, the gold or the footer here and mirror it there. */
+   Change the ground, the silver or the footer here and mirror it there. */
 
 @media (max-width: 480px) {
   /* Tighter to the wall on phones. The max() calls are repeated rather than
