@@ -49,9 +49,24 @@ const DEPTH_AGNOSTIC = new Set(["404.html"]);
    listed. Catches a page that lost its footer, or a marker typo that would
    otherwise just leave the region empty. */
 const REQUIRED = [
-  { slot: "header", variants: ["top", "top-return"] },
+  { slot: "header", variants: ["top", "top-return", "top-home"] },
   { slot: "footer", variants: ["footer"] },
 ];
+
+/* Image slots that are waiting on a photograph nobody has taken yet.
+ *
+ * This business has no jewelry photography — the live site carries three
+ * images in total and not one of them is a piece of its own work. Rather than
+ * ship a generated stand-in, every such slot renders as a labelled greybox
+ * carrying the shot it needs. Counting them here is what stops them becoming
+ * permanent: they are reported on every build and by --check, so the number is
+ * in front of whoever deploys, every time.
+ *
+ * Deliberately a report and not a failure. Failing the build would take a live
+ * business's site down over missing art direction, which is a worse outcome
+ * than a visible placeholder. Pass --strict to turn the report into an error
+ * once the photography actually lands. */
+const PLACEHOLDER_RE = /data-placeholder="([^"]*)"/g;
 
 /* Not pages, and not worth walking. */
 const SKIP_DIRS = new Set([
@@ -192,6 +207,7 @@ function stamp(page, source, partials, version) {
 function main() {
   const mode = process.argv[2];
   const check = mode === "--check";
+  const strict = process.argv.includes("--strict");
 
   let version = read(VERSION_FILE).trim();
   if (mode === "bump") {
@@ -210,6 +226,7 @@ function main() {
   const pages = findPages();
   const warnings = [];
   const stale = [];
+  const pending = [];
   let written = 0;
 
   for (const page of pages) {
@@ -217,6 +234,9 @@ function main() {
     const source = read(file);
     const { out, warnings: w } = stamp(page, source, partials, version);
     warnings.push(...w);
+    for (const m of out.matchAll(PLACEHOLDER_RE)) {
+      pending.push({ page, shot: m[1] });
+    }
     if (out === source) continue;
     if (check) stale.push(page);
     else {
@@ -226,6 +246,24 @@ function main() {
   }
 
   for (const w of warnings) console.warn(`  warning: ${w}`);
+
+  if (pending.length) {
+    console.warn(
+      `\n  ${pending.length} image slot${pending.length === 1 ? "" : "s"} still ` +
+        `awaiting real photography:`
+    );
+    for (const { page, shot } of pending) {
+      console.warn(`    ${page.padEnd(22)} ${shot}`);
+    }
+    console.warn(
+      `  These render as labelled greyboxes. Nothing fabricated ships in ` +
+        `their place.\n`
+    );
+    if (strict) {
+      console.error("--strict: refusing to build with placeholders present.");
+      process.exit(1);
+    }
+  }
 
   if (check) {
     if (stale.length) {

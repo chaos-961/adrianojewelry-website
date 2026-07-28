@@ -5,38 +5,68 @@
     <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve on iOS. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Page not found — Adriano Jewelry</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap"
-      rel="stylesheet"
-    />
     <!-- Styles are inlined: GitHub Pages serves this file for a miss at any
          path depth, so a relative stylesheet link would not resolve.
          Keep the lattice, the gold and the footer in sync with
          assets/css/site.css. -->
     <style>
+      @font-face {
+  font-family: "Instrument Serif";
+  src: url("/assets/fonts/instrument-serif-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+      @font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-var.woff2") format("woff2-variations");
+  font-weight: 300 600;
+  font-style: normal;
+  font-display: swap;
+}
+      @font-face {
+  font-family: "Chivo Mono";
+  src: url("/assets/fonts/chivo-mono-var.woff2") format("woff2-variations");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
       :root {
-        --ground-page: #161616;
-        --ground-footer: #0b0b0b;
-        --page-fg: #ededed;
-        --page-muted: #a3a3a3;
-        --footer-fg: #d4d4d4;
+        --ground-page: #0e0d0b;
+        --ground-footer: #171613;
+        --page-fg: #ede7dc;
+        --page-muted: #9a948a;
+        --footer-fg: #ede7dc;
         --footer-rule: rgba(255, 255, 255, 0.1);
-        --accent: #d6d6d6;
-        --accent-dim: rgba(255, 255, 255, 0.34);
-        --gold: #f2cf85;
-        --gold-strong: #ffe7b0;
-        --gold-dim: rgba(242, 207, 133, 0.42);
-        --gold-wash: rgba(242, 207, 133, 0.06);
+        --accent: #ede7dc;
+        --accent-dim: rgba(237, 231, 220, 0.3);
+        --gold: #f0d89c;
+        --gold-strong: #fbecc4;
+        --gold-dim: rgba(240, 216, 156, 0.42);
+        --gold-wash: rgba(240, 216, 156, 0.06);
         --caps-track: 0.15em;
         /* See site.css: cancels the descender space that pushes all-caps text
            high inside a flex-centred pill. */
         --caps-drop: 0.03em;
-        --font-body: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;
-        --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+        --font-body: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
         --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-        --damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M0,0 L60,60 M30,0 L60,30 M0,30 L30,60 M60,0 L0,60 M30,0 L0,30 M60,30 L30,60' fill='none' stroke='%23ffffff' stroke-opacity='0.075' stroke-width='0.9'/%3E%3C/svg%3E");
+
+        --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cfilter id='g' x='0' y='0' width='320' height='320' filterUnits='userSpaceOnUse'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect x='0' y='0' width='320' height='320' filter='url(%23g)' opacity='0.03'/%3E%3C/svg%3E");
+
+        --lamp: radial-gradient(
+            95% 70% at -12% 32%,
+            rgba(240, 216, 156, 0.08) 0%,
+            rgba(240, 216, 156, 0.038) 26%,
+            rgba(240, 216, 156, 0.012) 48%,
+            rgba(0, 0, 0, 0) 70%
+          ),
+          radial-gradient(
+            120% 90% at 92% 96%,
+            rgba(0, 0, 0, 0.5) 0%,
+            rgba(0, 0, 0, 0) 58%
+          );
         --sheen: radial-gradient(
             120% 90% at 50% 0%,
             rgba(255, 255, 255, 0.07) 0%,
@@ -86,9 +116,9 @@
         inset: 0;
         z-index: -1;
         background-color: var(--ground-page);
-        background-image: var(--sheen), var(--damask);
-        background-size: cover, cover, 68px 68px;
-        background-repeat: no-repeat, no-repeat, repeat;
+        background-image: var(--grain), var(--lamp);
+        background-size: 320px 320px, cover;
+        background-repeat: repeat, no-repeat;
         pointer-events: none;
       }
 
@@ -138,9 +168,9 @@
       .page-contact:hover,
       .page-contact:focus-visible {
         border-color: var(--gold);
-        background: rgba(242, 207, 133, 0.15);
+        background: rgba(240, 216, 156, 0.15);
         color: var(--gold-strong);
-        box-shadow: 0 0 0 1px rgba(242, 207, 133, 0.14);
+        box-shadow: 0 0 0 1px rgba(240, 216, 156, 0.14);
       }
 
       .page-contact:active {
@@ -171,7 +201,7 @@
            baseline, so "404" reads as a low-high-low stagger. Times keeps all
            three numerals on one lining height; lining-nums is the belt and
            braces for any stack that falls through to a face with both sets. */
-        font-family: "Times New Roman", Times, var(--font-display);
+        font-family: var(--font-display);
         font-variant-numeric: lining-nums;
         font-feature-settings: "lnum" 1, "onum" 0;
         /* Scales with the viewport instead of overflowing a 320px phone. */
@@ -372,10 +402,10 @@
       .site-social__link:hover,
       .site-social__link:focus-visible {
         border-color: var(--gold);
-        background: rgba(242, 207, 133, 0.15);
+        background: rgba(240, 216, 156, 0.15);
         color: var(--gold-strong);
-        box-shadow: 0 0 0 1px rgba(242, 207, 133, 0.18),
-          0 4px 18px rgba(242, 207, 133, 0.16);
+        box-shadow: 0 0 0 1px rgba(240, 216, 156, 0.18),
+          0 4px 18px rgba(240, 216, 156, 0.16);
       }
 
       .site-social__link:hover svg,
@@ -417,7 +447,7 @@
       .site-footer__link:hover,
       .site-footer__link:focus-visible {
         border-color: var(--gold);
-        background: rgba(242, 207, 133, 0.15);
+        background: rgba(240, 216, 156, 0.15);
         color: var(--gold-strong);
       }
 
@@ -565,9 +595,17 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.8</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.0.9</p>
+          <!-- The year is authored here as a literal and corrected at runtime by
+               assets/js/year.js. Stamping it from Date() at build time instead
+               would make `build.js --check` fail every New Year's Day and block the
+               deploy until somebody rebuilt; deriving it only in script would show
+               nothing at all with JavaScript off. This way the markup is always
+               complete, the check never drifts, and every visitor with scripting on
+               sees the true year. -->
           <p class="site-footer__copy">
-            Copyright &copy; 2026 Adriano Jewelry - All Rights Reserved.
+            Copyright &copy; <span data-year>2026</span> Adriano Jewelry - All Rights
+            Reserved.
           </p>
         </div>
       </div>

@@ -1,0 +1,1211 @@
+/* Adriano Jewelry — landing page
+   Loaded only by index.html, on top of site.css. The prose pages never pay for
+   any of this.
+
+   The page argues one thing: this is a workshop, not a store. Everything below
+   is in service of that, and the test each rule had to pass is whether it could
+   appear unchanged on a mall jeweller's site. Where the answer was yes, it was
+   cut. What survived is the stuff that only makes sense for a man who can make
+   a piece from a drawing or bring a dead heirloom back — the technical
+   drawings, the specs set as specs, the measured labels, the single lamp.
+
+   Two structural notes that explain a lot of what follows:
+
+   1. NOTHING HERE ANIMATES WITHOUT JAVASCRIPT AND PERMISSION. Reveal states are
+      scoped under `.motion`, a class set by a two-line inline script in <head>
+      that runs only when prefers-reduced-motion is not set. With JavaScript
+      off, or reduced motion on, every rule below paints in its final state and
+      the page is complete. There is no arrangement in which content is hidden
+      and never shown.
+
+   2. THE PLACEHOLDERS ARE DELIBERATE AND LOUD. This business has no jewelry
+      photography — not one product image exists. Rather than ship a generated
+      one, every image slot that needs a real photograph renders as a labelled
+      greybox carrying the exact shot required. scripts/build.js counts them on
+      every build so they cannot quietly become permanent. */
+
+.home {
+  /* TYPE SCALE. Six display steps and four text steps, all fluid, all sharing
+     the same 320px floor so nothing collides on the narrowest phone. The
+     display steps use a steep vw coefficient because display type is the one
+     thing that should feel genuinely different between a phone and a wide
+     monitor; the text steps barely move, because a comfortable reading size is
+     a comfortable reading size at any width. */
+  --fs-hero: clamp(2.85rem, 9.5vw, 8rem);
+  --fs-title: clamp(2.2rem, 5.6vw, 4.5rem);
+  --fs-quote: clamp(1.6rem, 3.8vw, 3rem);
+  --fs-stage: clamp(1.5rem, 3vw, 2.15rem);
+  --fs-lead: clamp(1.02rem, 1.4vw, 1.2rem);
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-mono: 0.72rem;
+  --fs-mono-sm: 0.65rem;
+
+  /* SPACING. The section rhythm starts at 8rem and it will look like too much
+     on a wide monitor. It isn't: the whole visual argument of an expensive page
+     is that it can afford to leave most of the screen empty. The floor is
+     5.5rem rather than the 8rem the brief suggests: 12vw only overtakes it
+     above 733px, so a phone would otherwise spend 112px above AND below every
+     section — a third of an 844px screen on emptiness it cannot afford, while
+     a wide desktop, which can, is unchanged. --gutter is the
+     page's side margin and --measure caps every column of prose at a line
+     length the eye can track without losing its place. */
+  --section-y: clamp(5.5rem, 12vw, 13rem);
+  --gutter: clamp(1.25rem, 5vw, 4.5rem);
+  --measure: 46ch;
+  --rule: rgba(184, 148, 63, 0.22);
+}
+
+/* The prose pages centre a narrow column; this page runs full-bleed and lets
+   each section decide its own inset, so a photograph can reach the wall while
+   the paragraph beside it stays on the measure. */
+.home .page-top {
+  position: relative;
+  z-index: 3;
+}
+
+/* The home header carries a wordmark as well as the contact pill, so it is
+   justified apart rather than pushed right the way every other page's is. */
+.page-top--home {
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Set in the display face, not drawn. The business's existing mark is a
+   heraldic crest — crown, diamond, two rampant horses, gold gradient, on a
+   marble ground — and it carries three of the tells this site is built to
+   avoid. Retiring it for the name set in Instrument Serif keeps the identity
+   and drops the costume. The favicon is the same face's capital A, taken from
+   the real outline rather than approximated. */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 3.2vw, 1.7rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.wordmark:hover,
+.wordmark:focus-visible {
+  color: var(--gold);
+}
+
+/* --- Shared section furniture ------------------------------------------- */
+
+.section {
+  position: relative;
+  padding: var(--section-y) var(--gutter);
+}
+
+/* The one horizontal rule pattern on the page. It fades at both ends rather
+   than butting into the gutter, so a section boundary reads as light falling
+   off rather than as a drawn line. */
+.section + .section::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--gutter) auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--rule) 22%,
+    var(--rule) 78%,
+    transparent
+  );
+}
+
+.wrap {
+  width: 100%;
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+/* Mono, tracked, gold, tiny. This is the workshop's voice and it is the only
+   thing on the page allowed to be gold besides a control — it labels, it does
+   not decorate. The text-indent cancels the trailing letter-space exactly as
+   .u-caps does in site.css, so a centred eyebrow sits on true centre. */
+.eyebrow {
+  display: block;
+  margin: 0 0 clamp(1.5rem, 4vw, 2.5rem);
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-indent: 0.24em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.section-title {
+  margin: 0 0 clamp(1.75rem, 4vw, 2.75rem);
+  max-width: 20ch;
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.005em;
+}
+
+.lead {
+  margin: 0;
+  max-width: var(--measure);
+  color: var(--smoke);
+  font-size: var(--fs-lead);
+  font-weight: 300;
+  line-height: 1.65;
+}
+
+/* --- Reveal ---
+   The single entrance used by every section. Scoped under .motion so it exists
+   only when animation is both possible and permitted; main.js animates it and
+   then removes the will-change. 24px is deliberately small — a long travel
+   reads as a slideshow, a short one reads as the page settling. */
+.motion .reveal {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.motion .reveal--still {
+  transform: none;
+}
+
+/* --- Placeholder ---
+   Every slot that needs a photograph nobody has taken yet. It carries the shot
+   brief as its own label, in mono, so the page tells you what it is missing
+   instead of pretending it is complete. Deliberately not pretty: a pleasant
+   placeholder is one that ships. */
+.ph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1.25rem;
+  background: var(--ink-raised);
+  border: 1px dashed rgba(184, 148, 63, 0.3);
+  overflow: hidden;
+}
+
+.ph::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 11px,
+    rgba(184, 148, 63, 0.05) 11px 22px
+  );
+}
+
+.ph__label {
+  position: relative;
+  max-width: 26ch;
+  color: var(--gold-deep);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.9;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ph__label strong {
+  display: block;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* --- Buttons ---
+   The pill from site.css, restated at the size the landing page needs. Same
+   border, same radius, same tracking, same split --caps-drop padding so the
+   label sits optically centred rather than mathematically centred. The primary
+   variant is the only filled control on the page. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 48px;
+  padding: calc(0.72rem + var(--caps-drop)) clamp(1.25rem, 3.5vw, 1.9rem)
+    calc(0.72rem - var(--caps-drop));
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  color: var(--gold);
+  font-family: var(--font-body);
+  font-size: clamp(0.68rem, 2.2vw, 0.74rem);
+  font-weight: 400;
+  letter-spacing: var(--caps-track);
+  text-indent: var(--caps-track);
+  text-transform: uppercase;
+  text-decoration: none;
+  line-height: 1;
+  white-space: nowrap;
+  background: var(--gold-wash);
+  cursor: pointer;
+  /* 400ms is the floor for every transition on this site. */
+  transition: border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover,
+.btn:focus-visible {
+  border-color: var(--gold);
+  color: var(--gold-strong);
+  background: rgba(240, 216, 156, 0.14);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  border-color: var(--gold);
+  background: rgba(240, 216, 156, 0.12);
+}
+
+.btn--primary:hover,
+.btn--primary:focus-visible {
+  background: rgba(240, 216, 156, 0.2);
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* --- 4.1 Hero ------------------------------------------------------------
+   Full viewport, type-led. The brief asked for a piece of jewelry shot dark on
+   dark; no such photograph exists for this business and generating one would
+   be a fabricated product image, so the hero leads with the sentence instead
+   and carries a single abstract light on the right — atmosphere, not a claim.
+   That is also the stronger version: the page's argument is a pair of hands,
+   not a stone. */
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* svh, not vh: on iOS vh is the *expanded* viewport, so a 100vh hero hides
+     its own bottom behind the address bar on first paint. */
+  min-height: 82vh;
+  min-height: 82svh;
+  padding: clamp(3rem, 9vw, 7rem) var(--gutter) clamp(4rem, 8vw, 6rem);
+  overflow: hidden;
+}
+
+/* The lamp again, but local and much stronger — a pool thrown across the top
+   right of the hero only. Decorative, so it is aria-hidden in the markup and
+   pointer-events:none here. */
+.hero__light {
+  position: absolute;
+  top: -18%;
+  right: -22%;
+  width: min(82vw, 60rem);
+  aspect-ratio: 16 / 9;
+  background-size: cover;
+  background-position: center;
+  /* Low enough to read as light in the room rather than as a photograph of
+     light. Blurring kills the last of the image's own structure so nothing in
+     it can be mistaken for an object. */
+  opacity: 0.55;
+  filter: blur(8px);
+  pointer-events: none;
+  z-index: 0;
+
+  /* screen is what makes this a light source instead of a picture of one.
+     The asset is bright streaks on a black field; under normal compositing the
+     black is opaque and the element paints as a visible rectangle sitting on
+     the page — which is exactly how it looked before this line. Under `screen`
+     black is the identity, so the black field disappears entirely and only the
+     streaks survive to lighten what is under them. That is also physically the
+     right model: light adds. */
+  mix-blend-mode: screen;
+
+  /* Even with screen, the blur leaves a faint edge where the element ends.
+     The mask feathers the element's own bounds to nothing so the light has no
+     border at all. */
+  -webkit-mask-image: radial-gradient(
+    closest-side,
+    #000 35%,
+    rgba(0, 0, 0, 0.55) 62%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    closest-side,
+    #000 35%,
+    rgba(0, 0, 0, 0.55) 62%,
+    transparent 100%
+  );
+}
+
+.hero__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+.hero__eyebrow {
+  margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+/* The headline. Line breaks are authored, not left to the browser, because the
+   mask reveal animates per line and a reflowed line would tear mid-animation.
+   Each line is its own overflow-hidden box with the text translated inside it,
+   so the type rises out of a hard edge rather than fading in place. */
+.hero__title {
+  margin: 0 0 clamp(1.75rem, 4vw, 2.5rem);
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: var(--fs-hero);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.012em;
+}
+
+.line {
+  display: block;
+  overflow: hidden;
+  /* The descenders of a 128px serif overshoot the line box; without this the
+     mask clips the tail of the "y" in "Every". */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.line > span {
+  display: block;
+  will-change: transform;
+}
+
+.motion .line > span {
+  transform: translateY(105%);
+}
+
+.hero__sub {
+  margin: 0 0 clamp(2.25rem, 5vw, 3.25rem);
+  max-width: 48ch;
+  color: var(--smoke);
+  font-size: var(--fs-lead);
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* Bottom-left, in mono, with a hairline that draws down to it. Not a bouncing
+   chevron: a bouncing chevron is a timer-driven animation, which this site does
+   not do, and it says nothing a reader does not already know. This one is a
+   measurement — where you are on the page. */
+.hero__cue {
+  position: absolute;
+  left: var(--gutter);
+  bottom: clamp(1.5rem, 4vw, 2.5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--smoke);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.hero__cue::after {
+  content: "";
+  width: clamp(2.5rem, 8vw, 5rem);
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+
+@media (max-width: 40em) {
+  .hero__cue {
+    display: none;
+  }
+}
+
+/* --- 4.2 From sketch to setting -----------------------------------------
+   The section the page exists for.
+
+   DESKTOP: the figure column pins and the five stages advance beside it, each
+   crossfading the drawing as its panel comes level. MOBILE: nothing pins. A pin
+   on a phone fights the collapsing address bar and drops frames on mid-range
+   Android, so the same five stages simply stack as ordinary reveals. Both
+   layouts are the same markup — only the ScrollTrigger differs, and it is
+   registered inside a matchMedia so it never even exists below 64em.
+
+   The drawings are line art, not photographs, and that is a decision rather
+   than a fallback. Nobody has photographed a wax carving or a casting for this
+   shop, and a generated photograph of one would be exactly the fabrication this
+   project refuses. A technical drawing claims to be a drawing. It is also the
+   truer register: this is a trade that starts on paper. */
+
+.process__head {
+  max-width: 78rem;
+  margin: 0 auto clamp(3.5rem, 8vw, 6rem);
+}
+
+.process__grid {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 5rem);
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 64em) {
+  .process__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* NOT align-items: start. Start-aligning sizes each grid item to its own
+       content, which leaves the figure column about one plate tall — and a
+       sticky box cannot travel inside a container the same height as itself, so
+       the drawing would pin for one stage and then scroll away. The default
+       stretch gives the figure column the full height of the stages beside it,
+       which is the distance the drawing needs to stay put across. */
+    gap: clamp(3rem, 6vw, 6rem);
+  }
+}
+
+/* The pinned column. On desktop the figures stack on top of one another in a
+   square frame and only opacity changes between them, so the crossfade costs a
+   composite and nothing else — no layout, no paint. */
+.process__figure {
+  position: relative;
+  display: none;
+}
+
+@media (min-width: 64em) {
+  .process__figure {
+    display: block;
+  }
+
+  /* Native sticky rather than ScrollTrigger's pin, and this is a deliberate
+     swap. A pin injects a spacer element into the flow and re-measures the
+     document on every resize, which is where pinned sections usually start
+     fighting a phone's collapsing address bar. Sticky is one declaration, it
+     cannot shift the layout, it costs nothing to the main thread, and it still
+     works with scripting off — leaving main.js responsible only for deciding
+     which drawing is visible, which is a much smaller job to get wrong.
+
+     The offset centres the square plate in the viewport rather than parking it
+     under the top edge, so the drawing sits opposite whichever stage is level
+     with it. It is also the containing block for the five absolutely
+     positioned plates. */
+  .process__plates {
+    position: sticky;
+    top: max(3rem, calc((100svh - min(34rem, 38vw)) / 2));
+    aspect-ratio: 1;
+    max-height: min(34rem, 38vw);
+    margin: 0 auto;
+    width: min(34rem, 100%);
+  }
+}
+
+.process__plate {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.1rem, 2.2vw, 2rem);
+  border: 1px solid var(--rule);
+  background: rgba(23, 22, 19, 0.55);
+}
+
+.process__plate:not(:first-child) {
+  opacity: 0;
+}
+
+.process__plate svg {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+}
+
+/* The corner ticks — four short hairlines that register the plate like a
+   drawing sheet. Pure ornament would be cut; this earns its place by making
+   the frame read as a drawing board rather than as a card. */
+.process__plate::before,
+.process__plate::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--gold-deep);
+  opacity: 0.55;
+}
+
+.process__plate::before {
+  top: 10px;
+  left: 10px;
+  border-width: 1px 0 0 1px;
+}
+
+.process__plate::after {
+  bottom: 10px;
+  right: 10px;
+  border-width: 0 1px 1px 0;
+}
+
+.process__stages {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4rem);
+}
+
+@media (min-width: 64em) {
+  .process__stages {
+    gap: clamp(6rem, 14vh, 11rem);
+  }
+}
+
+.stage {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Dimmed until it is the active stage. This is the only place on the page
+   where numbered markers appear, because this is the only place where order
+   carries information. */
+@media (min-width: 64em) {
+  .stage {
+    opacity: 0.32;
+    transition: opacity var(--dur-base) var(--ease-soft);
+  }
+
+  .stage.is-active {
+    opacity: 1;
+  }
+}
+
+.stage__label {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* A short rule after the label, so the stage number reads as a mark on a scale
+   rather than as a heading. */
+.stage__label::after {
+  content: "";
+  flex: 1 1 auto;
+  max-width: 4rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+
+.stage__title {
+  margin: 0;
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: var(--fs-stage);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.stage__body {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--smoke);
+  font-size: var(--fs-body);
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+/* The phone layout: each stage carries its own drawing inline, at a size that
+   does not dominate the text it belongs to. */
+.stage__figure {
+  margin-bottom: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--rule);
+  background: rgba(23, 22, 19, 0.55);
+}
+
+.stage__figure svg {
+  display: block;
+  width: 100%;
+  max-width: 15rem;
+  height: auto;
+  margin: 0 auto;
+}
+
+@media (min-width: 64em) {
+  .stage__figure {
+    display: none;
+  }
+}
+
+/* --- 4.3 Selected work ---------------------------------------------------
+   Sticky piece, specs scrolling past. The specs are the design element: a
+   precise technical caption in mono next to a large photograph does more for
+   perceived value than any effect, because it is evidence rather than
+   atmosphere. Restorations are labelled as restorations — a before and after
+   on somebody's grandmother's ring is the one thing no competitor can copy. */
+
+.work__head {
+  max-width: 78rem;
+  margin: 0 auto clamp(3.5rem, 8vw, 6rem);
+}
+
+.work__grid {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 60em) {
+  .work__grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(3rem, 6vw, 6rem);
+    align-items: start;
+  }
+
+  /* Native sticky — no JavaScript, no ScrollTrigger, and it keeps working with
+     scripting disabled. The offset clears the top of the viewport by enough
+     that the frame is not flush against the edge. */
+  .work__sticky {
+    position: sticky;
+    top: clamp(4rem, 12vh, 8rem);
+  }
+}
+
+.work__frame {
+  aspect-ratio: 4 / 5;
+}
+
+.work__list {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.piece {
+  display: grid;
+  gap: 0.85rem;
+  padding-top: clamp(1.5rem, 3vw, 2rem);
+  border-top: 1px solid var(--rule);
+}
+
+.piece__name {
+  margin: 0;
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+/* THE SPEC LINE. Authored as separate items rather than one string with
+   interpunct separators, and this is a measured decision: at 11px with 0.12em
+   tracking the client's own example spec runs 475px, which does not fit inside
+   a 320px phone in any monospace face tested. Left as one string it reflows at
+   arbitrary points and the caption stops reading as a spec. As a list it
+   breaks where a spec should break — one fact per line — and the separators
+   are drawn by CSS only when there is room for them on one line. */
+.piece__spec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--smoke);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.7;
+  text-transform: uppercase;
+}
+
+.piece__spec li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.piece__spec li:not(:last-child)::after {
+  content: "";
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--gold-deep);
+}
+
+/* On a phone the specs stack one per line and the dots would be dangling
+   punctuation at the end of each, so they go. */
+@media (max-width: 30em) {
+  .piece__spec {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .piece__spec li:not(:last-child)::after {
+    display: none;
+  }
+}
+
+/* The restoration flag. A pill, but deliberately not the gold control pill —
+   this is a label, not something you can press, and the two must never be
+   confusable. */
+.piece__flag {
+  justify-self: start;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--gold-deep);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* --- 4.4 The maker -------------------------------------------------------
+   The only real photograph on the page, and the reason the page works. Adriano
+   at his own bench, hands in frame, eye to the microscope. Half-bleed on
+   desktop so it reaches the wall. */
+
+.maker {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.maker__grid {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4rem);
+  align-items: center;
+}
+
+@media (min-width: 60em) {
+  .maker__grid {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr);
+    gap: clamp(3rem, 7vw, 6rem);
+  }
+}
+
+.maker__media {
+  position: relative;
+  margin: 0;
+}
+
+.maker__media img {
+  display: block;
+  width: 100%;
+  /* Required alongside the width/height attributes on the img — without it the
+     intrinsic ratio is locked to the attribute values and the picture squashes
+     when the column narrows. */
+  height: auto;
+}
+
+@media (min-width: 60em) {
+  /* Half-bleed: the photograph runs off the left wall while the copy beside it
+     keeps the page gutter. */
+  .maker__media {
+    margin-left: calc(-1 * var(--gutter));
+  }
+}
+
+/* A caption in mono under the photograph, because on a page arguing for
+   authenticity the one real photograph should say what it is. */
+.maker__caption {
+  margin-top: 0.9rem;
+  padding-left: var(--gutter);
+  color: var(--smoke);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  line-height: 1.7;
+  text-transform: uppercase;
+}
+
+@media (min-width: 60em) {
+  .maker__caption {
+    padding-left: var(--gutter);
+  }
+}
+
+.maker__body {
+  padding-right: var(--gutter);
+  padding-left: var(--gutter);
+}
+
+@media (min-width: 60em) {
+  .maker__body {
+    padding-left: 0;
+  }
+}
+
+.maker__copy {
+  margin: 0 0 clamp(2rem, 5vw, 3rem);
+  max-width: var(--measure);
+  color: var(--smoke);
+  font-size: var(--fs-lead);
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+/* The pull quote. Display type, no quotation marks drawn in gold, no gradient,
+   no italic — just the sentence, large, with a hairline above it. */
+.maker__quote {
+  margin: 0;
+  padding-top: clamp(1.75rem, 4vw, 2.5rem);
+  border-top: 1px solid var(--rule);
+}
+
+.maker__quote p {
+  margin: 0;
+  max-width: 22ch;
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: var(--fs-quote);
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.maker__quote figcaption {
+  margin-top: 1.25rem;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* --- 4.5 Services --------------------------------------------------------
+   Three cards, raised ground, hairline border. Restrained on purpose: this is
+   the part of the page most at risk of becoming a generic three-up feature row,
+   so it gets no icons, no illustrations and no hover lift. What distinguishes
+   the cards is the mono line at the foot of each, which states what the shop
+   actually needs from you to start. */
+
+.services__grid {
+  display: grid;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 52em) {
+  .services__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.service {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.75rem, 3.5vw, 2.75rem);
+  border: 1px solid var(--rule);
+  background: var(--ink-raised);
+}
+
+.service__title {
+  margin: 0 0 1rem;
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.service__body {
+  margin: 0 0 1.75rem;
+  color: var(--smoke);
+  font-size: var(--fs-small);
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+/* Pushed to the foot by the auto margin so the mono lines align across cards
+   of unequal copy length. */
+.service__meta {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  color: var(--gold-deep);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.8;
+  text-transform: uppercase;
+}
+
+/* --- 4.6 Contact ---------------------------------------------------------
+   The whole point of the page, so it is not buried and it is not nine fields.
+   Four controls, and the upload is the loud one because the real customer
+   behaviour is "here is a photo of my grandmother's ring, can you fix it".
+
+   The details block sits ABOVE the form on every width. Plenty of people will
+   never fill a form and will just call, and making them scroll past a form to
+   find the number would be the page failing at its only job. */
+
+.contact-grid {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 60em) {
+  .contact-grid {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+    gap: clamp(3rem, 6vw, 6rem);
+    align-items: start;
+  }
+}
+
+.details {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2rem);
+  margin: 0;
+}
+
+.detail {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+}
+
+.detail__key {
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.detail__val {
+  margin: 0;
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1.9;
+}
+
+.detail__val a {
+  color: var(--bone);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold-dim);
+  transition: color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.detail__val a:hover,
+.detail__val a:focus-visible {
+  color: var(--gold-strong);
+  border-bottom-color: var(--gold);
+}
+
+/* --- The form --- */
+
+.form {
+  display: grid;
+  gap: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.field {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.field label {
+  color: var(--smoke);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--bone);
+  font-family: var(--font-body);
+  /* 16px floor: anything smaller and iOS Safari zooms the viewport on focus,
+     which is a layout shift the user did not ask for. */
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1.5;
+  background: rgba(14, 13, 11, 0.6);
+  transition: border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.field textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.field input:hover,
+.field textarea:hover {
+  border-color: rgba(184, 148, 63, 0.4);
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: rgba(14, 13, 11, 0.9);
+}
+
+/* Focus is still visible for keyboard users — the border change above is
+   reinforced by the global :focus-visible ring in site.css, which this does not
+   override because it sets outline on :focus only where a border change alone
+   would be ambiguous. */
+.field input:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.field ::placeholder {
+  color: rgba(138, 133, 124, 0.7);
+}
+
+/* THE UPLOAD. The most important control on the page, so it is the largest and
+   it looks like a place to drop something rather than like a form row. The
+   native input is visually hidden but still focusable and still in the tab
+   order — the label is the visible control and clicking it activates the input
+   natively, so this needs no JavaScript to work. */
+.upload {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.upload__control {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 0.5rem;
+  padding: clamp(1.75rem, 4vw, 2.5rem) 1.25rem;
+  border: 1px dashed rgba(184, 148, 63, 0.45);
+  border-radius: 3px;
+  background: rgba(23, 22, 19, 0.5);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.upload__control:hover {
+  border-color: var(--gold);
+  background: rgba(23, 22, 19, 0.85);
+}
+
+/* The ring is drawn on the label when the hidden input takes focus, so keyboard
+   users see the same affordance mouse users get on hover. */
+.upload input:focus-visible + .upload__control,
+.upload__control:focus-within {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.upload__title {
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.upload__hint {
+  max-width: 34ch;
+  color: var(--smoke);
+  font-size: var(--fs-small);
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* Filled in by main.js when a file is chosen. Empty by default, so with
+   scripting off it simply never appears and the native control still works. */
+.upload__file:not(:empty) {
+  padding-top: 0.35rem;
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+.form__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+.form__note {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--smoke);
+  font-size: var(--fs-small);
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* --- Motion opt-outs -----------------------------------------------------
+   Belt and braces. main.js already refuses to build Lenis or any ScrollTrigger
+   under reduced motion, but if a user toggles the setting mid-session the
+   already-painted transforms need to be cleared too, and these rules do it
+   without waiting for a reload. */
+@media (prefers-reduced-motion: reduce) {
+  .motion .reveal,
+  .motion .line > span {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .stage {
+    opacity: 1 !important;
+  }
+
+  .process__plate:not(:first-child) {
+    opacity: 0;
+  }
+
+  .hero__light {
+    opacity: 0.35;
+  }
+}
