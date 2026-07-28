@@ -31,9 +31,19 @@
     <meta property="og:image:alt" content="Adriano Jewelry" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- Only the base stylesheet now. home.css styles the landing sections,
-         and there are no landing sections on this page any more. -->
+    <!-- site.css is the shared shell; showcase.css styles the one section this
+         page carries. home.css belonged to the landing sections that were
+         removed in v0.1.2 and is not loaded. -->
     <link rel="stylesheet" href="assets/css/site.css" />
+    <link rel="stylesheet" href="assets/css/showcase.css" />
+
+    <!-- The renderer is ~190KB and is fetched by a dynamic import() that only
+         runs when the showcase nears the viewport, so it is never on the
+         critical path. This tells the browser to open the connection and warm
+         the two files early anyway, which turns a cold fetch into a cache hit
+         at the moment the import fires. -->
+    <link rel="modulepreload" href="assets/js/vendor/three.module.min.js" />
+    <link rel="modulepreload" href="assets/js/vendor/three.core.min.js" />
 
     <script type="application/ld+json">
       {
@@ -60,11 +70,127 @@
     </script>
   </head>
   <body>
-    <!-- The page is deliberately empty: everything above the footer was removed
-         and nothing has replaced it yet. <main> is kept so the document still
-         has its landmark and so .page's flex rule can push the footer to the
-         bottom of the viewport on a short screen. -->
-    <main class="page" aria-label="Adriano Jewelry"></main>
+    <main class="page" aria-label="Adriano Jewelry">
+      <!-- @partial top-home -->
+      <div class="page-top page-top--home">
+        <a class="wordmark" href="" aria-label="Adriano Jewelry, home">Adriano</a>
+        <a class="page-contact u-caps" href="contact-us/">Contact Us</a>
+      </div>
+      <!-- @end top-home -->
+
+      <!-- Four rings under one lamp.
+           The markup is complete on its own: every cell carries its name, its
+           setting and its measurements as real text, and a drawn mark where the
+           render goes. assets/js/showcase.js measures these cells and puts a
+           ring in each — it never creates or moves any of them — so with
+           JavaScript off, WebGL unavailable or the import blocked, this section
+           is still a labelled row of four settings and nothing is missing but
+           the picture. -->
+      <section class="rings" data-rings aria-labelledby="rings-title">
+        <div class="rings__intro">
+          <p class="rings__eyebrow u-caps">Four settings, rendered live</p>
+          <h1 class="rings__title" id="rings-title">
+            Every ring begins as a drawing
+          </h1>
+          <hr class="rings__rule" />
+          <p class="rings__lead">
+            These are the four a bench is asked for most, built to the
+            proportions they are actually cut to — fifty-seven facets on a
+            brilliant, its crown at 34.5°, its pavilion at 40.75°. Not one of
+            them is a photograph.
+          </p>
+          <p class="rings__prompt u-caps" aria-hidden="true">
+            Scroll <span class="rings__prompt-mark">&darr;</span>
+          </p>
+        </div>
+
+        <div class="rings__stage">
+          <!-- The frame is what sticks to the top of the viewport while the
+               page scrolls past it. It holds the canvas and the lamp, so the
+               light stays overhead for the whole reel rather than scrolling
+               off the top of it with the first ring. -->
+          <div class="rings__frame">
+            <canvas class="rings__canvas" aria-hidden="true"></canvas>
+            <span class="rings__lamp" aria-hidden="true"></span>
+          </div>
+
+          <ul class="rings__grid">
+            <li class="rings__cell" data-ring="solitaire">
+              <div class="rings__slot" data-slot>
+                <span class="rings__mark" aria-hidden="true"><span></span></span>
+              </div>
+              <div class="rings__caption">
+                <p class="rings__count" aria-hidden="true">01 &mdash; 04</p>
+                <h2 class="rings__name">The Solitaire</h2>
+                <p class="rings__spec">
+                  Round brilliant, six claws &mdash; platinum
+                </p>
+                <p class="rings__detail">7.4 mm &middot; 57 facets</p>
+              </div>
+            </li>
+
+            <li class="rings__cell" data-ring="halo">
+              <div class="rings__slot" data-slot>
+                <span class="rings__mark" aria-hidden="true"><span></span></span>
+              </div>
+              <div class="rings__caption">
+                <p class="rings__count" aria-hidden="true">02 &mdash; 04</p>
+                <h2 class="rings__name">The Halo</h2>
+                <p class="rings__spec">
+                  Brilliant in a halo, pav&eacute; shoulders &mdash; 18k yellow
+                  gold
+                </p>
+                <p class="rings__detail">5.2 mm centre &middot; 33 stones</p>
+              </div>
+            </li>
+
+            <li class="rings__cell" data-ring="eternity">
+              <div class="rings__slot" data-slot>
+                <span class="rings__mark" aria-hidden="true"><span></span></span>
+              </div>
+              <div class="rings__caption">
+                <p class="rings__count" aria-hidden="true">03 &mdash; 04</p>
+                <h2 class="rings__name">The Eternity</h2>
+                <p class="rings__spec">
+                  Shared claws, all the way round &mdash; 18k rose gold
+                </p>
+                <p class="rings__detail">25 stones &middot; 2.4 mm</p>
+              </div>
+            </li>
+
+            <li class="rings__cell" data-ring="trilogy">
+              <div class="rings__slot" data-slot>
+                <span class="rings__mark" aria-hidden="true"><span></span></span>
+              </div>
+              <div class="rings__caption">
+                <p class="rings__count" aria-hidden="true">04 &mdash; 04</p>
+                <h2 class="rings__name">The Trilogy</h2>
+                <p class="rings__spec">
+                  Emerald cut between tapered baguettes &mdash; white gold
+                </p>
+                <p class="rings__detail">7 &times; 5 mm &middot; step cut</p>
+              </div>
+            </li>
+          </ul>
+
+          <!-- The last beat. It sits inside the stage rather than after it
+               because the canvas is stuck to the viewport for exactly as long
+               as the stage lasts, and the four rings have to come back
+               together while it is still there. -->
+          <div class="rings__foot" data-finale>
+            <div class="rings__foot-inner">
+              <p>
+                Every one of these started as a drawing, and so does everything
+                that leaves the bench at 333 Washington Street. Bring yours.
+              </p>
+              <a class="rings__cta u-caps" href="contact-us/"
+                >Start a piece <span aria-hidden="true">&rarr;</span></a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <!-- @partial footer -->
     <footer class="site-footer">
@@ -108,7 +234,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.3</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.4</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                assets/js/year.js. Stamping it from Date() at build time instead
                would make `build.js --check` fail every New Year's Day and block the
@@ -125,8 +251,13 @@
     </footer>
     <!-- @end footer -->
 
-    <!-- year.js is all that is left: GSAP, ScrollTrigger, Lenis, main.js and
-         light.js existed only for the sections that are gone. -->
+    <!-- year.js corrects the copyright year. GSAP, ScrollTrigger, Lenis,
+         main.js and light.js existed only for the sections that are gone and
+         are still unused. -->
     <script src="assets/js/year.js" defer></script>
+    <!-- Module scripts are deferred by definition, so no attribute is needed.
+         This one is a few hundred bytes; it decides whether the machine can run
+         the showcase at all and only then imports the renderer. -->
+    <script type="module" src="assets/js/showcase.js"></script>
   </body>
 </html>
