@@ -32,8 +32,9 @@
     <meta name="twitter:card" content="summary_large_image" />
 
     <!-- site.css is the shared shell; showcase.css styles the one section this
-         page carries. home.css belonged to the landing sections that were
-         removed in v0.1.2 and is not loaded. -->
+         page carries. home.css belonged to the landing sections removed in
+         v0.1.2 and was deleted in v0.1.5, along with main.js, light.js and the
+         GSAP/ScrollTrigger/Lenis vendor bundles that only it used. -->
     <link rel="stylesheet" href="assets/css/site.css" />
     <link rel="stylesheet" href="assets/css/showcase.css" />
 
@@ -234,7 +235,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.4</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.5</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                assets/js/year.js. Stamping it from Date() at build time instead
                would make `build.js --check` fail every New Year's Day and block the
@@ -251,9 +252,10 @@
     </footer>
     <!-- @end footer -->
 
-    <!-- year.js corrects the copyright year. GSAP, ScrollTrigger, Lenis,
-         main.js and light.js existed only for the sections that are gone and
-         are still unused. -->
+    <!-- year.js corrects the copyright year. It and showcase.js are the only
+         scripts this page loads; GSAP, ScrollTrigger, Lenis, main.js and
+         light.js existed only for the sections that are gone and were deleted
+         in v0.1.5. -->
     <script src="assets/js/year.js" defer></script>
     <!-- Module scripts are deferred by definition, so no attribute is needed.
          This one is a few hundred bytes; it decides whether the machine can run

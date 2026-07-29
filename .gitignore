@@ -10,6 +10,14 @@ Desktop.ini
 *.swp
 *~
 
+# Local agents / AI tooling. GitHub Pages serves every tracked file, so a local
+# launch config committed here is a public URL for no benefit.
+.claude/
+.Codex/
+CLAUDE.md
+AGENT.md
+AGENTS.md
+
 # Node / tooling
 node_modules/
 npm-debug.log*

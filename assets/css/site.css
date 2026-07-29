@@ -1,7 +1,9 @@
 /* Adriano Jewelry — base stylesheet
    Shared shell for every page: the ambient ground, the contact button in the
    top-right of main, prose pages, and the universal footer. The landing page
-   adds assets/css/home.css on top of this; nothing else loads it.
+   adds assets/css/showcase.css on top of this for the one section it carries;
+   nothing else loads that file. (home.css styled the landing sections removed
+   in v0.1.2 and was deleted in v0.1.5 — recover it from history if they return.)
 
    THE GROUND. One colour, flat, everywhere. It carried film grain and a raking
    warm lamp until v0.1.2, and a jeweller's-case green until v0.1.3; all of it
@@ -1065,12 +1067,13 @@ a.legal__eyebrow:focus-visible {
 }
 
 /* Reduced motion is honoured as OFF, not as FASTER.
-   The CSS half kills transitions, animations and native smooth scrolling. The
-   JavaScript half is in assets/js/main.js and is the part that matters: it
-   never constructs Lenis, never registers a ScrollTrigger, and paints every
-   reveal in its final state. Neither half depends on the other — with
-   JavaScript disabled this block still stands, and with JavaScript enabled
-   main.js checks the same media query before it builds anything.
+   This block kills transitions, animations and native smooth scrolling. It
+   used to be half of a pair, with assets/js/main.js checking the same media
+   query before it built Lenis or any ScrollTrigger; that file went with the
+   landing sections in v0.1.5. The remaining JavaScript half is showcase.js,
+   which reads the same query and hands the answer to the stage, so the reel
+   never scrolls and every ring is drawn still. Neither half depends on the
+   other — with JavaScript disabled this block still stands on its own.
 
    scroll-behavior is included because a `smooth` anchor jump is exactly the
    kind of unrequested motion this query exists to stop. */
