@@ -34,25 +34,30 @@
 
       :root {
         /* Mirrors assets/css/site.css, which this page cannot link because it
-           is served at any depth. One flat near-black, page and footer alike —
-           keep these two in step with --ink over there. Black, white and grey
+           is served at any depth. Two flat steps of one grey: the paper the
+           page is set on, and the footer one stop DOWN from it — keep these in
+           step with --paper and --paper-sunk over there, and mirror the
+           contrast arithmetic in that file's CONTRAST FLOOR note, which is
+           where the ratios for this ramp are recorded. White, black and grey
            only: every value here has R, G and B equal. */
-        --ground-page: #101010;
-        --ground-footer: #101010;
-        --page-fg: #f2f2f2;
-        --page-muted: #9a9a9a;
-        --footer-fg: #f2f2f2;
-        --footer-rule: rgba(255, 255, 255, 0.1);
-        --accent: #f2f2f2;
-        --accent-dim: rgba(242, 242, 242, 0.3);
-        --silver: #cfcfcf;
-        --silver-strong: #f5f5f5;
-        --silver-dim: rgba(214, 214, 214, 0.42);
-        --silver-wash: rgba(214, 214, 214, 0.06);
+        --ground-page: #f4f4f4;
+        --ground-footer: #e8e8e8;
+        --page-fg: #1a1a1a;
+        --page-muted: #5c5c5c;
+        --footer-fg: #1a1a1a;
+        --footer-rule: rgba(26, 26, 26, 0.18);
+        --accent: #1a1a1a;
+        --accent-dim: rgba(26, 26, 26, 0.5);
+        --pewter: #3a3a3a;
+        --pewter-strong: #000000;
+        --pewter-dim: rgba(26, 26, 26, 0.55);
+        --pewter-wash: rgba(26, 26, 26, 0.05);
         --caps-track: 0.15em;
         /* See site.css: cancels the descender space that pushes all-caps text
-           high inside a flex-centred pill. */
-        --caps-drop: 0.03em;
+           high inside a flex-centred pill. Raised from 0.03em to the measured
+           0.08em in v0.1.6 — the old figure came from wrong Archivo metrics
+           and left every caps label sitting high. */
+        --caps-drop: 0.08em;
         --font-body: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
         --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
         --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -65,7 +70,7 @@
       html {
         height: 100%;
         -webkit-text-size-adjust: 100%;
-        color-scheme: dark;
+        color-scheme: light;
         background-color: var(--ground-page);
       }
 
@@ -78,9 +83,11 @@
         color: var(--page-fg);
         font-family: var(--font-body);
         font-size: 16px;
-        font-weight: 300;
+        /* 400, and no -webkit-font-smoothing — see the note on body in
+           assets/css/site.css. Both are the optical correction for setting
+           dark type on a light ground rather than the other way round. */
+        font-weight: 400;
         line-height: 1.5;
-        -webkit-font-smoothing: antialiased;
       }
 
       /* Fixed ground layer, not a body background: a background on <body> is
@@ -128,24 +135,24 @@
         min-height: 44px;
         padding: calc(0.5rem + var(--caps-drop))
           clamp(1rem, 3.5vw, 1.45rem) calc(0.5rem - var(--caps-drop));
-        border: 1px solid var(--silver-dim);
+        border: 1px solid var(--pewter-dim);
         border-radius: 999px;
-        color: var(--silver);
+        color: var(--pewter);
         font-size: clamp(0.68rem, 2.5vw, 0.74rem);
         font-weight: 400;
         text-decoration: none;
         white-space: nowrap;
-        background: var(--silver-wash);
+        background: var(--pewter-wash);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease, box-shadow 0.25s ease;
       }
 
       .page-contact:hover,
       .page-contact:focus-visible {
-        border-color: var(--silver);
-        background: rgba(214, 214, 214, 0.15);
-        color: var(--silver-strong);
-        box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.14);
+        border-color: var(--pewter);
+        background: rgba(26, 26, 26, 0.1);
+        color: var(--pewter-strong);
+        box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.18);
       }
 
       .page-contact:active {
@@ -187,18 +194,20 @@
         color: var(--accent);
       }
 
-      /* Brushed-silver sheen across the numerals. Gated on support, because
-         `color: transparent` without a working text clip renders nothing at
-         all — the flat accent above stays the fallback. */
+      /* Brushed-graphite sheen across the numerals — the same four-stop rake
+         the dark palette used, run the other way up the ramp so the highlight
+         is the light step and the body of the stroke is the dark one. Gated on
+         support, because `color: transparent` without a working text clip
+         renders nothing at all — the flat accent above stays the fallback. */
       @supports (-webkit-background-clip: text) or (background-clip: text) {
         .notfound__code {
           color: transparent;
           background-image: linear-gradient(
             170deg,
-            #ffffff 0%,
+            #000000 0%,
             var(--accent) 38%,
-            #6e6e6e 62%,
-            #f0f0f0 100%
+            #8f8f8f 62%,
+            #121212 100%
           );
           -webkit-background-clip: text;
           background-clip: text;
@@ -247,7 +256,7 @@
         color: var(--accent);
         font-size: 0.8rem;
         text-decoration: none;
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(0, 0, 0, 0.02);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease;
       }
@@ -255,8 +264,8 @@
       .notfound__home:hover,
       .notfound__home:focus-visible {
         border-color: var(--accent);
-        background: rgba(255, 255, 255, 0.09);
-        color: #ffffff;
+        background: rgba(0, 0, 0, 0.07);
+        color: #000000;
       }
 
       .notfound__home:active {
@@ -274,20 +283,12 @@
       }
 
       :focus-visible {
-        outline: 2px solid var(--silver);
+        outline: 2px solid var(--pewter);
         outline-offset: 3px;
       }
 
-      /* The chrome bars sit on the same flat ground as the page, so they add
-         no second tone — the hairline is what separates them. */
-      .site-nav {
-        position: relative;
-        flex-shrink: 0;
-        background-color: var(--ground-footer);
-        background-image: none;
-        color: var(--footer-fg);
-      }
-
+      /* The footer takes the raised grey; the page keeps the darker one, and
+         the step between them is what separates the two. */
       .site-footer {
         position: relative;
         flex-shrink: 0;
@@ -340,11 +341,11 @@
         flex: 1 1 0;
         max-width: 5rem;
         height: 1px;
-        background: linear-gradient(90deg, transparent, var(--silver-dim));
+        background: linear-gradient(90deg, transparent, var(--pewter-dim));
       }
 
       .site-social__rule:last-child {
-        background: linear-gradient(90deg, var(--silver-dim), transparent);
+        background: linear-gradient(90deg, var(--pewter-dim), transparent);
       }
 
       .site-social__links {
@@ -359,10 +360,10 @@
         justify-content: center;
         width: 44px;
         height: 44px;
-        border: 1px solid var(--silver-dim);
+        border: 1px solid var(--pewter-dim);
         border-radius: 50%;
-        color: var(--silver);
-        background: var(--silver-wash);
+        color: var(--pewter);
+        background: var(--pewter-wash);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
       }
@@ -376,11 +377,11 @@
 
       .site-social__link:hover,
       .site-social__link:focus-visible {
-        border-color: var(--silver);
-        background: rgba(214, 214, 214, 0.15);
-        color: var(--silver-strong);
-        box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.18),
-          0 4px 18px rgba(214, 214, 214, 0.16);
+        border-color: var(--pewter);
+        background: rgba(26, 26, 26, 0.1);
+        color: var(--pewter-strong);
+        box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.22),
+          0 4px 18px rgba(26, 26, 26, 0.14);
       }
 
       .site-social__link:hover svg,
@@ -407,23 +408,23 @@
         min-height: 44px;
         padding: calc(0.5rem + var(--caps-drop))
           clamp(0.9rem, 3.5vw, 1.35rem) calc(0.5rem - var(--caps-drop));
-        border: 1px solid var(--silver-dim);
+        border: 1px solid var(--pewter-dim);
         border-radius: 999px;
-        color: var(--silver);
+        color: var(--pewter);
         font-size: clamp(0.66rem, 2.4vw, 0.72rem);
         font-weight: 400;
         text-decoration: none;
         white-space: nowrap;
-        background: var(--silver-wash);
+        background: var(--pewter-wash);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease;
       }
 
       .site-footer__link:hover,
       .site-footer__link:focus-visible {
-        border-color: var(--silver);
-        background: rgba(214, 214, 214, 0.15);
-        color: var(--silver-strong);
+        border-color: var(--pewter);
+        background: rgba(26, 26, 26, 0.1);
+        color: var(--pewter-strong);
       }
 
       .site-footer__link:active {
@@ -570,10 +571,10 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.5</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.6</p>
           <!-- The year is authored here as a literal and corrected at runtime by
-               assets/js/year.js. Stamping it from Date() at build time instead
-               would make `build.js --check` fail every New Year's Day and block the
+               the script below. Stamping it from Date() at build time instead would
+               make `build.js --check` fail every New Year's Day and block the
                deploy until somebody rebuilt; deriving it only in script would show
                nothing at all with JavaScript off. This way the markup is always
                complete, the check never drifts, and every visitor with scripting on
@@ -584,6 +585,22 @@
           </p>
         </div>
       </div>
+      <!-- Inline rather than assets/js/year.js, which this partial used to load.
+           The site is now plain HTML and CSS with no external script anywhere, so
+           every page opens correctly straight off the filesystem — a file:// page
+           fetches no .js at all. Four lines carried in the markup cost less than a
+           request, and the DOM is left untouched for the whole of the year the
+           page was last built in. -->
+      <script>
+        (function () {
+          "use strict";
+          var now = String(new Date().getFullYear());
+          var nodes = document.querySelectorAll("[data-year]");
+          for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].textContent !== now) nodes[i].textContent = now;
+          }
+        })();
+      </script>
     </footer>
     <!-- @end footer -->
 

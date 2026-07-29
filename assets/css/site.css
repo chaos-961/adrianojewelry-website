@@ -1,27 +1,37 @@
 /* Adriano Jewelry — base stylesheet
    Shared shell for every page: the ambient ground, the contact button in the
-   top-right of main, prose pages, and the universal footer. The landing page
-   adds assets/css/showcase.css on top of this for the one section it carries;
-   nothing else loads that file. (home.css styled the landing sections removed
-   in v0.1.2 and was deleted in v0.1.5 — recover it from history if they return.)
+   top-right of main, prose pages, and the universal footer. It is the only
+   stylesheet on the site — showcase.css styled the four-ring section the
+   landing page carried until it was emptied to its footer, and home.css styled
+   the landing sections removed in v0.1.2. Both are deleted; recover either from
+   history if they return.
 
-   THE GROUND. One colour, flat, everywhere. It carried film grain and a raking
-   warm lamp until v0.1.2, and a jeweller's-case green until v0.1.3; all of it
-   is gone, and what is left is a single near-black held from the top of the
-   viewport to the bottom of the footer. The layer is still painted by a fixed
-   pseudo-element rather than by the body's own background — see the note above
-   body::before, which is a seam fix and still applies the moment anything is
-   layered back on.
+   THE GROUND. Flat, light, and two steps of one grey. It carried film grain
+   and a raking warm lamp until v0.1.2, a jeweller's-case green until v0.1.3,
+   and a near-black through v0.1.6; all of it is gone, and what is left is
+   paper — a light page with the footer sitting one step DOWN the same ramp.
+   The page layer is still painted by a fixed pseudo-element rather than by the
+   body's own background — see the note above body::before, which is a seam fix
+   and still applies the moment anything is layered back on.
 
-   THE COLOUR. Nothing but black, white and the greys between them — there is
+   THE COLOUR. Nothing but white, black and the greys between them — there is
    no hue anywhere on this site, so a piece of jewelry photographed against it
    is the only colour a visitor will ever see. The palette is a single ramp:
-   #101010 ground, #7A7A7A hairlines, #9A9A9A muted type, #CFCFCF accents,
-   #F2F2F2 body copy, #FFFFFF reserved for the moment a control is pressed.
-   Silver — the #CFCFCF step — sits where gold used to, under 5% of the pixels,
-   and it always means "this is where you act": a button, a rule under a title,
-   a link. Body type stops at #F2F2F2 rather than pure white, because #FFF held
-   across a paragraph on a dark ground glares and reads cheap.
+   #F4F4F4 page ground, #E8E8E8 footer ground, #FFFFFF raised cards, #757575
+   hairlines, #5C5C5C muted type, #3A3A3A accents, #1A1A1A body copy, #000000
+   reserved for the moment a control is pressed.
+   Pewter — the #3A3A3A step — sits where gold, and then silver, used to: under
+   5% of the pixels, and it always means "this is where you act": a button, a
+   rule under a title, a link. Body type stops at #1A1A1A rather than pure
+   black, because #000 held across a paragraph on a light ground is the
+   harshest edge available and reads as glare.
+
+   INVERTING A RAMP IS NOT FREE. Going from dark to light, three things had to
+   change by more than a swap: translucent borders need more alpha on light
+   paper than on a dark ground (see --pewter-dim), body text needs a heavier
+   weight because light-on-dark blooms and dark-on-light does not (see body),
+   and -webkit-font-smoothing: antialiased had to come off for the same reason.
+   Each is noted where it lives.
 
    THE TYPE, three roles that never overlap. Instrument Serif carries display
    only: it is condensed and drawn for large sizes, with a 3:1 stroke contrast
@@ -59,39 +69,51 @@
 }
 
 :root {
-  /* THE GROUND IS ONE FLAT COLOUR. It was a warm black under a raking lamp,
-     then a deep emerald; it is now a neutral near-black, held everywhere with
-     no gradient, no grain and no second tone.
+  /* THE GROUND IS FLAT AND LIGHT. It was a warm black under a raking lamp,
+     then a deep emerald, then a neutral near-black; it is now paper — a light
+     neutral, held with no gradient, no grain and no hue.
 
-     Not #000. Pure black closes the page against the browser's own chrome and
-     turns every hairline drawn on it into a scratch; #101010 still reads as a
-     surface, and leaves somewhere darker to go if a panel is ever needed.
+     Not #FFF. Pure white opens the page straight into the browser's own chrome
+     with no edge at all, and it is the one value in the ramp that cannot be
+     lifted, so a raised card would have nowhere to go. #F4F4F4 still reads as
+     white to the eye, leaves #FFFFFF free for the cards that sit on top of it,
+     and gives the footer somewhere to go in the other direction.
 
      Neutral on purpose: R, G and B are equal in every token below, so there is
      no hue anywhere on the site to argue with a piece of jewelry.
 
-     --ink-raised is the same value, not a lighter step: the footer used to sit
-     one stop toward the light and now shares the single ground, so the page is
-     literally one colour from the top of the viewport to the bottom bar. */
-  --ink: #101010;
-  --ink-raised: #101010;
-  /* Was a warm bone, #EDE7DC. Held below pure white for the reason in the
-     header note: #FFF across a paragraph on a dark ground glares. */
-  --bone: #f2f2f2;
+     --paper-sunk is the footer, and it is one step DOWN the same grey ramp —
+     not a second colour, the same neutral dropped by 12 points. #E8E8E8 is far
+     enough off #F4F4F4 to read as a distinct band across the bottom of the
+     page and close enough that it still reads as one surface in a little less
+     light, rather than a panel pasted on. Every contrast ratio measured below
+     is re-checked against it in the CONTRAST FLOOR note. */
+  --paper: #f4f4f4;
+  --paper-sunk: #e8e8e8;
+  /* The body-copy step. Held above pure black for the mirror of the reason the
+     dark palette held its text below pure white: #000 against a light ground
+     is the harshest edge on the page, and across a paragraph it reads as glare
+     rather than as ink. #1A1A1A is ink. */
+  --graphite: #1a1a1a;
   /* The muted step, and the tightest text value on the page — see the contrast
      note below before touching it. */
-  --smoke: #9a9a9a;
+  --smoke: #5c5c5c;
 
-  /* Where gold used to sit: the one step that means "act here". Bright enough
-     to lead the eye, dimmer than --bone so it never competes with body copy.
-     --silver-deep is the hairline partner — at 4.43:1 on the ground it clears
-     the 3:1 UI floor with room to spare, so borders drawn in it are
-     perceivable, not decorative. */
-  --silver: #cfcfcf;
-  --silver-strong: #f5f5f5;
-  --silver-deep: #7a7a7a;
-  --silver-dim: rgba(214, 214, 214, 0.42);
-  --silver-wash: rgba(214, 214, 214, 0.06);
+  /* Where gold used to sit, and silver after it: the one step that means "act
+     here". Dark enough to lead the eye on a light ground, lighter than
+     --graphite so it never competes with body copy. --pewter-deep is the
+     hairline partner — at 4.19:1 on the ground it clears the 3:1 UI floor with
+     room to spare, so borders drawn in it are perceivable, not decorative. */
+  --pewter: #3a3a3a;
+  --pewter-strong: #000000;
+  --pewter-deep: #757575;
+  --pewter-dim: rgba(26, 26, 26, 0.55);
+  --pewter-wash: rgba(26, 26, 26, 0.05);
+
+  /* Cards, and the only pure white on the site: a panel lifted off the paper
+     rather than sunk into it, which is the way round a light ground wants. The
+     dark palette did the opposite with rgba(0,0,0,0.22). */
+  --paper-raised: #ffffff;
 
   /* Motion. Nothing on this site is under 400ms: cheap sites snap, expensive
      ones drift. --ease-out is an expo curve with a long tail, for anything
@@ -104,46 +126,82 @@
 
   /* CONTRAST FLOOR — computed as relative luminance per WCAG 2.1.
 
-     A flat ground makes this arithmetic honest again: there is now exactly one
-     background colour on the site, so every ratio below is the ratio that is
-     actually painted, with no composited light to re-measure against.
+     Two flat grounds, and both are measured: there is no composited light
+     anywhere on the site, so every ratio below is the ratio actually painted.
+     Every one of them was recomputed when the palette went from dark to light
+     — an inverted ramp is not automatically an equal one.
 
-     On #101010: --smoke 6.76:1, --bone 17.0:1, --silver 12.2:1, --silver-deep
-     4.43:1, and --silver-dim composited over the ground 3.17:1. Text needs
-     4.5:1 and UI hairlines 3:1, so everything clears — and dropping the hue
-     bought headroom the green never had: --smoke used to clear by 0.32 and now
-     clears by 2.26.
+     On the page, #F4F4F4: --smoke 6.08:1, --graphite 15.8:1, --pewter 10.4:1,
+     --pewter-deep 4.19:1, and --pewter-dim composited over the ground 3.80:1.
 
-     THE RULE THIS LEAVES: the ground and --smoke move together. Lighten the
-     ground by any meaningful amount and --smoke must be darkened in the same
-     commit, or the muted lines fall under the floor. --silver-dim is the other
-     one to watch — at 0.42 alpha it is the thinnest margin on the page. */
+     On the footer, #E8E8E8: --smoke 5.46:1, --graphite 14.2:1, --pewter 9.3:1,
+     and --pewter-dim composited 3.65:1. Text needs 4.5:1 and UI hairlines 3:1,
+     so the darker footer ground clears on every token it paints — the
+     copyright line, set in --smoke, is the tightest at 5.46:1 and still has
+     0.96 in hand.
+
+     --pewter-dim carries 0.55 alpha here where the dark ramp used 0.42. That
+     is not a style change: at 0.42 a near-black border composites to 2.62:1 on
+     #F4F4F4 and fails the UI floor outright. A light ground gives a translucent
+     dark line less to work with than a dark ground gives a translucent light
+     one, so the alpha had to rise to keep the same borders perceivable.
+
+     THE RULE THIS LEAVES: the grounds and --smoke move together. Darken either
+     ground by any meaningful amount and --smoke must be lightened in the same
+     commit, or the muted lines fall under the floor. --pewter-dim is the other
+     one to watch — it is the thinnest margin on the page, and it is the
+     footer's social rules and pill borders. */
 
   /* Legacy aliases. The four prose pages were authored against these names and
      go on working unchanged; this file is the single place the palette moved. */
-  --ground-page: var(--ink);
-  --ground-footer: var(--ink-raised);
-  --page-fg: var(--bone);
+  --ground-page: var(--paper);
+  --ground-footer: var(--paper-sunk);
+  --page-fg: var(--graphite);
   --page-muted: var(--smoke);
-  --footer-fg: var(--bone);
-  --footer-rule: rgba(242, 242, 242, 0.1);
-  --accent: var(--bone);
-  --accent-dim: rgba(242, 242, 242, 0.3);
+  --footer-fg: var(--graphite);
+  --footer-rule: rgba(26, 26, 26, 0.18);
+  --accent: var(--graphite);
+  /* 0.5, not the 0.3 the dark ramp used: this is a border, not a decoration —
+     .page-contact--back and .legal__home are drawn in it — and at 0.3 a dark
+     line on light paper composites to 1.91:1, under the 3:1 UI floor. At 0.5
+     it is 3.27:1. */
+  --accent-dim: rgba(26, 26, 26, 0.5);
 
   /* Every tracked, all-caps control uses this one value, and each of them
      compensates for it with an equal text-indent — see .u-caps below. */
   --caps-track: 0.15em;
 
-  /* How far all-caps text must move DOWN to sit optically centred in a pill,
-     as a fraction of its own size. Measured by rasterising Archivo at 200px and
-     reading the ink rows, not from the metrics API — at 11px that API reports a
-     cap height of 0.80em, which is rounding noise; the true value is 0.735em,
-     with ascent 1.07em and descent 0.375em. In a line box the baseline lands at
-     (lineHeight + ascent - descent) / 2 from the top, so caps — which have no
-     descenders to fill the space reserved below the baseline — centre at 0.48
-     of the box rather than 0.5. Geometry therefore asks for 0.02em; this is set
-     a shade beyond that, because all-caps in a tall pill reads high to the eye
-     at the mathematical centre. It is the one knob: raise it to sit lower.
+  /* How far all-caps text must move DOWN to sit centred in a pill, as a
+     fraction of its own size.
+
+     WHY THIS EXISTS. `align-items: center` centres the LINE BOX. The caps ink
+     is not centred inside its own line box: the box reserves room under the
+     baseline for descenders, and caps have none, so the ink hangs high in it
+     and the label reads high in the pill.
+
+     WHY IT WAS WRONG until v0.1.6. The old value, 0.03em, was derived from
+     Archivo metrics recorded here as ascent 1.07em and descent 0.375em. Those
+     are not Archivo's numbers — the face reports ascent 0.905em, descent
+     0.2125em, cap height 0.7344em (the cap height was right). Worse, the
+     derivation used ideal metrics while the browser does not: Chrome rounds a
+     font's ascent and descent to whole pixels before it lays a line box out,
+     and at these sizes — 10.9px to 11.8px — that rounding is itself worth up
+     to half a pixel. So the figure was never going to come out of arithmetic
+     alone.
+
+     WHAT IT IS NOW. Measured, not derived. For each caps control the true ink
+     box was located on the rendered page — baseline probed with a zero-height
+     inline-block strut, cap height taken from TextMetrics at 400px and scaled
+     down — and compared against the pill's own centre. With the old 0.03em the
+     ink sat high on all four: contact 0.83px, footer link 0.55px, legal
+     eyebrow 0.52px, card action 0.29px. Adding each residual back gives the
+     drop each control actually wants — 0.100, 0.077, 0.078 and 0.056em — and
+     0.08em is the middle of that spread.
+
+     It cannot be one exact number, and that is the pixel rounding above, not
+     sloppiness: at 0.08em the worst-case residual is a quarter of a pixel
+     (contact still 0.24px high, card action 0.27px low) where it used to be
+     more than three quarters. It is still the one knob: raise it to sit lower.
 
      Applied as `+drop` on padding-top and `-drop` on padding-bottom, never as
      padding-top alone. `align-items: center` centres the *content* box, so a
@@ -152,7 +210,7 @@
      shift. Each pill spells this out in its own padding, because a shorthand
      `padding` in the component would silently overwrite a `padding-top` set
      here — which is exactly the bug this replaced. */
-  --caps-drop: 0.03em;
+  --caps-drop: 0.08em;
 
   --font-body: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
@@ -169,8 +227,8 @@ html {
   height: 100%;
   /* Stop iOS from inflating type when a phone is rotated to landscape. */
   -webkit-text-size-adjust: 100%;
-  /* Matches scrollbars and form controls to the dark ground. */
-  color-scheme: dark;
+  /* Matches scrollbars and form controls to the light ground. */
+  color-scheme: light;
   /* Owns the base colour so it fills the canvas, including the area revealed
      by an overscroll bounce. */
   background-color: var(--ground-page);
@@ -187,9 +245,15 @@ body {
   color: var(--page-fg);
   font-family: var(--font-body);
   font-size: 16px;
-  font-weight: 300;
+  /* 400, where the dark palette set 300. Light type on a dark ground blooms —
+     the glyph spreads optically and a 300 reads like a 400. Dark type on a
+     light ground does the reverse and thins out, so the same 300 that looked
+     right in near-black looks starved on paper. This is the optical
+     compensation for the inversion, not a change of voice.
+     Same reason -webkit-font-smoothing: antialiased is gone: it thins glyph
+     stems, which is a correction for the bloom and a defect without it. */
+  font-weight: 400;
   line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
 }
 
 /* The ground is painted by its own fixed layer rather than by the body's
@@ -218,7 +282,7 @@ body::before {
   /* Flat. The grain and the lamp are still defined above and are no longer
      painted by anything — the ground is now the colour and nothing else, at
      every page length and every viewport size. */
-  background-color: var(--ink);
+  background-color: var(--paper);
   pointer-events: none;
 }
 
@@ -268,24 +332,24 @@ body::before {
   min-height: 44px;
   padding: calc(0.5rem + var(--caps-drop)) clamp(1rem, 3.5vw, 1.45rem)
     calc(0.5rem - var(--caps-drop));
-  border: 1px solid var(--silver-dim);
+  border: 1px solid var(--pewter-dim);
   border-radius: 999px;
-  color: var(--silver);
+  color: var(--pewter);
   font-size: clamp(0.68rem, 2.5vw, 0.74rem);
   font-weight: 400;
   text-decoration: none;
   white-space: nowrap;
-  background: var(--silver-wash);
+  background: var(--pewter-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .page-contact:hover,
 .page-contact:focus-visible {
-  border-color: var(--silver);
-  background: rgba(214, 214, 214, 0.15);
-  color: var(--silver-strong);
-  box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.14);
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
+  color: var(--pewter-strong);
+  box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.18);
 }
 
 .page-contact:active {
@@ -299,14 +363,14 @@ body::before {
 .page-contact--back {
   border-color: var(--accent-dim);
   color: var(--accent);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .page-contact--back:hover,
 .page-contact--back:focus-visible {
   border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(0, 0, 0, 0.07);
+  color: #000000;
   box-shadow: none;
 }
 
@@ -364,7 +428,7 @@ body::before {
 
 a.legal__eyebrow:hover,
 a.legal__eyebrow:focus-visible {
-  color: var(--silver);
+  color: var(--pewter);
 }
 
 .legal__title {
@@ -387,7 +451,7 @@ a.legal__eyebrow:focus-visible {
   height: 1px;
   margin: clamp(1.15rem, 4vw, 1.6rem) auto;
   border: 0;
-  background: linear-gradient(90deg, transparent, var(--silver-dim), transparent);
+  background: linear-gradient(90deg, transparent, var(--pewter-dim), transparent);
 }
 
 /* On a page with no dated line under it, the rule ends the header — and its
@@ -483,7 +547,7 @@ a.legal__eyebrow:focus-visible {
 }
 
 .legal li::marker {
-  color: var(--silver-dim);
+  color: var(--pewter-dim);
 }
 
 .legal strong {
@@ -492,9 +556,9 @@ a.legal__eyebrow:focus-visible {
 }
 
 .legal a:not(.legal__eyebrow):not(.legal__home) {
-  color: var(--silver);
+  color: var(--pewter);
   text-decoration: none;
-  border-bottom: 1px solid var(--silver-dim);
+  border-bottom: 1px solid var(--pewter-dim);
   /* Long links (a phone number, an address) must be able to break rather than
      push the column wider than a 320px screen. */
   overflow-wrap: anywhere;
@@ -503,18 +567,19 @@ a.legal__eyebrow:focus-visible {
 
 .legal a:not(.legal__eyebrow):not(.legal__home):hover,
 .legal a:not(.legal__eyebrow):not(.legal__home):focus-visible {
-  color: var(--silver-strong);
-  border-bottom-color: var(--silver);
+  color: var(--pewter-strong);
+  border-bottom-color: var(--pewter);
 }
 
 /* Contact block at the foot of each policy — a quiet card, not another
-   patterned surface. */
+   patterned surface. White on the paper ground, so it reads as lifted; on the
+   dark palette the same card was a darker rectangle, reading as sunk. */
 .legal__contact {
   margin-top: clamp(2rem, 5vw, 2.6rem);
   padding: clamp(1.25rem, 4vw, 1.75rem);
   border: 1px solid var(--footer-rule);
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--paper-raised);
 }
 
 .legal__contact p:last-child {
@@ -537,7 +602,7 @@ a.legal__eyebrow:focus-visible {
   color: var(--accent);
   font-size: 0.78rem;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.02);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease;
 }
@@ -551,8 +616,8 @@ a.legal__eyebrow:focus-visible {
 .legal__home:hover,
 .legal__home:focus-visible {
   border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(0, 0, 0, 0.07);
+  color: #000000;
 }
 
 .legal__foot {
@@ -607,7 +672,7 @@ a.legal__eyebrow:focus-visible {
   padding: clamp(1.25rem, 3vw, 1.75rem);
   border: 1px solid var(--footer-rule);
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--paper-raised);
   text-align: center;
 }
 
@@ -667,17 +732,17 @@ a.legal__eyebrow:focus-visible {
 }
 
 .contact a:not(.contact__action) {
-  color: var(--silver);
+  color: var(--pewter);
   text-decoration: none;
-  border-bottom: 1px solid var(--silver-dim);
+  border-bottom: 1px solid var(--pewter-dim);
   overflow-wrap: anywhere;
   transition: color 0.25s ease, border-color 0.25s ease;
 }
 
 .contact a:not(.contact__action):hover,
 .contact a:not(.contact__action):focus-visible {
-  color: var(--silver-strong);
-  border-bottom-color: var(--silver);
+  color: var(--pewter-strong);
+  border-bottom-color: var(--pewter);
 }
 
 /* Pushed to the bottom of the card by the auto margin, so the actions sit on
@@ -698,22 +763,22 @@ a.legal__eyebrow:focus-visible {
   gap: 0.5rem;
   min-height: 44px;
   padding: calc(0.5rem + var(--caps-drop)) 1.15rem calc(0.5rem - var(--caps-drop));
-  border: 1px solid var(--silver-dim);
+  border: 1px solid var(--pewter-dim);
   border-radius: 999px;
-  color: var(--silver);
+  color: var(--pewter);
   font-size: 0.7rem;
   text-decoration: none;
   white-space: nowrap;
-  background: var(--silver-wash);
+  background: var(--pewter-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease;
 }
 
 .contact__action:hover,
 .contact__action:focus-visible {
-  border-color: var(--silver);
-  background: rgba(214, 214, 214, 0.15);
-  color: var(--silver-strong);
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
+  color: var(--pewter-strong);
 }
 
 .contact__action:active {
@@ -734,7 +799,7 @@ a.legal__eyebrow:focus-visible {
   border-radius: 4px;
   /* Clips the iframe's square corners to the frame's radius. */
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--paper-raised);
   /* Its own stacking context, so the frame's rounding is not painted over by
      the iframe on WebKit. */
   isolation: isolate;
@@ -793,7 +858,7 @@ a.legal__eyebrow:focus-visible {
 }
 
 :focus-visible {
-  outline: 2px solid var(--silver);
+  outline: 2px solid var(--pewter);
   outline-offset: 3px;
 }
 
@@ -805,11 +870,10 @@ a.legal__eyebrow:focus-visible {
 .site-footer {
   position: relative;
   flex-shrink: 0;
-  /* Not a panel any more. --ground-footer resolves to the same near-black as
-     the page, so this paints nothing the ground was not already painting; what
-     separates the footer from the page above it is the hairline below, and
-     nothing else. Kept as a declaration rather than deleted so a future step
-     back toward a raised footer is one token, not a rewrite. */
+  /* --ground-footer is one step down the grey ramp from the page, so the footer
+     separates itself: the band of darker neutral is the edge, and the hairline
+     below is the finish on it rather than the only thing doing the work. It is
+     painted over the fixed page layer, which sits at z-index -1. */
   background-color: var(--ground-footer);
   background-image: none;
   color: var(--footer-fg);
@@ -877,12 +941,12 @@ a.legal__eyebrow:focus-visible {
      instead of drifting to the far walls. */
   max-width: 5rem;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--silver-dim));
+  background: linear-gradient(90deg, transparent, var(--pewter-dim));
 }
 
 /* The right-hand rule fades the other way, so both taper away from the pair. */
 .site-social__rule:last-child {
-  background: linear-gradient(90deg, var(--silver-dim), transparent);
+  background: linear-gradient(90deg, var(--pewter-dim), transparent);
 }
 
 /* Inherits the cluster gap, so the space between the two discs matches the
@@ -901,10 +965,10 @@ a.legal__eyebrow:focus-visible {
      plus both rules still fit inside 320px. */
   width: 44px;
   height: 44px;
-  border: 1px solid var(--silver-dim);
+  border: 1px solid var(--pewter-dim);
   border-radius: 50%;
-  color: var(--silver);
-  background: var(--silver-wash);
+  color: var(--pewter);
+  background: var(--pewter-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
@@ -920,13 +984,15 @@ a.legal__eyebrow:focus-visible {
 
 .site-social__link:hover,
 .site-social__link:focus-visible {
-  border-color: var(--silver);
-  background: rgba(214, 214, 214, 0.15);
-  color: var(--silver-strong);
-  /* A held light rather than a glow — tight, low alpha, the sheen a polished
-     bezel throws under a display lamp. */
-  box-shadow: 0 0 0 1px rgba(214, 214, 214, 0.18),
-    0 4px 18px rgba(214, 214, 214, 0.16);
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
+  color: var(--pewter-strong);
+  /* A cast shadow rather than a glow — tight, low alpha, the contact shadow a
+     disc lifts off paper. On the dark palette this was the same shape drawn in
+     light, because a raised object on a dark ground shows its sheen; on a
+     light ground it shows what it blocks. */
+  box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.22),
+    0 4px 18px rgba(26, 26, 26, 0.14);
 }
 
 .site-social__link:hover svg,
@@ -948,8 +1014,8 @@ a.legal__eyebrow:focus-visible {
   margin-top: clamp(1.05rem, 3vw, 1.4rem);
 }
 
-/* Silver on near-black, pill-shaped, sized so both still sit side by side at
-   360px and wrap to one column only below that. */
+/* Pewter on paper, pill-shaped, sized so both still sit side by side at 360px
+   and wrap to one column only below that. */
 .site-footer__link {
   display: inline-flex;
   align-items: center;
@@ -957,23 +1023,23 @@ a.legal__eyebrow:focus-visible {
   min-height: 44px;
   padding: calc(0.5rem + var(--caps-drop)) clamp(0.9rem, 3.5vw, 1.35rem)
     calc(0.5rem - var(--caps-drop));
-  border: 1px solid var(--silver-dim);
+  border: 1px solid var(--pewter-dim);
   border-radius: 999px;
-  color: var(--silver);
+  color: var(--pewter);
   font-size: clamp(0.66rem, 2.4vw, 0.72rem);
   font-weight: 400;
   text-decoration: none;
   white-space: nowrap;
-  background: var(--silver-wash);
+  background: var(--pewter-wash);
   transition: border-color 0.25s ease, background-color 0.25s ease,
     color 0.25s ease;
 }
 
 .site-footer__link:hover,
 .site-footer__link:focus-visible {
-  border-color: var(--silver);
-  background: rgba(214, 214, 214, 0.15);
-  color: var(--silver-strong);
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
+  color: var(--pewter-strong);
 }
 
 .site-footer__link:active {
@@ -983,9 +1049,9 @@ a.legal__eyebrow:focus-visible {
 /* Marks the policy page you are already on, so the pair reads as navigation
    rather than two identical buttons. */
 .site-footer__link[aria-current="page"] {
-  border-color: var(--silver);
-  color: var(--silver-strong);
-  background: rgba(214, 214, 214, 0.13);
+  border-color: var(--pewter);
+  color: var(--pewter-strong);
+  background: rgba(26, 26, 26, 0.09);
 }
 
 /* --- Meta row: version at the left wall, copyright centred on the page ---
@@ -1068,12 +1134,11 @@ a.legal__eyebrow:focus-visible {
 
 /* Reduced motion is honoured as OFF, not as FASTER.
    This block kills transitions, animations and native smooth scrolling. It
-   used to be half of a pair, with assets/js/main.js checking the same media
-   query before it built Lenis or any ScrollTrigger; that file went with the
-   landing sections in v0.1.5. The remaining JavaScript half is showcase.js,
-   which reads the same query and hands the answer to the stage, so the reel
-   never scrolls and every ring is drawn still. Neither half depends on the
-   other — with JavaScript disabled this block still stands on its own.
+   used to be half of a pair, with main.js and showcase.js checking the same
+   media query before they built Lenis, a ScrollTrigger or the ring reel; all
+   of that is deleted, and nothing on the site animates from script any more.
+   This block is now the whole of the story, which is what it always was for a
+   reader with JavaScript disabled.
 
    scroll-behavior is included because a `smooth` anchor jump is exactly the
    kind of unrequested motion this query exists to stop. */

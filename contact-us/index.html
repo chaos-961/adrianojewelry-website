@@ -174,10 +174,10 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.5</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.6</p>
           <!-- The year is authored here as a literal and corrected at runtime by
-               assets/js/year.js. Stamping it from Date() at build time instead
-               would make `build.js --check` fail every New Year's Day and block the
+               the script below. Stamping it from Date() at build time instead would
+               make `build.js --check` fail every New Year's Day and block the
                deploy until somebody rebuilt; deriving it only in script would show
                nothing at all with JavaScript off. This way the markup is always
                complete, the check never drifts, and every visitor with scripting on
@@ -188,6 +188,22 @@
           </p>
         </div>
       </div>
+      <!-- Inline rather than assets/js/year.js, which this partial used to load.
+           The site is now plain HTML and CSS with no external script anywhere, so
+           every page opens correctly straight off the filesystem — a file:// page
+           fetches no .js at all. Four lines carried in the markup cost less than a
+           request, and the DOM is left untouched for the whole of the year the
+           page was last built in. -->
+      <script>
+        (function () {
+          "use strict";
+          var now = String(new Date().getFullYear());
+          var nodes = document.querySelectorAll("[data-year]");
+          for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].textContent !== now) nodes[i].textContent = now;
+          }
+        })();
+      </script>
     </footer>
     <!-- @end footer -->
   </body>
