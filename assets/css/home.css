@@ -1,0 +1,1311 @@
+/* Adriano Jewelry — landing page only.
+   Loaded by index.html after site.css; nothing here leaks into the other
+   pages. The landing is staged as a short film in five acts: it OPENS IN THE
+   DARK — the hero and the wedding-ring act sit on a near-black ground, the
+   jewel case — and the case opens at the end of Act I, where a pale
+   photograph breaks the dark and every act after it lives on the site's
+   paper. The page performs the site's own palette rule: the chrome never has
+   a hue, and the photographs are the only colour that ever appears.
+
+   THE DARK GROUND IS STILL NEUTRAL. --night and every value painted on it
+   have R, G and B equal, exactly like the paper ramp in site.css. Measured
+   floors on #0E0E0E: ink #F0F0F0 17.2:1, muted #A9A9A9 7.6:1, the mono
+   labels at #9A9A9A 6.2:1 — all far over the 4.5:1 text floor. The light
+   pill border composites to roughly #8B8B8B, 4.9:1 against the night, over
+   the 3:1 UI floor.
+
+   MOTION IS OPT-IN, NOT OPT-OUT. Every hidden-then-revealed state and every
+   scroll-driven transform in this file sits behind `html.motion`, the class
+   the inline <head> script sets only when reduced motion is NOT requested.
+   The base rules always describe the finished, resting page — so a reader
+   with JavaScript off, or with reduced motion on, never has a hidden
+   element, a pinned scene, or a zoomed image. The scrub scenes read a --p
+   custom property (0 at a scene's start, 1 at its end) that home.js writes;
+   its fallback value in every var() is the RESTING value, so a scene that is
+   never driven still resolves to its final frame. */
+
+/* --- Local tokens ----------------------------------------------------- */
+
+.home {
+  /* The jewel case. One step of one grey, no hue — see the header note. */
+  --night: #0e0e0e;
+  --night-soft: #161616;
+  --night-ink: #f0f0f0;
+  --night-muted: #a9a9a9;
+  --night-line: rgba(255, 255, 255, 0.16);
+  --night-wash: rgba(255, 255, 255, 0.06);
+
+  /* Acts swap these three; components only ever read them. */
+  --ink: var(--graphite);
+  --muted: var(--smoke);
+  --line: var(--footer-rule);
+}
+
+/* Anchor jumps glide — but only once home.js has landed and said so. Bare
+   `html { scroll-behavior: smooth }` also applies to the browser's own
+   arrival scroll (a #fragment deep link, a restored reload), which turns
+   "open the page at Act III" into a slow crawl down from the top. The class
+   is added after first measure, so arrival is a cut and everything after it
+   glides. The reduced-motion block in site.css resets this to auto. */
+html.smooth {
+  scroll-behavior: smooth;
+}
+
+/* The page opens dark and ends light, and the overscroll glow must agree at
+   both ends: rubber-banding above the hero shows night, below the footer
+   shows paper. Painted on <html>, which is what an overscroll reveals. */
+html:has(main.home) {
+  background: linear-gradient(180deg, #0e0e0e 50%, #f4f4f4 50%);
+}
+
+/* --- Shared act furniture ---------------------------------------------- */
+
+.wrap {
+  width: 100%;
+  max-width: 74rem;
+  margin-inline: auto;
+  padding-inline: max(1.15rem, env(safe-area-inset-left));
+  padding-right: max(1.15rem, env(safe-area-inset-right));
+}
+
+/* Chivo Mono carries every label, act number and caption — the engraved
+   register. Tracking is compensated with an equal text-indent, the same
+   correction .u-caps documents in site.css. */
+.k-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.act {
+  position: relative;
+  color: var(--ink);
+}
+
+.act--dark {
+  --ink: var(--night-ink);
+  --muted: var(--night-muted);
+  --line: var(--night-line);
+  background-color: var(--night);
+}
+
+.act-head {
+  padding-top: clamp(4.5rem, 12vw, 8rem);
+  text-align: center;
+}
+
+.act-eyebrow {
+  margin: 0 0 clamp(1rem, 3vw, 1.5rem);
+  color: var(--muted);
+}
+
+.act-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.3rem, 6.8vw, 4.6rem);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.act-lead {
+  max-width: 38rem;
+  margin: clamp(1.25rem, 3.5vw, 2rem) auto 0;
+  color: var(--muted);
+  font-size: clamp(0.98rem, 2.6vw, 1.08rem);
+  font-weight: 400;
+  line-height: 1.75;
+}
+
+/* --- Reveal machinery --------------------------------------------------
+   .reveal fades and rises once when it first enters the viewport. .line is
+   the masked version for display type: the mask is the outer span, the ink
+   slides up out of it. home.js adds .in; elements that are ALREADY above
+   the viewport when the page loads (a mid-page reload) get .in plus
+   .no-anim, so nothing replays or sits hidden behind the reader's back. */
+
+html.motion .reveal {
+  opacity: 0;
+  transform: translateY(26px);
+}
+
+html.motion .reveal.in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+.line {
+  display: block;
+  overflow: hidden;
+  /* Serif descenders clip against a hard mask exactly at the baseline;
+     a hair of padding keeps them, removed again by the negative margin so
+     the leading does not grow. */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.line > span {
+  display: inline-block;
+  will-change: transform;
+}
+
+html.motion .lines .line > span {
+  transform: translateY(115%);
+}
+
+html.motion .lines.in .line > span {
+  transform: translateY(0);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+/* The second line of a pair follows the first by a beat. */
+html.motion .lines.in .line:nth-child(2) > span {
+  transition-delay: 120ms;
+}
+
+html.motion .no-anim,
+html.motion .no-anim .line > span {
+  transition: none !important;
+  transition-delay: 0ms !important;
+}
+
+/* --- Top bar (top-home partial) ----------------------------------------
+   The partial renders a wordmark and the contact pill. At rest it is laid
+   absolutely over the dark hero — light ink, no ground — and it scrolls
+   away with the hero for a reader without JavaScript. home.js adds
+   .enhanced, which fixes it to the viewport, and then keeps .on-dark /
+   .on-light in step with the ground passing beneath it. The wordmark stays
+   hidden until the bar docks, because at the top of the page the hero's own
+   title is the wordmark. */
+
+.home .page-top--home {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(0.85rem, env(safe-area-inset-top))
+    max(1.15rem, env(safe-area-inset-right)) 0.85rem
+    max(1.15rem, env(safe-area-inset-left));
+  transition: background-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+
+.home .page-top--home.enhanced {
+  position: fixed;
+}
+
+.home .page-top--home.is-docked {
+  background-color: rgba(244, 244, 244, 0.86);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(26, 26, 26, 0.08);
+}
+
+.home .page-top--home.is-docked.on-dark {
+  background-color: rgba(14, 14, 14, 0.78);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.home .wordmark {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--night-ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
+.home .page-top--home.is-docked .wordmark {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.home .page-top--home.on-light .wordmark {
+  color: var(--graphite);
+}
+
+/* The page OPENS dark, so the bar's resting ink is the light variant — that
+   is what a reader without script ever sees, laid over the hero. .on-light,
+   set by script as paper passes beneath, restates the site's own pill.
+   Composited on the night ground the light border lands near #8B8B8B,
+   4.9:1 — over the 3:1 UI floor. */
+.home .page-top--home .page-contact {
+  border-color: rgba(255, 255, 255, 0.55);
+  color: var(--night-ink);
+  background: var(--night-wash);
+}
+
+.home .page-top--home .page-contact:hover,
+.home .page-top--home .page-contact:focus-visible {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.home .page-top--home.on-light .page-contact {
+  border-color: var(--pewter-dim);
+  color: var(--pewter);
+  background: var(--pewter-wash);
+}
+
+.home .page-top--home.on-light .page-contact:hover,
+.home .page-top--home.on-light .page-contact:focus-visible {
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
+  color: var(--pewter-strong);
+  box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.18);
+}
+
+/* --- Acts rail ----------------------------------------------------------
+   Five roman numerals down the right wall, wide screens only. The current
+   act carries full ink and a longer tick. It is a nav, so it also jumps. */
+
+.act-rail {
+  position: fixed;
+  top: 50%;
+  right: max(0.9rem, env(safe-area-inset-right));
+  z-index: 30;
+  transform: translateY(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Script-only chrome: without home.js nothing tracks the current act, so
+   the rail never appears at all rather than appearing frozen. */
+@media (min-width: 64em) {
+  .act-rail.enhanced {
+    display: flex;
+  }
+}
+
+.act-rail__link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-height: 30px;
+  padding: 0.1rem 0;
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  color: var(--rail-ink, var(--smoke));
+  opacity: 0.55;
+  transition: opacity var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
+.act-rail__link::after {
+  content: "";
+  width: 14px;
+  height: 1px;
+  background: currentColor;
+  transition: width var(--dur-fast) var(--ease-out);
+}
+
+.act-rail__link.is-current {
+  opacity: 1;
+}
+
+.act-rail__link.is-current::after {
+  width: 30px;
+}
+
+.act-rail.on-dark {
+  --rail-ink: var(--night-muted);
+}
+
+.act-rail.on-dark .act-rail__link.is-current {
+  color: var(--night-ink);
+}
+
+.act-rail:not(.on-dark) .act-rail__link.is-current {
+  color: var(--graphite);
+}
+
+/* --- Hero: the case, closed -------------------------------------------
+   A full-viewport photograph of a ring on coal, the store's name across it
+   in the display face, everything else in the engraved register. The
+   photograph settles from a slow push-in as the page is scrolled — motion
+   tied to the scroll, never to a timer, which is the house rule. */
+
+.film-hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--night);
+  color: var(--night-ink);
+  text-align: center;
+}
+
+.film-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.film-hero__bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+}
+
+html.motion .film-hero__bg img {
+  transform: scale(calc(1.14 - var(--p, 0) * 0.14));
+  will-change: transform;
+}
+
+/* The photograph is seen through a vignette, and it hands off to the vow
+   act through a fade at its foot, so the two darks meet without a seam. */
+.film-hero__bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(14, 14, 14, 0.55) 0%, rgba(14, 14, 14, 0) 30%),
+    radial-gradient(120% 90% at 50% 45%, rgba(14, 14, 14, 0) 40%, rgba(14, 14, 14, 0.72) 100%),
+    linear-gradient(180deg, rgba(14, 14, 14, 0) 62%, var(--night) 98%);
+}
+
+.film-hero__inner {
+  position: relative;
+  z-index: 1;
+  padding: clamp(5rem, 14vh, 8rem) 1rem clamp(6rem, 16vh, 9rem);
+}
+
+/* The title block sits wherever the photograph is brightest, so it brings
+   its own darkness with it: a soft pool of night behind the type, wide
+   enough to cover the sub line and the address. Without it the italic line
+   lands straight on the diamond's facets and drowns. */
+.film-hero__inner::before {
+  content: "";
+  position: absolute;
+  inset: -12% -30%;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse 62% 58% at 50% 48%,
+    rgba(14, 14, 14, 0.72) 0%,
+    rgba(14, 14, 14, 0.42) 52%,
+    rgba(14, 14, 14, 0) 78%
+  );
+  pointer-events: none;
+}
+
+html.motion .film-hero__inner {
+  transform: translateY(calc(var(--p, 0) * -9vh));
+  opacity: calc(1 - var(--p, 0) * 0.9);
+  will-change: transform, opacity;
+}
+
+.film-hero__eyebrow {
+  margin: 0 0 clamp(1.1rem, 3vh, 1.8rem);
+  color: var(--night-muted);
+}
+
+/* The name. Each letter rises out of the baseline mask on arrival; the
+   split into spans is done by script, so without it the h1 is one piece of
+   text and simply stands there, complete. */
+.film-hero__title {
+  margin: 0;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  font-family: var(--font-display);
+  font-size: clamp(4.1rem, 17vw, 12.5rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: 0.05em;
+  text-indent: 0.05em;
+  text-transform: uppercase;
+  color: var(--night-ink);
+}
+
+.film-hero__title .ch {
+  display: inline-block;
+  will-change: transform;
+}
+
+/* Between first paint and the script's split the letters must not flash
+   whole and then vanish, so the unsplit title is held blank — but only
+   briefly: if the script never arrives, a 1ms animation on a 1.4s fuse
+   restores it. The reduced-motion block zeroes every animation-delay, so a
+   reader without .motion is never in this state at all. */
+html.motion .film-hero__title:not(.split) {
+  opacity: 0;
+  animation: hero-title-failsafe 1ms 1.4s forwards;
+}
+
+@keyframes hero-title-failsafe {
+  to {
+    opacity: 1;
+  }
+}
+
+html.motion .film-hero__title.split .ch {
+  transform: translateY(112%);
+}
+
+html.motion .film-hero__title.split.in .ch {
+  transform: translateY(0);
+  transition: transform var(--dur-slow) var(--ease-out);
+  transition-delay: calc(var(--i) * 55ms);
+}
+
+.film-hero__sub {
+  max-width: 30rem;
+  margin: clamp(1.2rem, 3.5vh, 2rem) auto 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.15rem, 3.2vw, 1.55rem);
+  line-height: 1.5;
+  color: #e4e4e4;
+}
+
+.film-hero__addr {
+  margin: clamp(1.4rem, 4vh, 2.2rem) 0 0;
+  color: var(--night-muted);
+}
+
+/* Delays stagger the hero's own entrance beneath the title. */
+html.motion .film-hero__eyebrow.reveal.in {
+  transition-delay: 80ms;
+}
+
+html.motion .film-hero__sub.reveal.in {
+  transition-delay: 420ms;
+}
+
+html.motion .film-hero__addr.reveal.in {
+  transition-delay: 560ms;
+}
+
+/* Not a bouncing chevron — a plumb line. It hangs from the word and pays
+   itself out against the scroll: by the time the reader has left the hero
+   it has been fully taken up. Scroll-linked, so it never loops on a timer. */
+.film-hero__cue {
+  position: absolute;
+  bottom: max(1.4rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--night-muted);
+}
+
+.film-hero__cue-line {
+  width: 1px;
+  height: clamp(2.4rem, 7vh, 4rem);
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.6));
+  transform-origin: top center;
+}
+
+html.motion .film-hero__cue-line {
+  transform: scaleY(calc(1 - var(--p, 0)));
+}
+
+html.motion .film-hero__cue {
+  opacity: calc(1 - var(--p, 0) * 1.6);
+}
+
+/* --- Act I · The Vow ---------------------------------------------------- */
+
+.act-vow {
+  padding-bottom: 0;
+}
+
+/* Head splits beside the floating solitaire on wide screens. The photograph
+   was shot on black, so it has no frame and no border — the ring simply
+   hangs in the act's own dark. */
+.vow-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 6vw, 4rem);
+  align-items: center;
+  text-align: center;
+}
+
+@media (min-width: 64em) {
+  .vow-head {
+    grid-template-columns: 7fr 5fr;
+    text-align: left;
+  }
+
+  .vow-head .act-lead {
+    margin-left: 0;
+  }
+}
+
+.vow-head__media {
+  margin: 0;
+}
+
+.vow-head__media img {
+  display: block;
+  width: min(24rem, 78vw);
+  margin-inline: auto;
+  height: auto;
+}
+
+.vow-head__media figcaption {
+  margin-top: 0.9rem;
+  text-align: center;
+}
+
+/* The fitting: two drawn rings travel in from the wings and interlock at
+   the centre of a held frame. The scene is 260vh tall under .motion and the
+   stage is sticky inside it; without motion it collapses to an ordinary
+   block already showing the rings locked. */
+.vow-rings {
+  position: relative;
+}
+
+html.motion .vow-rings {
+  height: 260vh;
+}
+
+.vow-rings__stage {
+  position: relative;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+html.motion .vow-rings__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 0;
+}
+
+.vow-rings__label {
+  position: absolute;
+  top: clamp(1.5rem, 6vh, 3.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.vow-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(46vw, 34vh, 20rem);
+  aspect-ratio: 1;
+  border: 1.5px solid rgba(255, 255, 255, 0.82);
+  border-radius: 50%;
+}
+
+/* At rest (no script) the pair sits interlocked: --p falls back to 1. The
+   leading translate is the centring; the travel and the roll ride on top. */
+.vow-ring--a {
+  transform: translate(-50%, -50%)
+    translateX(calc((1 - var(--p, 1)) * -52vw - var(--p, 1) * 9%))
+    rotate(calc((1 - var(--p, 1)) * -35deg));
+}
+
+.vow-ring--b {
+  transform: translate(-50%, -50%)
+    translateX(calc((1 - var(--p, 1)) * 52vw + var(--p, 1) * 9%))
+    rotate(calc((1 - var(--p, 1)) * 35deg));
+}
+
+html.motion .vow-ring {
+  will-change: transform;
+}
+
+.vow-rings__caption {
+  position: absolute;
+  bottom: clamp(2rem, 9vh, 4.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 90vw;
+  margin: 0;
+  text-align: center;
+  color: var(--night-muted);
+}
+
+.vow-rings__caption a {
+  color: var(--night-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-underline-offset: 0.35em;
+  transition: text-decoration-color 0.25s ease;
+}
+
+.vow-rings__caption a:hover,
+.vow-rings__caption a:focus-visible {
+  text-decoration-color: #ffffff;
+}
+
+/* The caption belongs to the locked pair, so script shows it only near the
+   end of the travel; at rest it is simply present. visibility rides along
+   so the telephone link inside is not focusable or clickable while it is
+   still invisible. */
+html.motion .vow-rings__caption {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 14px);
+  transition: opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+html.motion .vow-rings.is-set .vow-rings__caption {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+/* Three photographs, hung at different depths — each drifts at its own
+   rate under the scroll (script writes --drift in px). */
+/* One column on a phone — two photographs squeezed side by side at 375px
+   would be thumbnails, and this act does not do thumbnails. The editorial
+   two-column hang starts where each column still gets a real width. */
+.vow-gallery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.4rem, 4vw, 1.5rem);
+  padding-top: clamp(3rem, 8vw, 5.5rem);
+  align-items: start;
+}
+
+@media (min-width: 48em) {
+  .vow-gallery {
+    grid-template-columns: 7fr 5fr;
+    gap: clamp(0.9rem, 2.5vw, 1.5rem);
+  }
+
+  .vow-gallery .g-item:nth-child(1) {
+    margin-top: clamp(2rem, 6vw, 4rem);
+  }
+
+  .vow-gallery .g-item:nth-child(2) {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+
+  .vow-gallery .g-item:nth-child(3) {
+    width: 84%;
+  }
+}
+
+.vow-line {
+  margin: 0;
+  padding: clamp(3.5rem, 10vw, 6.5rem) 1.15rem clamp(4rem, 11vw, 7rem);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.5rem, 4.6vw, 2.6rem);
+  line-height: 1.35;
+  text-align: center;
+  color: var(--night-ink);
+}
+
+.vow-line .k-label {
+  display: block;
+  margin-top: 1.1rem;
+  font-style: normal;
+}
+
+/* The case opens. A pale photograph parts the dark like a curtain — the
+   clip is scroll-driven under .motion, fully open at rest — and the ground
+   on the far side of it is the site's paper. */
+.vow-daylight {
+  position: relative;
+  background: linear-gradient(180deg, var(--night) 0%, var(--night) 55%, var(--ground-page) 55%);
+}
+
+html.motion .vow-daylight {
+  height: 220vh;
+}
+
+.vow-daylight__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html.motion .vow-daylight__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+}
+
+.vow-daylight__media {
+  position: relative;
+  width: min(92vw, 68rem);
+  margin: 0;
+}
+
+.vow-daylight__media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 82svh;
+  object-fit: cover;
+}
+
+html.motion .vow-daylight__media img {
+  clip-path: inset(calc((1 - var(--p, 1)) * 46%) calc((1 - var(--p, 1)) * 12%));
+  will-change: clip-path;
+}
+
+.vow-daylight__media figcaption {
+  position: absolute;
+  inset: auto 0 clamp(0.9rem, 3vw, 1.6rem) 0;
+  text-align: center;
+  color: var(--smoke);
+}
+
+html.motion .vow-daylight__media figcaption {
+  opacity: calc((var(--p, 1) - 0.75) * 4);
+}
+
+/* --- Photograph furniture, shared by every gallery ---------------------
+   A photograph arrives in grey and takes its colour as it is looked at —
+   home.js marks .lit when the frame crosses the middle of the viewport.
+   Colour arriving with attention is the palette rule performed: the page
+   never holds a hue, the work is the only thing that ever does. */
+
+.g-item {
+  position: relative;
+  margin: 0;
+}
+
+.g-item .g-frame {
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--night-soft, #161616);
+}
+
+.g-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+html.motion .g-item img {
+  filter: grayscale(1);
+  transition: filter 1100ms var(--ease-soft),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+html.motion .g-item.lit img {
+  filter: none;
+}
+
+.g-item:hover img {
+  transform: scale(1.035);
+}
+
+.g-item figcaption {
+  margin-top: 0.7rem;
+}
+
+html.motion .g-item {
+  transform: translateY(var(--drift, 0px));
+  will-change: transform;
+}
+
+/* --- Act II · The Craft ------------------------------------------------- */
+
+.act-craft {
+  background: var(--ground-page);
+  padding-bottom: clamp(4rem, 10vw, 7rem);
+}
+
+/* From sketch to setting: the five drawings, recovered from the site's
+   first landing page and re-inked for the light ground — the subject in
+   graphite, construction in silver, nothing warmer than a grey. Wide
+   screens pin the plate beside the scrolling stages; narrow ones show each
+   stage's own drawing inline. */
+
+.process {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 5vw, 4rem);
+  padding-top: clamp(3rem, 8vw, 5rem);
+}
+
+@media (min-width: 64em) {
+  .process {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.process__figure {
+  display: none;
+}
+
+@media (min-width: 64em) {
+  .process__figure {
+    display: block;
+  }
+}
+
+.process__plates {
+  position: sticky;
+  top: calc(50vh - min(19vw, 16rem));
+  width: min(38vw, 32rem);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.process__plate {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-soft);
+  color: var(--graphite);
+}
+
+/* Without script the first plate stands; with it, the active one does. */
+.process__plate:first-child {
+  opacity: 1;
+}
+
+.process__figure.js .process__plate:not(.is-active) {
+  opacity: 0;
+}
+
+.process__figure.js .process__plate.is-active {
+  opacity: 1;
+}
+
+.process__plate svg {
+  width: 100%;
+  height: 100%;
+}
+
+.process__stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stage {
+  max-width: 30rem;
+  margin-inline: auto;
+  padding: clamp(2.5rem, 7vh, 4.5rem) 0;
+}
+
+@media (min-width: 64em) {
+  .stage {
+    min-height: 72vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-inline: 0 auto;
+  }
+}
+
+.stage__figure {
+  width: min(58vw, 15rem);
+  margin: 0 auto 1.4rem;
+  color: var(--graphite);
+}
+
+.stage__figure svg {
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 64em) {
+  .stage__figure {
+    display: none;
+  }
+}
+
+.stage__label {
+  margin: 0 0 0.8rem;
+}
+
+.stage__title {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4.2vw, 2rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.stage__body {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+@media (max-width: 63.98em) {
+  .stage {
+    text-align: center;
+  }
+}
+
+/* The commissions gallery: three columns of photographs at ragged heights,
+   drifting apart under the scroll. Two columns on a tablet, one stack on a
+   phone — spans are stated per breakpoint, never left to auto-fit. */
+
+.craft-gallery__head {
+  padding-top: clamp(4.5rem, 11vw, 7.5rem);
+}
+
+.craft-gallery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.1rem, 3vw, 1.8rem);
+  padding-top: clamp(2.5rem, 6vw, 4rem);
+  align-items: start;
+}
+
+@media (min-width: 40em) {
+  .craft-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64em) {
+  .craft-gallery {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .craft-gallery .g-item:nth-child(3n + 2) {
+    margin-top: clamp(1.5rem, 4vw, 3rem);
+  }
+}
+
+.act-craft .g-frame {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+}
+
+.craft-meta {
+  margin: clamp(3rem, 7vw, 4.5rem) 0 0;
+  text-align: center;
+}
+
+/* --- Act III · The Second Life ------------------------------------------ */
+
+.act-repair {
+  background: var(--ground-page);
+  padding-bottom: clamp(4.5rem, 11vw, 7.5rem);
+}
+
+/* The inspection: the same photograph twice, the grey copy clipped over the
+   coloured one, and the seam walks across with the scroll — the piece
+   passing under the loupe. At rest the wipe is complete. */
+.repair-wipe {
+  position: relative;
+}
+
+html.motion .repair-wipe {
+  height: 200vh;
+}
+
+.repair-wipe__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2.5rem, 7vw, 4.5rem) 0;
+}
+
+html.motion .repair-wipe__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  padding: 0;
+}
+
+.repair-wipe__media {
+  position: relative;
+  width: min(92vw, 62rem);
+  margin: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+}
+
+.repair-wipe__media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 76svh;
+  object-fit: cover;
+}
+
+.repair-wipe__grey {
+  position: absolute;
+  inset: 0;
+}
+
+.repair-wipe__grey img {
+  height: 100%;
+  filter: grayscale(1) contrast(0.94);
+}
+
+html.motion .repair-wipe__grey {
+  clip-path: inset(0 0 0 calc(var(--p, 1) * 100%));
+  will-change: clip-path;
+}
+
+html:not(.motion) .repair-wipe__grey {
+  display: none;
+}
+
+/* The seam itself: a hairline of light at the wipe's leading edge. */
+.repair-wipe__seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--p, 1) * 100%);
+  width: 1px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.28);
+}
+
+html:not(.motion) .repair-wipe__seam {
+  display: none;
+}
+
+.repair-wipe__media figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(0.7rem, 2.5vw, 1.2rem);
+  text-align: center;
+  color: #e8e8e8;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+
+/* What the bench takes on, as a ledger: term, hairline, note. */
+.repair-list {
+  max-width: 46rem;
+  margin: clamp(3rem, 8vw, 5rem) auto 0;
+  padding: 0;
+}
+
+.repair-list > div {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.2rem 2rem;
+  padding: clamp(0.9rem, 2.5vw, 1.2rem) 0.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.repair-list > div:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 40em) {
+  .repair-list > div {
+    grid-template-columns: 13rem 1fr;
+    align-items: baseline;
+  }
+}
+
+.repair-list dt {
+  margin: 0;
+}
+
+.repair-list dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+/* --- Act IV · The Maker ------------------------------------------------- */
+
+.act-maker {
+  background: var(--ground-page);
+  padding-bottom: clamp(4.5rem, 11vw, 7.5rem);
+}
+
+.maker {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 6vw, 4.5rem);
+  align-items: center;
+  padding-top: clamp(3rem, 8vw, 5rem);
+}
+
+@media (min-width: 60em) {
+  .maker {
+    grid-template-columns: 5fr 6fr;
+  }
+}
+
+.maker__media {
+  margin: 0;
+}
+
+.maker__media .g-frame {
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+}
+
+.maker__media figcaption {
+  margin-top: 0.7rem;
+  text-align: center;
+}
+
+/* A step under the act scale: the column beside the photograph is narrower
+   than a full act head, and "Twenty-three years" wants to hold one line. */
+.maker__body .act-title {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+}
+
+.maker__body .act-lead {
+  margin-left: 0;
+  margin-right: 0;
+  max-width: 34rem;
+}
+
+.maker__body {
+  text-align: center;
+}
+
+@media (min-width: 60em) {
+  .maker__body {
+    text-align: left;
+  }
+
+  .maker__body .act-lead {
+    margin-inline: 0;
+  }
+}
+
+@media (max-width: 59.98em) {
+  .maker__body .act-lead {
+    margin-inline: auto;
+  }
+}
+
+.maker__quote {
+  margin: clamp(1.75rem, 4vw, 2.5rem) 0 0;
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--pewter-dim);
+  text-align: left;
+}
+
+@media (max-width: 59.98em) {
+  .maker__quote {
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+}
+
+.maker__quote p {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.2rem, 3.2vw, 1.5rem);
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.maker__quote figcaption {
+  color: var(--muted);
+}
+
+/* --- Act V · The Visit --------------------------------------------------
+   The finale is the address, set at display scale, with the facts beneath
+   it in the engraved register. It sits one step down the ramp on the
+   footer's ground, so the page settles into its own credits. */
+
+.act-visit {
+  background: var(--ground-footer);
+  text-align: center;
+  padding-bottom: clamp(5rem, 13vw, 8.5rem);
+}
+
+.act-visit .act-head {
+  padding-top: clamp(5rem, 13vw, 8.5rem);
+}
+
+.visit-address {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 9.5vw, 7rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.visit-facts {
+  list-style: none;
+  margin: clamp(1.75rem, 5vw, 2.75rem) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.visit-facts a {
+  color: var(--pewter);
+  text-decoration: none;
+  border-bottom: 1px solid var(--pewter-dim);
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.visit-facts a:hover,
+.visit-facts a:focus-visible {
+  color: var(--pewter-strong);
+  border-bottom-color: var(--pewter);
+}
+
+.visit-lead {
+  max-width: 34rem;
+  margin: clamp(1.75rem, 5vw, 2.5rem) auto 0;
+  color: var(--muted);
+  font-size: clamp(0.98rem, 2.6vw, 1.08rem);
+  line-height: 1.75;
+}
+
+.visit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: clamp(2rem, 5vw, 2.75rem);
+}
+
+/* The plan-a-visit pill borrows the site's contact button wholesale; the
+   appointment control will stand beside it when the booking system lands. */
+
+/* --- Small-screen top bar: keep the pill clear of the notch ------------- */
+
+@media (max-width: 480px) {
+  .home .page-top--home {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+}
