@@ -224,8 +224,16 @@ html.motion .no-anim .line > span {
   text-decoration: none;
   color: var(--night-ink);
   opacity: 0;
+  /* Rises the last few pixels as it docks, so the name arrives rather than
+     appears. */
+  transform: translateY(5px);
   pointer-events: none;
-  transition: opacity var(--dur-fast) ease, color var(--dur-fast) ease;
+  transition: opacity var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) ease;
+}
+
+.home .page-top--home.is-docked .wordmark {
+  transform: none;
 }
 
 .home .page-top--home.is-docked .wordmark {
@@ -286,8 +294,11 @@ html.motion .no-anim .line > span {
 }
 
 /* Script-only chrome: without home.js nothing tracks the current act, so
-   the rail never appears at all rather than appearing frozen. */
-@media (min-width: 64em) {
+   the rail never appears at all rather than appearing frozen. 78em, not the
+   64em the desktop layouts switch at: the galleries run the full 74rem
+   column, and between 64 and ~78em the rail's ink landed on top of their
+   photographs. It appears once there is genuine wall to stand on. */
+@media (min-width: 78em) {
   .act-rail.enhanced {
     display: flex;
   }
@@ -428,7 +439,10 @@ html.motion .film-hero__inner {
   overflow: hidden;
   padding-bottom: 0.06em;
   font-family: var(--font-display);
-  font-size: clamp(4.1rem, 17vw, 12.5rem);
+  /* 15.5vw, not the 17vw it once was: seven serif caps at 17vw overflow any
+     frame under ~365px and the name broke onto two lines. At 15.5vw the
+     word holds one line all the way down to 320. */
+  font-size: clamp(3rem, 15.5vw, 12.5rem);
   font-weight: 400;
   line-height: 0.98;
   letter-spacing: 0.05em;
@@ -618,17 +632,24 @@ html.motion .vow-rings__stage {
 }
 
 /* At rest (no script) the pair sits interlocked: --p falls back to 1. The
-   leading translate is the centring; the travel and the roll ride on top. */
+   leading translate is the centring; the travel and the growth ride on top.
+   These circles are the FALLBACK cast — when WebGL is standing, home3d.js
+   swaps them for two rendered bands and these never show.
+
+   Growth, not rotation: the old rotate() here turned a perfect circle about
+   its own centre, which paints exactly the same pixels at every angle — a
+   transform that was running and showing nothing. Scale reads: the pair
+   approaches as it travels. */
 .vow-ring--a {
   transform: translate(-50%, -50%)
     translateX(calc((1 - var(--p, 1)) * -52vw - var(--p, 1) * 9%))
-    rotate(calc((1 - var(--p, 1)) * -35deg));
+    scale(calc(0.84 + var(--p, 1) * 0.16));
 }
 
 .vow-ring--b {
   transform: translate(-50%, -50%)
     translateX(calc((1 - var(--p, 1)) * 52vw + var(--p, 1) * 9%))
-    rotate(calc((1 - var(--p, 1)) * 35deg));
+    scale(calc(0.84 + var(--p, 1) * 0.16));
 }
 
 html.motion .vow-ring {
@@ -770,7 +791,10 @@ html.motion .vow-daylight__stage {
 
 html.motion .vow-daylight__media img {
   clip-path: inset(calc((1 - var(--p, 1)) * 46%) calc((1 - var(--p, 1)) * 12%));
-  will-change: clip-path;
+  /* The photograph eases from a breath of zoom to rest as the curtain opens
+     around it — the parting and the settle are one gesture. */
+  transform: scale(calc(1.05 - var(--p, 1) * 0.05));
+  will-change: clip-path, transform;
 }
 
 .vow-daylight__media figcaption {
@@ -809,17 +833,28 @@ html.motion .vow-daylight__media figcaption {
   transition: transform var(--dur-slow) var(--ease-out);
 }
 
+/* Before its colour, a photograph also holds a breath of zoom; focus and
+   colour arrive together as it crosses the middle of the screen — the lens
+   settling on the piece. */
 html.motion .g-item img {
   filter: grayscale(1);
+  transform: scale(1.045);
   transition: filter 1100ms var(--ease-soft),
     transform var(--dur-slow) var(--ease-out);
 }
 
 html.motion .g-item.lit img {
   filter: none;
+  transform: none;
 }
 
 .g-item:hover img {
+  transform: scale(1.035);
+}
+
+/* Outranks the .lit settle above — without it a photograph stops answering
+   the pointer the moment it takes its colour. */
+html.motion .g-item.lit:hover img {
   transform: scale(1.035);
 }
 
@@ -827,7 +862,9 @@ html.motion .g-item.lit img {
   margin-top: 0.7rem;
 }
 
-html.motion .g-item {
+/* Any element may hang at its own depth — home.js writes --drift onto
+   everything carrying the attribute, not only gallery items. */
+html.motion [data-drift] {
   transform: translateY(var(--drift, 0px));
   will-change: transform;
 }
@@ -836,6 +873,15 @@ html.motion .g-item {
 
 .act-craft {
   background: var(--ground-page);
+  /* The lamp does not stop when the case opens: each light act carries a
+     whisper of overhead light — a lift of a few greys at the top of the act,
+     nothing a contrast ratio can feel. */
+  background-image: radial-gradient(
+    120% 46% at 50% 0%,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  background-repeat: no-repeat;
   padding-bottom: clamp(4rem, 10vw, 7rem);
 }
 
@@ -876,12 +922,55 @@ html.motion .g-item {
   margin-inline: auto;
 }
 
+/* The drawing board. A faint drafting grid under the plates, held inside a
+   hairline frame — the drawings stop floating in blank paper and sit on the
+   sheet they would actually be worked out on. The grid is two repeating
+   hairline gradients, greys only, far under the UI contrast floor on
+   purpose: it is texture, not information. */
+.process__plates::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  border: 1px solid var(--footer-rule);
+  border-radius: 2px;
+  background-image: linear-gradient(rgba(26, 26, 26, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 26, 26, 0.045) 1px, transparent 1px);
+  background-size: 2.6rem 2.6rem;
+  background-position: center;
+}
+
 .process__plate {
   position: absolute;
   inset: 0;
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-soft);
   color: var(--graphite);
+}
+
+/* Each plate names itself in the sheet's corner, in the engraved register. */
+.process__plate::after {
+  content: attr(data-sheet);
+  position: absolute;
+  right: -3%;
+  bottom: -3%;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--smoke);
+  opacity: 0.75;
+}
+
+/* A fresh sheet is laid on the board, not teleported onto it: the incoming
+   plate settles down a few pixels and shrugs off a fraction of a degree. */
+html.motion .process__plate {
+  transform: translateY(10px) rotate(0.4deg);
+  transition: opacity var(--dur-base) var(--ease-soft),
+    transform var(--dur-base) var(--ease-out);
+}
+
+html.motion .process__plate.is-active {
+  transform: none;
 }
 
 /* Without script the first plate stands; with it, the active one does. */
@@ -1013,6 +1102,12 @@ html.motion .g-item {
 
 .act-repair {
   background: var(--ground-page);
+  background-image: radial-gradient(
+    120% 46% at 50% 0%,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  background-repeat: no-repeat;
   padding-bottom: clamp(4.5rem, 11vw, 7.5rem);
 }
 
@@ -1058,6 +1153,15 @@ html.motion .repair-wipe__stage {
   height: auto;
   max-height: 76svh;
   object-fit: cover;
+}
+
+/* A slow push across the held frame — both copies take the identical
+   transform, so the grey layer and the coloured one never shear at the
+   seam. The bleed the scale leaves is what the drift travels in. */
+html.motion .repair-wipe__media img {
+  transform: scale(calc(1.09 - var(--p, 1) * 0.06))
+    translateY(calc((0.5 - var(--p, 1)) * 2%));
+  will-change: transform;
 }
 
 .repair-wipe__grey {
@@ -1145,6 +1249,12 @@ html:not(.motion) .repair-wipe__seam {
 
 .act-maker {
   background: var(--ground-page);
+  background-image: radial-gradient(
+    120% 46% at 50% 0%,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  background-repeat: no-repeat;
   padding-bottom: clamp(4.5rem, 11vw, 7.5rem);
 }
 
@@ -1209,10 +1319,34 @@ html:not(.motion) .repair-wipe__seam {
 }
 
 .maker__quote {
+  position: relative;
   margin: clamp(1.75rem, 4vw, 2.5rem) 0 0;
   padding-left: 1.25rem;
   border-left: 1px solid var(--pewter-dim);
   text-align: left;
+}
+
+/* Under motion the rule is drawn rather than shown: the border goes clear
+   and a line in the same place is paid out downward as the quote arrives. */
+html.motion .maker__quote {
+  border-left-color: transparent;
+}
+
+html.motion .maker__quote::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--pewter-dim);
+  transform: scaleY(0);
+  transform-origin: top center;
+}
+
+html.motion .maker__quote.in::before {
+  transform: scaleY(1);
+  transition: transform 900ms var(--ease-out) 250ms;
 }
 
 @media (max-width: 59.98em) {
@@ -1308,4 +1442,307 @@ html:not(.motion) .repair-wipe__seam {
     padding-right: max(0.75rem, env(safe-area-inset-right));
     padding-left: max(0.75rem, env(safe-area-inset-left));
   }
+}
+
+
+/* ====================== The rendered chapter ============================
+   home3d.js probes WebGL2 and, when it can, mounts the film's jewels — the
+   live solitaire in the hero, the two bands in the fitting — and only then
+   stamps html.film3d. Every rule in this section therefore has a complete
+   page underneath it: no WebGL, no JavaScript, or reduced motion, and none
+   of this exists. */
+
+/* The canvas is a fixed sheet of glass over the whole viewport, above the
+   acts' content (a ring in flight crosses the frame in FRONT of the type,
+   which is what an object passing the camera does) and beneath the chrome.
+   It is always laid out — the stage measures it before html.film3d exists —
+   but carries no paint until the film fades it up, and none again once the
+   stage has emptied (.is-parked, set by film.js when the loop stops). */
+.film-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+html.film3d .film-canvas {
+  opacity: 1;
+  transition: opacity 1000ms var(--ease-soft);
+}
+
+html.film3d .film-canvas.is-parked {
+  opacity: 0;
+}
+
+/* Film grain: a small tile of SVG turbulence, white ink with a noisy alpha —
+   hueless by construction. Its real job is arithmetic, not mood: the lamp
+   below is built from long dark gradients, and 8-bit greys band across those
+   without a little noise to dither the steps. home.js raises it only while
+   the dark chapter is under the viewport's midline; it never sits on the
+   paper acts. */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='156'%20height='156'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.85'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200.55%200.55%200.55%200%200'/%3E%3C/filter%3E%3Crect%20width='156'%20height='156'%20filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 156px 156px;
+  transition: opacity 800ms ease;
+}
+
+.home.is-dark-view .film-grain {
+  opacity: 0.05;
+}
+
+/* The lamp, hidden until the render is standing. A cone of light coming
+   straight down from above the frame, a vignette closing the corners, and —
+   on ::after — the aura, an ellipse of glow that film.js steers to wherever
+   the solitaire actually hangs (--rx/--ry, hero-local) and extinguishes as
+   it exits (--ra). The whole layer eases off as the hero is scrolled away,
+   riding the same --p as everything else in the scene. */
+.film-hero__lamp {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: none;
+  pointer-events: none;
+  opacity: calc(1 - var(--p, 0) * 0.35);
+  background:
+    radial-gradient(130% 90% at 50% 40%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.5) 100%),
+    conic-gradient(
+      at 50% -12%,
+      rgba(255, 255, 255, 0) 42.5%,
+      rgba(255, 255, 255, 0.05) 46.75%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.05) 53.25%,
+      rgba(255, 255, 255, 0) 57.5%
+    );
+}
+
+.film-hero__lamp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    32% 24% at var(--rx, 50%) var(--ry, 27%),
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.05) 48%,
+    rgba(255, 255, 255, 0) 74%
+  );
+  opacity: var(--ra, 0);
+}
+
+/* The hero's film3d arrangement needs a frame at least 600px tall — the
+   solitaire owns the upper third, the title the lower. Under that (a phone
+   on its side, the smallest handsets) the photographed hero simply stays:
+   film.js reads the same 600 and never casts the shot, so the CSS and the
+   render agree about which hero is playing. */
+@media (min-height: 600px) {
+  html.film3d .film-hero {
+    align-items: flex-end;
+  }
+
+  html.film3d .film-hero__inner {
+    padding-top: 1.5rem;
+    padding-bottom: clamp(6.5rem, 16vh, 10rem);
+  }
+
+  /* The photograph dissolves once the render is standing in its place —
+     from a picture of a ring to the ring. It has already served first
+     paint, so nothing was wasted by loading it. */
+  html.film3d .film-hero__bg {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1200ms var(--ease-soft), visibility 0s 1200ms;
+  }
+
+  html.film3d .film-hero__lamp {
+    display: block;
+  }
+
+  /* A breath of bloom on the name, as if the beam catches it. */
+  html.film3d .film-hero__title {
+    text-shadow: 0 0 48px rgba(255, 255, 255, 0.13);
+  }
+}
+
+/* When the bands are real, the drawn stand-ins never show. visibility, not
+   display: if the GPU dies for good the boot lifts html.film3d and the
+   circles return to a layout that never moved. */
+html.film3d .vow-ring {
+  visibility: hidden;
+}
+
+/* ====================== The drawings draw themselves ====================
+   Every solid stroke in the five process symbols carries pathLength="1", so
+   one inherited dash can time all of them: dasharray and dashoffset inherit
+   straight through the <use> shadow boundary, offset 1 is a blank sheet,
+   offset 0 the finished figure. The DASHED construction lines carry their
+   own stroke-dasharray attribute, which outranks the inherited one — they
+   stand ready on the sheet while the subject is inked over them, the order
+   the work actually happens in. Base state (no .motion) is offset 0: the
+   finished drawing, always. */
+
+html.motion .stage__figure svg,
+html.motion .process__figure.js .process__plate svg {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+html.motion .stage.in .stage__figure svg {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1500ms var(--ease-soft) 150ms;
+}
+
+html.motion .process__figure.js .process__plate.is-active svg {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1400ms var(--ease-soft) 120ms;
+}
+
+/* ====================== Scroll dressing, act by act ===================== */
+
+/* Eyebrows in centred act heads take a flanking pair of hairlines that draw
+   outward from the text as it arrives — the engraved register given its
+   rules. Only the heads that are ALWAYS centred: the vow and maker eyebrows
+   sit in columns that go left on wide screens, and flanks off-centre read
+   as a mistake. */
+.film-hero__eyebrow,
+.act-head > .act-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.8rem, 2.5vw, 1.3rem);
+}
+
+.film-hero__eyebrow::before,
+.film-hero__eyebrow::after,
+.act-head > .act-eyebrow::before,
+.act-head > .act-eyebrow::after {
+  content: "";
+  flex: 0 0 auto;
+  width: clamp(1.6rem, 6vw, 3.2rem);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor);
+  opacity: 0.55;
+}
+
+.film-hero__eyebrow::after,
+.act-head > .act-eyebrow::after {
+  background: linear-gradient(90deg, currentColor, transparent);
+}
+
+html.motion .film-hero__eyebrow::before,
+html.motion .act-head > .act-eyebrow::before {
+  transform: scaleX(0);
+  transform-origin: right center;
+}
+
+html.motion .film-hero__eyebrow::after,
+html.motion .act-head > .act-eyebrow::after {
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+html.motion .film-hero__eyebrow.in::before,
+html.motion .film-hero__eyebrow.in::after,
+html.motion .act-head > .act-eyebrow.in::before,
+html.motion .act-head > .act-eyebrow.in::after {
+  transform: scaleX(1);
+  transition: transform 900ms var(--ease-out) 250ms;
+}
+
+/* The repair ledger arrives line by line — each row a beat after the one
+   above it — and answers the pointer with a soft wash and a small indent,
+   the way a finger runs down a price list. */
+html.motion .repair-list > .reveal.in {
+  transition-delay: var(--stag, 0ms), var(--stag, 0ms);
+}
+
+.repair-list > div:nth-child(2) { --stag: 70ms; }
+.repair-list > div:nth-child(3) { --stag: 140ms; }
+.repair-list > div:nth-child(4) { --stag: 210ms; }
+.repair-list > div:nth-child(5) { --stag: 280ms; }
+.repair-list > div:nth-child(6) { --stag: 350ms; }
+
+.repair-list > div {
+  transition: background-color 0.3s ease, padding 0.3s ease;
+}
+
+.repair-list > div:hover {
+  background-color: var(--pewter-wash);
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+}
+
+/* The visit facts file in beneath the address one after another. */
+html.motion .visit-facts > .reveal.in {
+  transition-delay: var(--stag, 0ms), var(--stag, 0ms);
+}
+
+.visit-facts > li:nth-child(2) { --stag: 80ms; }
+.visit-facts > li:nth-child(3) { --stag: 160ms; }
+.visit-facts > li:nth-child(4) { --stag: 240ms; }
+
+/* And once the address has risen, a hairline is drawn beneath it — the same
+   centred rule the legal pages close their titles with. */
+.visit-address::after {
+  content: "";
+  display: block;
+  width: clamp(4.5rem, 12vw, 7rem);
+  height: 1px;
+  margin: clamp(1.4rem, 4vw, 2rem) auto 0;
+  background: linear-gradient(90deg, transparent, var(--pewter-dim), transparent);
+}
+
+html.motion .visit-address::after {
+  transform: scaleX(0);
+}
+
+html.motion .visit-address.in::after {
+  transform: scaleX(1);
+  transition: transform 1000ms var(--ease-out) 500ms;
+}
+
+/* Commission photographs are numbered like catalogue plates — pure CSS
+   counters, so the markup stays a list of figures. */
+.craft-gallery {
+  counter-reset: piece;
+}
+
+.craft-gallery .g-item {
+  counter-increment: piece;
+}
+
+.craft-gallery .g-item figcaption::before {
+  content: counter(piece, decimal-leading-zero) " · ";
+}
+
+/* ====================== Small print ===================================== */
+
+/* Selection in the site's own ink — the browser default blue is the one hue
+   this page would otherwise ever show. */
+.home ::selection {
+  background: #2c2c2c;
+  color: #f4f4f4;
+}
+
+/* The shared focus ring is pewter, which vanishes on near-black. Anything
+   focusable in the dark chapter gets the light ink instead. */
+.film-hero :focus-visible,
+.act--dark :focus-visible {
+  outline-color: #e6e6e6;
+}
+
+/* The no-anim contract, extended to everything this file animates through
+   pseudo-elements and inherited dashes: a mid-page reload must land every
+   one of them on its final frame with no transition. */
+html.motion .no-anim::before,
+html.motion .no-anim::after,
+html.motion .no-anim svg {
+  transition: none !important;
+  transition-delay: 0ms !important;
 }

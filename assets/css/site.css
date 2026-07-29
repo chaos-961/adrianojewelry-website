@@ -1,10 +1,9 @@
 /* Adriano Jewelry — base stylesheet
    Shared shell for every page: the ambient ground, the contact button in the
-   top-right of main, prose pages, and the universal footer. It is the only
-   stylesheet on the site — showcase.css styled the four-ring section the
-   landing page carried until it was emptied to its footer, and home.css styled
-   the landing sections removed in v0.1.2. Both are deleted; recover either from
-   history if they return.
+   top-right of main, prose pages, and the universal footer. The landing page
+   layers home.css on top of this file for its five acts; the four inner pages
+   load this alone. showcase.css, which styled the v0.1.4 four-ring reel, stays
+   deleted — recover it from history if it returns.
 
    THE GROUND. Flat, light, and two steps of one grey. It carried film grain
    and a raking warm lamp until v0.1.2, a jeweller's-case green until v0.1.3,

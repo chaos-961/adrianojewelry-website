@@ -125,22 +125,30 @@
       </defs>
 
       <!-- 01 SKETCH — the ring drawn in elevation, the way it is worked out on
-           paper before anything is cut. -->
+           paper before anything is cut.
+
+           Every SOLID stroke in these five carries pathLength="1": home.css
+           draws the subject in by animating an inherited dash from 1 to 0, and
+           normalising every length to 1 is what lets one rule time all of
+           them. The DASHED strokes are exempt on purpose — their own
+           stroke-dasharray outranks the inherited one — so the construction
+           stands ready on the sheet while the subject is inked over it, which
+           is the order the work actually happens in. -->
       <symbol id="fg-sketch" viewBox="0 0 400 400">
         <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.55">
           <path d="M200 40 V370" stroke-dasharray="7 6" />
           <path d="M60 250 H340" stroke-dasharray="7 6" />
-          <path d="M96 330 H304" marker-start="url(#fg-ar)" marker-end="url(#fg-ar)" />
-          <path d="M96 318 V342 M304 318 V342" />
+          <path d="M96 330 H304" marker-start="url(#fg-ar)" marker-end="url(#fg-ar)" pathLength="1" />
+          <path d="M96 318 V342 M304 318 V342" pathLength="1" />
         </g>
         <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <circle cx="200" cy="250" r="104" />
-          <circle cx="200" cy="250" r="82" />
-          <path d="M164 128 H236 L228 108 H172 Z" />
-          <path d="M164 128 L200 176 L236 128" />
-          <path d="M172 108 L200 128 L228 108" opacity="0.7" />
-          <path d="M186 128 V108 M214 128 V108" opacity="0.7" />
-          <path d="M170 132 L176 152 M230 132 L224 152" />
+          <circle cx="200" cy="250" r="104" pathLength="1" />
+          <circle cx="200" cy="250" r="82" pathLength="1" />
+          <path d="M164 128 H236 L228 108 H172 Z" pathLength="1" />
+          <path d="M164 128 L200 176 L236 128" pathLength="1" />
+          <path d="M172 108 L200 128 L228 108" opacity="0.7" pathLength="1" />
+          <path d="M186 128 V108 M214 128 V108" opacity="0.7" pathLength="1" />
+          <path d="M170 132 L176 152 M230 132 L224 152" pathLength="1" />
         </g>
         <g fill="#8f8f8f" opacity="0.85">
           <circle cx="200" cy="250" r="2" />
@@ -152,25 +160,25 @@
       <symbol id="fg-wax" viewBox="0 0 400 400">
         <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.5">
           <path d="M200 46 V354" stroke-dasharray="7 6" />
-          <path d="M120 300 H280" marker-start="url(#fg-ar)" marker-end="url(#fg-ar)" />
+          <path d="M120 300 H280" marker-start="url(#fg-ar)" marker-end="url(#fg-ar)" pathLength="1" />
         </g>
         <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <ellipse cx="200" cy="150" rx="80" ry="26" />
-          <path d="M120 150 V236" />
-          <path d="M280 150 V236" />
-          <path d="M120 236 A80 26 0 0 0 280 236" />
-          <ellipse cx="200" cy="150" rx="52" ry="16" opacity="0.75" />
+          <ellipse cx="200" cy="150" rx="80" ry="26" pathLength="1" />
+          <path d="M120 150 V236" pathLength="1" />
+          <path d="M280 150 V236" pathLength="1" />
+          <path d="M120 236 A80 26 0 0 0 280 236" pathLength="1" />
+          <ellipse cx="200" cy="150" rx="52" ry="16" opacity="0.75" pathLength="1" />
         </g>
         <g fill="none" stroke="#8f8f8f" stroke-width="1" stroke-dasharray="5 5" opacity="0.8">
           <path d="M148 168 Q200 196 252 168" />
         </g>
         <g stroke="#8f8f8f" stroke-width="0.8" opacity="0.55">
-          <path d="M156 176 L166 196 M172 184 L182 204 M188 188 L198 208 M204 188 L214 208 M220 184 L230 204 M236 176 L246 196" />
+          <path d="M156 176 L166 196 M172 184 L182 204 M188 188 L198 208 M204 188 L214 208 M220 184 L230 204 M236 176 L246 196" pathLength="1" />
         </g>
         <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
-          <path d="M262 132 L306 96 L330 112 L286 148 Z" opacity="0.9" />
-          <path d="M262 132 L244 146" />
-          <path d="M306 96 L330 112" />
+          <path d="M262 132 L306 96 L330 112 L286 148 Z" opacity="0.9" pathLength="1" />
+          <path d="M262 132 L244 146" pathLength="1" />
+          <path d="M306 96 L330 112" pathLength="1" />
         </g>
       </symbol>
 
@@ -178,9 +186,9 @@
            which is the whole point of the drawing. -->
       <symbol id="fg-cast" viewBox="0 0 400 400">
         <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <path d="M108 118 V330 H292 V118" />
-          <path d="M96 118 H304" />
-          <path d="M158 118 L176 74 H224 L242 118" />
+          <path d="M108 118 V330 H292 V118" pathLength="1" />
+          <path d="M96 118 H304" pathLength="1" />
+          <path d="M158 118 L176 74 H224 L242 118" pathLength="1" />
         </g>
         <g fill="none" stroke="#8f8f8f" stroke-width="1.1" stroke-dasharray="6 5" opacity="0.9">
           <path d="M200 118 V286" />
@@ -192,11 +200,11 @@
           <circle cx="258" cy="270" r="20" />
         </g>
         <g stroke="#8f8f8f" stroke-width="0.6" opacity="0.28">
-          <path d="M120 140 H180 M120 170 H136 M264 140 H284 M300 170 H284 M120 240 H132 M272 300 H284 M120 300 H184 M216 320 H284" />
+          <path d="M120 140 H180 M120 170 H136 M264 140 H284 M300 170 H284 M120 240 H132 M272 300 H284 M120 300 H184 M216 320 H284" pathLength="1" />
         </g>
         <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.5">
-          <path d="M200 74 V56" />
-          <path d="M176 62 L200 46 L224 62" />
+          <path d="M200 74 V56" pathLength="1" />
+          <path d="M176 62 L200 46 L224 62" pathLength="1" />
         </g>
       </symbol>
 
@@ -204,22 +212,22 @@
            the magnification the work is actually done at. -->
       <symbol id="fg-set" viewBox="0 0 400 400">
         <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.5">
-          <circle cx="200" cy="200" r="150" />
-          <path d="M200 36 V78 M200 322 V364 M36 200 H78 M322 200 H364" />
+          <circle cx="200" cy="200" r="150" pathLength="1" />
+          <path d="M200 36 V78 M200 322 V364 M36 200 H78 M322 200 H364" pathLength="1" />
           <path d="M168 200 H232 M200 168 V232" stroke-dasharray="4 5" />
         </g>
         <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <circle cx="200" cy="200" r="96" />
-          <path d="M200 132 L268 200 L200 268 L132 200 Z" />
-          <path d="M200 132 L200 104 M268 200 L296 200 M200 268 L200 296 M132 200 L104 200" opacity="0.55" />
-          <path d="M152 152 L132 200 M248 152 L268 200 M152 248 L132 200 M248 248 L268 200" opacity="0.55" />
-          <path d="M200 132 L152 152 M200 132 L248 152 M200 268 L152 248 M200 268 L248 248" opacity="0.75" />
+          <circle cx="200" cy="200" r="96" pathLength="1" />
+          <path d="M200 132 L268 200 L200 268 L132 200 Z" pathLength="1" />
+          <path d="M200 132 L200 104 M268 200 L296 200 M200 268 L200 296 M132 200 L104 200" opacity="0.55" pathLength="1" />
+          <path d="M152 152 L132 200 M248 152 L268 200 M152 248 L132 200 M248 248 L268 200" opacity="0.55" pathLength="1" />
+          <path d="M200 132 L152 152 M200 132 L248 152 M200 268 L152 248 M200 268 L248 248" opacity="0.75" pathLength="1" />
         </g>
         <g fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
-          <path d="M132 132 Q158 158 172 172" />
-          <path d="M268 132 Q242 158 228 172" />
-          <path d="M132 268 Q158 242 172 228" />
-          <path d="M268 268 Q242 242 228 228" />
+          <path d="M132 132 Q158 158 172 172" pathLength="1" />
+          <path d="M268 132 Q242 158 228 172" pathLength="1" />
+          <path d="M132 268 Q158 242 172 228" pathLength="1" />
+          <path d="M268 268 Q242 242 228 228" pathLength="1" />
         </g>
       </symbol>
 
@@ -229,26 +237,37 @@
            highlights are strokes and not a gradient. -->
       <symbol id="fg-finish" viewBox="0 0 400 400">
         <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <path d="M84 232 L200 268 L316 232" />
-          <path d="M84 232 V300 L200 340 L316 300 V232" />
-          <path d="M200 268 V340" opacity="0.6" />
-          <path d="M84 232 L128 210 L244 246 L200 268 Z" opacity="0.75" />
-          <path d="M316 232 L272 210 L156 246" opacity="0.35" />
+          <path d="M84 232 L200 268 L316 232" pathLength="1" />
+          <path d="M84 232 V300 L200 340 L316 300 V232" pathLength="1" />
+          <path d="M200 268 V340" opacity="0.6" pathLength="1" />
+          <path d="M84 232 L128 210 L244 246 L200 268 Z" opacity="0.75" pathLength="1" />
+          <path d="M316 232 L272 210 L156 246" opacity="0.35" pathLength="1" />
         </g>
         <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-          <ellipse cx="200" cy="176" rx="52" ry="54" />
-          <ellipse cx="200" cy="176" rx="38" ry="40" />
-          <path d="M182 122 L200 92 L218 122" />
-          <path d="M186 108 H214" />
+          <ellipse cx="200" cy="176" rx="52" ry="54" pathLength="1" />
+          <ellipse cx="200" cy="176" rx="38" ry="40" pathLength="1" />
+          <path d="M182 122 L200 92 L218 122" pathLength="1" />
+          <path d="M186 108 H214" pathLength="1" />
         </g>
         <g fill="none" stroke="#c9c9c9" stroke-width="2" stroke-linecap="round" opacity="0.85">
-          <path d="M166 148 Q158 176 168 202" />
-          <path d="M236 160 Q240 176 236 192" opacity="0.6" />
+          <path d="M166 148 Q158 176 168 202" pathLength="1" />
+          <path d="M236 160 Q240 176 236 192" opacity="0.6" pathLength="1" />
         </g>
       </symbol>
     </svg>
 
     <main class="page home">
+      <!-- The film's own layers, all of them inert until they are earned.
+           The canvas carries the rendered jewels — the solitaire in the hero,
+           the two bands in the fitting — and stays fully transparent until
+           home3d.js has probed WebGL2, imported the stage and drawn a first
+           frame; a page that never manages that never shows it. The grain is
+           a fixed sheet of photographic noise, faded up by home.js only while
+           the dark chapter is on screen — its real job is to break the smooth
+           gradients of the lamp before they can band. -->
+      <canvas class="film-canvas" aria-hidden="true"></canvas>
+      <div class="film-grain" aria-hidden="true"></div>
+
       <!-- @partial top-home -->
       <div class="page-top page-top--home">
         <a class="wordmark" href="" aria-label="Adriano Jewelry, home">Adriano</a>
@@ -290,6 +309,15 @@
             decoding="async"
           />
         </div>
+
+        <!-- The lamp. When the render is live the photograph dissolves and
+             this stands in its place: a jeweller's lamp built from gradients —
+             the beam coming down, the pool it makes, and an aura that home3d
+             steers to wherever the solitaire actually hangs (--rx/--ry/--ra,
+             written per frame in hero-local coordinates). Hueless like
+             everything else painted on this site; only the render inside the
+             beam ever carries a colour. -->
+        <div class="film-hero__lamp" aria-hidden="true"></div>
 
         <div class="film-hero__inner">
           <p class="film-hero__eyebrow k-label reveal">
@@ -471,19 +499,19 @@
                actually sticks. -->
           <div class="process__figure" aria-hidden="true">
             <div class="process__plates">
-              <div class="process__plate" data-plate="0">
+              <div class="process__plate" data-plate="0" data-sheet="Sheet 01 / 05">
                 <svg viewBox="0 0 400 400"><use href="#fg-sketch" /></svg>
               </div>
-              <div class="process__plate" data-plate="1">
+              <div class="process__plate" data-plate="1" data-sheet="Sheet 02 / 05">
                 <svg viewBox="0 0 400 400"><use href="#fg-wax" /></svg>
               </div>
-              <div class="process__plate" data-plate="2">
+              <div class="process__plate" data-plate="2" data-sheet="Sheet 03 / 05">
                 <svg viewBox="0 0 400 400"><use href="#fg-cast" /></svg>
               </div>
-              <div class="process__plate" data-plate="3">
+              <div class="process__plate" data-plate="3" data-sheet="Sheet 04 / 05">
                 <svg viewBox="0 0 400 400"><use href="#fg-set" /></svg>
               </div>
-              <div class="process__plate" data-plate="4">
+              <div class="process__plate" data-plate="4" data-sheet="Sheet 05 / 05">
                 <svg viewBox="0 0 400 400"><use href="#fg-finish" /></svg>
               </div>
             </div>
@@ -864,7 +892,7 @@
     <!-- @partial footer -->
     <footer class="site-footer">
       <div class="site-footer__inner">
-        <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.8</p>
+        <p class="site-footer__version"><span class="site-footer__v">v</span>0.1.9</p>
 
         <nav class="site-footer__nav" aria-label="Legal">
           <a class="site-footer__link u-caps" href="terms-and-conditions/"
@@ -940,5 +968,10 @@
       defer
       onerror="document.documentElement.classList.remove('motion')"
     ></script>
+    <!-- The film's jewels — the rendered solitaire and the two bands. A
+         separate boot on purpose: it needs WebGL2, ~190KB of vendored
+         three.js and a GPU worth waking, and any of those missing must cost
+         this page nothing. No onerror: a page without it is complete. -->
+    <script src="assets/js/home3d.js" defer></script>
   </body>
 </html>

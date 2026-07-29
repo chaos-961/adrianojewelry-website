@@ -163,6 +163,7 @@
   var ticking = false;
   var barState = { docked: null, dark: null };
   var railDark = null;
+  var mainDark = null;
   var currentAct = -1;
   var currentPlate = -1;
   var ringsSet = null;
@@ -225,6 +226,14 @@
     var barDark = groundAt(barPoint);
     var railPoint = y + vh / 2;
     var railIsDark = groundAt(railPoint);
+
+    /* The film grain reads the same midline: it lies over the dark chapter
+       and is lifted from the paper. On <main>, so the CSS can gate any
+       ground-aware dressing off one class. */
+    if (railIsDark !== mainDark) {
+      mainDark = railIsDark;
+      main.classList.toggle("is-dark-view", railIsDark);
+    }
 
     if (bar) {
       var docked = hero ? y > hero.offsetHeight * 0.85 : y > vh * 0.85;
