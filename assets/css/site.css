@@ -787,11 +787,10 @@ a.legal__eyebrow:focus-visible {
 
 /* --- Map ---
    The shop's actual corner of Boston, framed to match the cards above it. The
-   iframe is lazy so it costs nothing until it scrolls into view, and it is now
-   fully desaturated: the site carries no hue anywhere else, so the map's road
-   colours were the last thing on it that did. Only the saturation is taken —
-   the brightness is left near full so the map stays legible and its
-   attribution stays readable, which the licence requires. */
+   iframe is lazy so it costs nothing until it scrolls into view, and it is left
+   in Google's own colours: a map reads as a map by its greens and road hues,
+   and stripping them cost more legibility than the site's restraint was worth.
+   The frame around it is what ties it to the page. */
 
 .contact__map {
   margin-top: clamp(0.9rem, 2.5vw, 1.25rem);
@@ -812,7 +811,6 @@ a.legal__eyebrow:focus-visible {
      fixed height would be a slot on a phone and a stripe on a wide monitor. */
   height: clamp(16rem, 42vw, 26rem);
   border: 0;
-  filter: grayscale(1) brightness(0.95);
 }
 
 /* --- Find us --- */
