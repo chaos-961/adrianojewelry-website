@@ -4,13 +4,15 @@
  * geometry pass and a single requestAnimationFrame writer, so the page never
  * reads layout in the same breath as it writes style. What this drives:
  *
- *   - the --p progress property on each scrub scene (hero push-in, the two
- *     rings interlocking, the daylight curtain, the loupe wipe)
+ *   - the --p progress property on each scrub scene (the hero, the two
+ *     rings interlocking, the craft build, the daylight curtain, sheet 06)
  *   - the small parallax drift on gallery photographs (--drift)
- *   - .in on reveals, via IntersectionObserver
+ *   - .in on reveals and act seams, via IntersectionObserver
  *   - .lit on photographs crossing the middle of the viewport (colour)
- *   - the active plate beside the process stages
- *   - the top bar and acts rail: docked state and ground (dark / light)
+ *   - the craft deck: which stage card (and which drafting-board sheet) is
+ *     current, at fifths of the build scene's own --p — the same fifths
+ *     film.js plays the model to, so the words and the work agree
+ *   - the top bar: docked state and ground (dark / light)
  *
  * THE MID-PAGE RELOAD RULE. A reveal that never fires because its section is
  * already above the fold would leave hidden content behind the reader's
@@ -23,9 +25,10 @@
  *
  * Reduced motion: the inline <head> script withholds html.motion, which
  * strips every hidden state and every scrub transform in home.css. This file
- * still runs the parts that are function rather than motion — the plate
- * switcher, the top bar's ground tracking, the acts rail — because a reader
- * who asked for less animation still deserves working chrome. */
+ * still runs the parts that are function rather than motion — the top bar's
+ * docking and ground tracking — because a reader who asked for less
+ * animation still deserves working chrome. The craft deck needs no such
+ * care: without motion it is an ordinary list, complete on arrival. */
 
 (function () {
   "use strict";
@@ -72,16 +75,20 @@
 
   var scenes = []; // {el, top, span} -> writes --p
   var drifts = []; // {el, top, h, speed} -> writes --drift
-  var stages = []; // {el, top, h} -> drives plates
   var grounds = []; // {el, top, h, dark}
-  var acts = []; // {el, top, h, link}
 
   var bar = document.querySelector(".page-top--home");
-  var rail = document.querySelector(".act-rail");
   var hero = document.querySelector(".film-hero");
   var ringsScene = document.querySelector(".vow-rings");
-  var plates = [];
-  var plateFigure = document.querySelector(".process__figure");
+  var buildScene = document.querySelector('[data-scene="build"]');
+  var buildCards = buildScene
+    ? Array.prototype.slice.call(buildScene.querySelectorAll(".bstage"))
+    : [];
+  var buildPlates = buildScene
+    ? Array.prototype.slice.call(
+        buildScene.querySelectorAll(".craft-build__plate")
+      )
+    : [];
 
   document.querySelectorAll("[data-scene]").forEach(function (el) {
     scenes.push({ el: el, top: 0, span: 1, p: -1 });
@@ -99,17 +106,6 @@
     });
   }
 
-  document.querySelectorAll(".stage").forEach(function (el) {
-    stages.push({ el: el, top: 0, h: 0 });
-  });
-
-  if (plateFigure) {
-    plateFigure.classList.add("js");
-    plates = Array.prototype.slice.call(
-      plateFigure.querySelectorAll(".process__plate")
-    );
-  }
-
   document.querySelectorAll("[data-ground]").forEach(function (el) {
     grounds.push({
       el: el,
@@ -118,14 +114,6 @@
       dark: el.getAttribute("data-ground") === "dark",
     });
   });
-
-  document.querySelectorAll("[data-act]").forEach(function (el) {
-    acts.push({ el: el, top: 0, h: 0, id: el.id });
-  });
-
-  var railLinks = rail
-    ? Array.prototype.slice.call(rail.querySelectorAll(".act-rail__link"))
-    : [];
 
   function measure() {
     vh = window.innerHeight;
@@ -144,17 +132,9 @@
       d.top = docTop(d.el);
       d.h = d.el.offsetHeight;
     });
-    stages.forEach(function (s) {
-      s.top = docTop(s.el);
-      s.h = s.el.offsetHeight;
-    });
     grounds.forEach(function (g) {
       g.top = docTop(g.el);
       g.h = g.el.offsetHeight;
-    });
-    acts.forEach(function (a) {
-      a.top = docTop(a.el);
-      a.h = a.el.offsetHeight;
     });
   }
 
@@ -162,14 +142,27 @@
 
   var ticking = false;
   var barState = { docked: null, dark: null };
-  var railDark = null;
   var mainDark = null;
-  var currentAct = -1;
-  var currentPlate = -1;
+  var currentCard = -1;
   var ringsSet = null;
 
   function clamp01(n) {
     return n < 0 ? 0 : n > 1 ? 1 : n;
+  }
+
+  /* The craft deck: the current stage is the current fifth of the build
+     scene's progress — the SAME arithmetic film.js plays the model to, so
+     the card on top always names the thing on the board. */
+  function deal(p) {
+    var idx = Math.min(4, Math.floor(p * 5));
+    if (idx === currentCard) return;
+    currentCard = idx;
+    buildCards.forEach(function (c, k) {
+      c.classList.toggle("is-current", k === idx);
+    });
+    buildPlates.forEach(function (pl, k) {
+      pl.classList.toggle("is-current", k === idx);
+    });
   }
 
   function frame() {
@@ -190,6 +183,7 @@
             ringsScene.classList.toggle("is-set", set);
           }
         }
+        if (s.el === buildScene) deal(p);
       });
 
       var centre = y + vh / 2;
@@ -204,35 +198,17 @@
       });
     }
 
-    /* Plates: the drawing follows whichever stage holds the viewport's
-       middle. Before the first stage it is the sketch; past the last, the
-       finish. */
-    if (plates.length && stages.length) {
-      var mid = y + vh / 2;
-      var idx = 0;
-      for (var i = 0; i < stages.length; i++) {
-        if (mid >= stages[i].top) idx = i;
-      }
-      if (idx !== currentPlate) {
-        currentPlate = idx;
-        plates.forEach(function (p, k) {
-          p.classList.toggle("is-active", k === idx);
-        });
-      }
-    }
-
-    /* Ground under the bar, and under the rail's centre. */
+    /* Ground under the bar, and under the viewport's midline. */
     var barPoint = y + 34;
     var barDark = groundAt(barPoint);
-    var railPoint = y + vh / 2;
-    var railIsDark = groundAt(railPoint);
+    var midIsDark = groundAt(y + vh / 2);
 
-    /* The film grain reads the same midline: it lies over the dark chapter
-       and is lifted from the paper. On <main>, so the CSS can gate any
+    /* The film grain reads the midline: it lies over the dark chapter and
+       is lifted from the paper. On <main>, so the CSS can gate any
        ground-aware dressing off one class. */
-    if (railIsDark !== mainDark) {
-      mainDark = railIsDark;
-      main.classList.toggle("is-dark-view", railIsDark);
+    if (midIsDark !== mainDark) {
+      mainDark = midIsDark;
+      main.classList.toggle("is-dark-view", midIsDark);
     }
 
     if (bar) {
@@ -245,27 +221,6 @@
         barState.dark = barDark;
         bar.classList.toggle("on-dark", barDark);
         bar.classList.toggle("on-light", !barDark);
-      }
-    }
-
-    if (rail) {
-      if (railIsDark !== railDark) {
-        railDark = railIsDark;
-        rail.classList.toggle("on-dark", railIsDark);
-      }
-      var act = -1;
-      for (var j = 0; j < acts.length; j++) {
-        if (railPoint >= acts[j].top && railPoint < acts[j].top + acts[j].h) {
-          act = j;
-        }
-      }
-      if (act !== currentAct) {
-        currentAct = act;
-        railLinks.forEach(function (l, k) {
-          l.classList.toggle("is-current", k === act);
-          if (k === act) l.setAttribute("aria-current", "true");
-          else l.removeAttribute("aria-current");
-        });
       }
     }
   }
@@ -290,7 +245,9 @@
 
   function initReveals() {
     var els = Array.prototype.slice.call(
-      document.querySelectorAll(".reveal, .lines, .film-hero__title.split")
+      document.querySelectorAll(
+        ".reveal, .lines, .act-seam, .film-hero__title.split"
+      )
     );
     if (!("IntersectionObserver" in window)) {
       els.forEach(function (el) {
@@ -397,7 +354,6 @@
   /* --- wiring ----------------------------------------------------------- */
 
   if (bar) bar.classList.add("enhanced");
-  if (rail) rail.classList.add("enhanced");
 
   var measureQueued = null;
   function scheduleMeasure() {

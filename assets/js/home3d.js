@@ -1,5 +1,6 @@
-/* Boot for the landing film's jewels — the rendered solitaire in the hero and
- * the two bands in the fitting.
+/* Boot for the landing film's jewels — the loose brilliant in the hero (and
+ * its reflection), the two bands in the fitting, and the ring built live on
+ * the craft act's bench.
  *
  * Deliberately tiny, and everything it can refuse to do, it refuses:
  *
@@ -28,6 +29,7 @@
   var canvas = document.querySelector(".film-canvas");
   var hero = document.querySelector(".film-hero");
   var fitting = document.querySelector(".vow-rings");
+  var build = document.querySelector(".craft-build");
   var lamp = document.querySelector(".film-hero__lamp");
   if (!canvas || !hero || !fitting || !lamp) return;
 
@@ -53,6 +55,7 @@
           canvas: canvas,
           hero: hero,
           fitting: fitting,
+          build: build,
           lamp: lamp,
         });
         if (!film) return;

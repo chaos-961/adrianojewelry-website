@@ -143,24 +143,44 @@ function seat(t, radius, stoneRadius, sink = 0.12) {
  * a brilliant's pavilion is 43% of its spread deep, and on a stone this size
  * that is 0.37 of a unit hanging below the girdle.
  */
-function solitaire(mat, { stone = 0.428 } = {}) {
+function solitaire(mat, { stone = 0.428, metal = "platinum", bare = false } = {}) {
   // 0.428 is a 1.5ct round; film.js asks for 0.494 — a 2ct — because the
   // hero shows one ring alone at half the frame and the classic proportion
   // reads under-stoned at that scale. Both are real stones on a size 7.
+  //
+  // `metal` picks the alloy for the whole mounting; `bare` skips the stone —
+  // the craft act builds this ring live and supplies its own diamond, flown
+  // in from the hero, so the mounting must exist without one. The parts are
+  // NAMED (band / head-*) so the film can dress the wax and the cast onto
+  // the same geometry, and "seat-marker" is an empty at the girdle position,
+  // the exact point the flown-in stone must land on.
+  const m = mat[metal] || mat.platinum;
   const g = new Group();
   const inner = 1;
   const depth = (t) => 0.185 - 0.045 * (1 - Math.cos(t * TAU)) * 0.5;
   const width = (t) => 0.2 + 0.085 * (1 - Math.cos(t * TAU)) * 0.5;
 
-  g.add(new Mesh(sweepBand({ inner, width, depth }), mat.platinum));
+  const bandMesh = new Mesh(sweepBand({ inner, width, depth }), m);
+  bandMesh.name = "band";
+  g.add(bandMesh);
 
   const bandTop = inner + depth(0);
   const culet = 0.4312 * 2 * stone; // pavilion depth, 43.1% of the spread
   const girdleY = bandTop + culet + 0.008;
 
-  const stones = new Instances(brilliant());
-  stones.add(new Vector3(0, girdleY, 0), new Quaternion(), stone);
-  addStones(g, stones, mat);
+  if (!bare) {
+    const stones = new Instances(brilliant());
+    stones.add(new Vector3(0, girdleY, 0), new Quaternion(), stone);
+    addStones(g, stones, mat);
+  }
+
+  // The seat, as a point the film can find after the group is recentred and
+  // wrapped: an empty contributes nothing to the bounding box, so asking for
+  // its world position later answers "where must the girdle land" exactly.
+  const marker = new Group();
+  marker.name = "seat-marker";
+  marker.position.set(0, girdleY, 0);
+  g.add(marker);
 
   // Six prongs, springing from the top of the shank and flaring out to the
   // girdle. Each is placed by its two ends: scale is the length between them,
@@ -189,13 +209,16 @@ function solitaire(mat, { stone = 0.428 } = {}) {
     const axis = to.clone().sub(from);
     prongs.add(from, alignTo(axis.clone().normalize()), axis.length());
   }
-  g.add(prongs.mesh(mat.platinum));
+  const prongMesh = prongs.mesh(m);
+  prongMesh.name = "head-prongs";
+  g.add(prongMesh);
 
   // The seat ring, sunk into the top of the shank — this is the joint.
   const seatRing = new Mesh(
     railGeometry({ inner: stone * 0.4, width: 0.075, depth: 0.05 }),
-    mat.platinum
+    m
   );
+  seatRing.name = "head-seat";
   seatRing.rotation.x = Math.PI / 2; // built standing up; a gallery lies flat
   seatRing.position.y = bandTop - 0.022;
   g.add(seatRing);
@@ -203,8 +226,9 @@ function solitaire(mat, { stone = 0.428 } = {}) {
   // The gallery: the rail that ties the six claws together under the stone.
   const rail = new Mesh(
     railGeometry({ inner: stone * 0.72, width: 0.065, depth: 0.042 }),
-    mat.platinum
+    m
   );
+  rail.name = "head-rail";
   rail.rotation.x = Math.PI / 2;
   rail.position.y = girdleY - 0.145;
   g.add(rail);
