@@ -4,20 +4,18 @@
     <meta charset="utf-8" />
     <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve on iOS. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Adriano Jewelry — Wedding Rings, Custom Design &amp; Repair in Boston</title>
+    <title>Adriano Jewelry — Custom Design, Repair and Restoration in Boston</title>
     <meta
       name="description"
-      content="Wedding rings fitted in person, custom pieces made from a drawing, repairs and heirloom restoration at 333 Washington Street, Boston. Twenty-three years at the bench, trained in Europe."
+      content="Twenty-three years at the bench. Custom pieces made from a drawing, repairs, and heirloom restoration at 333 Washington Street, Boston. Trained in Europe, working in America."
     />
     <link rel="canonical" href="https://adrianojewelry.com/" />
 
-    <!-- Matches the ground the page OPENS on. The landing begins in the
-         dark — hero, vow and craft all sit on near-black before the case
-         opens and the page lifts to paper — and this is what the phone's
-         chrome meets at the top. The four inner pages still open on paper
-         and carry no override, because they load site.css alone and this
-         tag is per-page. -->
-    <meta name="theme-color" content="#0e0e0e" />
+    <!-- Matches the page ground the site paints, so the browser chrome on a
+         phone does not sit against a colour the page never uses. Moved with the
+         palette when it went light — leave it on --paper, not on the footer's
+         --paper-sunk, because the top of the page is what this meets. -->
+    <meta name="theme-color" content="#f4f4f4" />
     <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
 
@@ -26,7 +24,7 @@
     <meta property="og:title" content="Adriano Jewelry — every piece begins as a drawing" />
     <meta
       property="og:description"
-      content="Wedding rings fitted in person, custom design, repair and heirloom restoration in Boston. Twenty-three years at the bench, by hand."
+      content="Twenty-three years at the bench in Boston. Custom design, repair and heirloom restoration, by hand."
     />
     <meta property="og:url" content="https://adrianojewelry.com/" />
     <meta property="og:image" content="https://adrianojewelry.com/assets/img/og.jpg" />
@@ -35,49 +33,21 @@
     <meta property="og:image:alt" content="Adriano Jewelry" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- The hero carries no photograph any more — the stone that hangs there
-         is drawn (and, when WebGL can stand, rendered), so the display face
-         under the H1 IS the LCP and is the only preload. Preloading more
-         would just make everything compete. -->
-    <link
-      rel="preload"
-      href="assets/fonts/instrument-serif-400.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-
-    <!-- site.css is the shared shell; home.css styles this page's five acts
-         and nothing else, and home.js (deferred, at the foot of <body>)
-         drives the scroll. All of it degrades: without the script the page
-         is complete and still, which is also exactly what reduced motion
-         gets. -->
+    <!-- The only stylesheet, and the only sub-resource this page has beyond its
+         fonts and icons: there is no external JavaScript left on this site at
+         all. The five-act scroll film that stood here through v0.1.8-v0.2.0 was
+         reverted in v0.2.1, and the vendored three.js, the rendered rings it
+         drove, home.css, home.js and home3d.js all went with it — as did
+         showcase.css and the v0.1.4 ring viewer before them. Recover any of them
+         from git history if they return. -->
     <link rel="stylesheet" href="assets/css/site.css" />
-    <link rel="stylesheet" href="assets/css/home.css" />
-
-    <!-- Sets the flag that unlocks every hidden-then-revealed state in
-         home.css. Inline and in <head> deliberately: it must run before
-         first paint, or the page would show its final state and then jump
-         back to its initial one. The class is added only when animation is
-         both possible and permitted, so a reader with reduced motion on
-         never has a single hidden element — the "before" state simply never
-         exists for them. home.js removes the class again if it dies, and the
-         script tag's onerror removes it if the file never arrives. -->
-    <script>
-      if (
-        window.matchMedia &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
-        document.documentElement.classList.add("motion");
-      }
-    </script>
 
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "JewelryStore",
         "name": "Adriano Jewelry",
-        "description": "Wedding rings fitted in person, custom jewelry design, repair and heirloom restoration. Twenty-three years at the bench, trained in Europe.",
+        "description": "Custom jewelry design, repair and heirloom restoration. Twenty-three years at the bench, trained in Europe.",
         "url": "https://adrianojewelry.com/",
         "image": "https://adrianojewelry.com/assets/img/adriano-900.jpg",
         "telephone": "+1-857-991-1679",
@@ -97,940 +67,71 @@
     </script>
   </head>
   <body>
-    <!-- Process drawings, recovered from the first landing page (v0.0.9) and
-         re-inked for a site that no longer holds a hue: the subject strokes
-         inherit currentColor — graphite, set by the plate that shows them —
-         and what was drawn in gold is now drawn in silver. One <symbol>
-         each, referenced twice per stage (the pinned desktop plate and the
-         inline mobile figure), so the geometry is defined exactly once.
-
-         These are technical drawings rather than photographs, on purpose:
-         the trade starts on paper, and a drawing claims only to be a
-         drawing. Style rules held across all five: one hairline weight for
-         the subject, a thinner dimmer weight for construction and dimension
-         lines, and dashes reserved for what is hidden or about to be
-         removed. Colours are baked as attributes because CSS selectors do
-         not cross the shadow boundary that <use> creates. -->
-    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
-      <defs>
-        <!-- Shared arrowhead for dimension lines. -->
-        <marker id="fg-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0 0 L10 5 L0 10 z" fill="#8f8f8f" />
-        </marker>
-      </defs>
-
-      <!-- 01 SKETCH — the ring drawn in elevation, the way it is worked out on
-           paper before anything is cut.
-
-           Every SOLID stroke in these five carries pathLength="1": home.css
-           draws the subject in by animating an inherited dash from 1 to 0, and
-           normalising every length to 1 is what lets one rule time all of
-           them. The DASHED strokes are exempt on purpose — their own
-           stroke-dasharray outranks the inherited one — so the construction
-           stands ready on the sheet while the subject is inked over it, which
-           is the order the work actually happens in. -->
-      <symbol id="fg-sketch" viewBox="0 0 400 400">
-        <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.55">
-          <path d="M200 40 V370" stroke-dasharray="7 6" />
-          <path d="M60 250 H340" stroke-dasharray="7 6" />
-          <path d="M96 330 H304" marker-start="url(#fg-ar)" marker-end="url(#fg-ar)" pathLength="1" />
-          <path d="M96 318 V342 M304 318 V342" pathLength="1" />
-        </g>
-        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <circle cx="200" cy="250" r="104" pathLength="1" />
-          <circle cx="200" cy="250" r="82" pathLength="1" />
-          <path d="M164 128 H236 L228 108 H172 Z" pathLength="1" />
-          <path d="M164 128 L200 176 L236 128" pathLength="1" />
-          <path d="M172 108 L200 128 L228 108" opacity="0.7" pathLength="1" />
-          <path d="M186 128 V108 M214 128 V108" opacity="0.7" pathLength="1" />
-          <path d="M170 132 L176 152 M230 132 L224 152" pathLength="1" />
-        </g>
-        <g fill="#8f8f8f" opacity="0.85">
-          <circle cx="200" cy="250" r="2" />
-        </g>
-      </symbol>
-
-      <!-- 02 WAX — the design carved at full scale; the dashed profile is the
-           material about to come away. -->
-      <symbol id="fg-wax" viewBox="0 0 400 400">
-        <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.5">
-          <path d="M200 46 V354" stroke-dasharray="7 6" />
-          <path d="M120 300 H280" marker-start="url(#fg-ar)" marker-end="url(#fg-ar)" pathLength="1" />
-        </g>
-        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <ellipse cx="200" cy="150" rx="80" ry="26" pathLength="1" />
-          <path d="M120 150 V236" pathLength="1" />
-          <path d="M280 150 V236" pathLength="1" />
-          <path d="M120 236 A80 26 0 0 0 280 236" pathLength="1" />
-          <ellipse cx="200" cy="150" rx="52" ry="16" opacity="0.75" pathLength="1" />
-        </g>
-        <g fill="none" stroke="#8f8f8f" stroke-width="1" stroke-dasharray="5 5" opacity="0.8">
-          <path d="M148 168 Q200 196 252 168" />
-        </g>
-        <g stroke="#8f8f8f" stroke-width="0.8" opacity="0.55">
-          <path d="M156 176 L166 196 M172 184 L182 204 M188 188 L198 208 M204 188 L214 208 M220 184 L230 204 M236 176 L246 196" pathLength="1" />
-        </g>
-        <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
-          <path d="M262 132 L306 96 L330 112 L286 148 Z" opacity="0.9" pathLength="1" />
-          <path d="M262 132 L244 146" pathLength="1" />
-          <path d="M306 96 L330 112" pathLength="1" />
-        </g>
-      </symbol>
-
-      <!-- 03 CAST — the flask in section; the dashed forms are the cavity,
-           which is the whole point of the drawing. -->
-      <symbol id="fg-cast" viewBox="0 0 400 400">
-        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <path d="M108 118 V330 H292 V118" pathLength="1" />
-          <path d="M96 118 H304" pathLength="1" />
-          <path d="M158 118 L176 74 H224 L242 118" pathLength="1" />
-        </g>
-        <g fill="none" stroke="#8f8f8f" stroke-width="1.1" stroke-dasharray="6 5" opacity="0.9">
-          <path d="M200 118 V286" />
-          <path d="M200 168 L152 196 M200 168 L248 196" />
-          <path d="M200 232 L152 260 M200 232 L248 260" />
-          <circle cx="142" cy="206" r="20" />
-          <circle cx="258" cy="206" r="20" />
-          <circle cx="142" cy="270" r="20" />
-          <circle cx="258" cy="270" r="20" />
-        </g>
-        <g stroke="#8f8f8f" stroke-width="0.6" opacity="0.28">
-          <path d="M120 140 H180 M120 170 H136 M264 140 H284 M300 170 H284 M120 240 H132 M272 300 H284 M120 300 H184 M216 320 H284" pathLength="1" />
-        </g>
-        <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.5">
-          <path d="M200 74 V56" pathLength="1" />
-          <path d="M176 62 L200 46 L224 62" pathLength="1" />
-        </g>
-      </symbol>
-
-      <!-- 04 SET — the loupe field: stone from above inside four prongs, at
-           the magnification the work is actually done at. -->
-      <symbol id="fg-set" viewBox="0 0 400 400">
-        <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.5">
-          <circle cx="200" cy="200" r="150" pathLength="1" />
-          <path d="M200 36 V78 M200 322 V364 M36 200 H78 M322 200 H364" pathLength="1" />
-          <path d="M168 200 H232 M200 168 V232" stroke-dasharray="4 5" />
-        </g>
-        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <circle cx="200" cy="200" r="96" pathLength="1" />
-          <path d="M200 132 L268 200 L200 268 L132 200 Z" pathLength="1" />
-          <path d="M200 132 L200 104 M268 200 L296 200 M200 268 L200 296 M132 200 L104 200" opacity="0.55" pathLength="1" />
-          <path d="M152 152 L132 200 M248 152 L268 200 M152 248 L132 200 M248 248 L268 200" opacity="0.55" pathLength="1" />
-          <path d="M200 132 L152 152 M200 132 L248 152 M200 268 L152 248 M200 268 L248 248" opacity="0.75" pathLength="1" />
-        </g>
-        <g fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
-          <path d="M132 132 Q158 158 172 172" pathLength="1" />
-          <path d="M268 132 Q242 158 228 172" pathLength="1" />
-          <path d="M132 268 Q158 242 172 228" pathLength="1" />
-          <path d="M268 268 Q242 242 228 228" pathLength="1" />
-        </g>
-      </symbol>
-
-      <!-- 05 FINISH — the piece as it leaves the bench. The only drawing of
-           the five with no construction lines, because there is nothing left
-           to work out. A polished surface throws a hard edge of light, so the
-           highlights are strokes and not a gradient. -->
-      <symbol id="fg-finish" viewBox="0 0 400 400">
-        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-          <path d="M84 232 L200 268 L316 232" pathLength="1" />
-          <path d="M84 232 V300 L200 340 L316 300 V232" pathLength="1" />
-          <path d="M200 268 V340" opacity="0.6" pathLength="1" />
-          <path d="M84 232 L128 210 L244 246 L200 268 Z" opacity="0.75" pathLength="1" />
-          <path d="M316 232 L272 210 L156 246" opacity="0.35" pathLength="1" />
-        </g>
-        <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-          <ellipse cx="200" cy="176" rx="52" ry="54" pathLength="1" />
-          <ellipse cx="200" cy="176" rx="38" ry="40" pathLength="1" />
-          <path d="M182 122 L200 92 L218 122" pathLength="1" />
-          <path d="M186 108 H214" pathLength="1" />
-        </g>
-        <g fill="none" stroke="#c9c9c9" stroke-width="2" stroke-linecap="round" opacity="0.85">
-          <path d="M166 148 Q158 176 168 202" pathLength="1" />
-          <path d="M236 160 Q240 176 236 192" opacity="0.6" pathLength="1" />
-        </g>
-      </symbol>
-    </svg>
-
-    <main class="page home">
-      <!-- The film's own layers, all of them inert until they are earned.
-           The canvas carries the rendered jewels — the solitaire in the hero,
-           the two bands in the fitting — and stays fully transparent until
-           home3d.js has probed WebGL2, imported the stage and drawn a first
-           frame; a page that never manages that never shows it. The grain is
-           a fixed sheet of photographic noise, faded up by home.js only while
-           the dark chapter is on screen — its real job is to break the smooth
-           gradients of the lamp before they can band. -->
-      <canvas class="film-canvas" aria-hidden="true"></canvas>
-      <div class="film-grain" aria-hidden="true"></div>
-      <!-- The paper's own tooth: the same turbulence tile inked BLACK, on at
-           a whisper from first paint with no script. Black noise is invisible
-           on the near-black chapter by arithmetic, so unlike the white sheet
-           above it needs no ground tracking — one fixed layer gives the light
-           acts their fibre and costs the dark ones nothing. -->
-      <div class="paper-grain" aria-hidden="true"></div>
-
-      <!-- @partial top-home -->
-      <div class="page-top page-top--home">
-        <a class="wordmark" href="" aria-label="Adriano Jewelry, home">Adriano</a>
-        <a class="page-contact u-caps" href="contact-us/">Contact Us</a>
-      </div>
-      <!-- @end top-home -->
-
-      <!-- ================= THE CASE, CLOSED =================
-           The page opens in the dark with no photograph at all: a jeweller's
-           lamp built from gradients, a loose stone hanging in the beam, and
-           the store's name beneath it. The stone is a DRAWING first — the
-           site's own language — and home3d.js replaces it with the rendered
-           brilliant and its reflection only once a first frame is standing.
-           The plumb line at the foot pays itself out against the scroll.
-           Nothing here moves on a timer. -->
-      <header
-        class="film-hero"
-        id="top"
-        data-scene="hero"
-        data-ground="dark"
-        aria-label="Adriano Jewelry"
-      >
-        <!-- The lamp: the beam coming down, the vignette closing the corners,
-             and an aura that home3d steers to wherever the stone actually
-             hangs (--rx/--ry/--ra, written per frame in hero-local
-             coordinates; the resting values sit behind the drawn stone).
-             Hueless like everything else painted on this site; only the
-             render inside the beam ever carries a colour. -->
-        <div class="film-hero__lamp" aria-hidden="true"></div>
-
-        <!-- The drawn stone: a round brilliant in elevation, inked the way
-             the process sheets are — subject in light ink, construction
-             dashed — with its reflection standing under it in the glass.
-             This is the hero every reader gets by default; the render, when
-             it earns its place, hides it (html.film3d). -->
-        <div class="film-hero__stone" aria-hidden="true">
-          <svg viewBox="0 0 220 370" focusable="false">
-            <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.4">
-              <path d="M110 6 V180" stroke-dasharray="6 6" />
-            </g>
-            <g class="hero-stone__fig" fill="none" stroke="#dcdcdc" stroke-width="1.4" stroke-linejoin="round">
-              <path d="M76 36 H144" />
-              <path d="M76 36 L20 88 M144 36 L200 88" />
-              <path d="M76 36 L100 88 M144 36 L120 88" opacity="0.55" />
-              <path d="M20 88 H200 M22 96 H198" />
-              <path d="M20 88 L22 96 M200 88 L198 96" />
-              <path d="M22 96 L110 214 L198 96" />
-              <path d="M62 96 L110 214 M158 96 L110 214" opacity="0.55" />
-              <path d="M110 96 L110 214" opacity="0.3" />
-            </g>
-            <!-- The reflection: the pavilion only, upside-down and squashed
-                 the way a counter shot's is, faded — the black glass, drawn.
-                 Only the tip: the full figure mirrored would stand through
-                 the eyebrow and the name below it. -->
-            <g class="hero-stone__mirror" opacity="0.13" transform="translate(0, 363) scale(1, -0.55)">
-              <g fill="none" stroke="#dcdcdc" stroke-width="1.4" stroke-linejoin="round">
-                <path d="M62 150 L110 214 L158 150" />
-                <path d="M88 150 L110 214 M132 150 L110 214" opacity="0.5" />
-              </g>
-            </g>
-            <ellipse cx="110" cy="235" rx="86" ry="5" fill="none" stroke="#ffffff" stroke-width="0.6" opacity="0.22" />
-          </svg>
-        </div>
-
-        <div class="film-hero__inner">
-          <p class="film-hero__eyebrow k-label reveal">
-            Fine Jewelry &middot; Custom Design &middot; Restoration
-          </p>
-          <h1 class="film-hero__title" data-split="chars">Adriano</h1>
-          <p class="film-hero__sub reveal">Every piece begins as a drawing.</p>
-          <p class="film-hero__addr k-label reveal">
-            333 Washington Street &middot; Boston
-          </p>
-        </div>
-
-        <div class="film-hero__cue" aria-hidden="true">
-          <span class="film-hero__cue-line"></span>
-          <span class="k-label">Scroll</span>
-        </div>
-      </header>
-
-      <!-- ================= ACT I · THE VOW =================
-           The reason the page exists: wedding rings, fitted in person. The
-           act stays in the dark — rings on black are the oldest shot in the
-           book — and ends where the case opens.
-
-           The appointment system is not built yet. When it lands, its
-           control belongs beside the caption in the fitting scene below and
-           in the visit act at the foot of the page; until then the telephone
-           line carries the promise, which is how the store actually books
-           today. -->
-      <section
-        class="act act--dark act-vow"
-        id="the-vow"
-        data-ground="dark"
-        aria-labelledby="vow-title"
-      >
-        <div class="wrap act-head">
-          <span class="act-seam" aria-hidden="true"></span>
-          <div class="vow-head">
-            <div>
-              <p class="act-eyebrow k-label reveal">Act I &middot; The Vow</p>
-              <h2 class="act-title lines" id="vow-title">
-                <span class="line"><span>Some rings are bought.</span></span>
-                <span class="line"><span>Yours will be fitted.</span></span>
-              </h2>
-              <p class="act-lead reveal">
-                A wedding ring is worn for the rest of a life. So it is chosen
-                in person — the metal, the width, the profile, the way it sits
-                against your hand — in a quiet hour that belongs to you. That
-                is why Adriano works by appointment.
-              </p>
-            </div>
-            <figure class="vow-head__media reveal">
-              <img
-                src="assets/img/home/vow-solitaire.webp"
-                width="1200"
-                height="1200"
-                alt="A solitaire engagement ring standing on black glass, its reflection beneath it."
-                loading="lazy"
-                decoding="async"
-              />
-              <figcaption class="k-label">The stone decides the setting</figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <!-- The fitting: two drawn bands travel in from the wings and
-             interlock at the centre of a held frame. Scroll runs the scene;
-             without motion it is a still of the locked pair. -->
-        <div class="vow-rings" data-scene="rings">
-          <div class="vow-rings__stage">
-            <p class="vow-rings__label k-label">The fitting</p>
-            <div class="vow-ring vow-ring--a" aria-hidden="true"></div>
-            <div class="vow-ring vow-ring--b" aria-hidden="true"></div>
-            <p class="vow-rings__caption">
-              <span class="k-label">Two rings &middot; one appointment</span>
-              <span class="vow-rings__tel"
-                >By appointment &middot;
-                <a href="tel:+18579911679">857&#8209;991&#8209;1679</a></span
-              >
-            </p>
-          </div>
-        </div>
-
-        <div class="wrap vow-gallery">
-          <div class="g-item" data-drift="-26">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/vow-pair.webp"
-                  width="1200"
-                  height="676"
-                  alt="Three rings in close-up on a dark ground, an engagement ring standing between two wedding bands."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">The pair &middot; chosen together</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="34">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/vow-hands.webp"
-                  width="1000"
-                  height="1334"
-                  alt="A couple's hands held together in the sun, wearing an engagement ring and two wedding bands."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">The promise &middot; worn daily</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="-16">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/vow-gold.webp"
-                  width="1200"
-                  height="800"
-                  alt="A bride's and a groom's hands resting together, both wearing gold wedding bands."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">The day &middot; and every day after</figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <p class="vow-line reveal">
-          Bring the person. Bring an unhurried hour.
-          <span class="k-label">The rest is our work</span>
-        </p>
-      </section>
-
-      <!-- ================= ACT II · THE CRAFT =================
-           Still in the dark: the vow hands straight into the craft with no
-           change of ground, and the case does not open until the work is
-           finished at the end of this act. -->
-      <section
-        class="act act--dark act-craft"
-        id="the-craft"
-        data-ground="dark"
-        aria-labelledby="craft-title"
-      >
-        <div class="wrap act-head">
-          <span class="act-seam" aria-hidden="true"></span>
-          <p class="act-eyebrow k-label reveal">Act II &middot; The Craft</p>
-          <h2 class="act-title lines" id="craft-title">
-            <span class="line"><span>From sketch to setting.</span></span>
-          </h2>
-          <p class="act-lead reveal">
-            Custom is not a catalogue. It is a drawing that becomes a wax, a
-            casting, a setting &mdash; with your approval at every stage. It is
-            the same sequence whether the piece is new, or a hundred years old
-            and coming back to life.
-          </p>
-        </div>
-
-        <!-- THE BENCH. One pinned stage for the whole sequence: the drafting
-             board holds the work — the five re-inked sheets crossfading when
-             the page runs on drawings, the live ring being BUILT when WebGL
-             is standing (film.js positions the model off this board's own
-             rectangle, so the render can never leave the layout) — while the
-             five stage cards trade places beside it. Three tiers, all
-             complete: no motion gets the plain list with an inline drawing
-             per stage; motion gets the pinned board and the sheets; film3d
-             replaces the sheets with the ring, built around the hero's own
-             stone as the reader scrolls. -->
-        <div class="craft-build" data-scene="build">
-          <div class="craft-build__stage">
-            <div class="craft-build__board" aria-hidden="true">
-              <div class="craft-build__plates">
-                <div class="craft-build__plate" data-sheet="Sheet 01 / 05">
-                  <svg viewBox="0 0 400 400"><use href="#fg-sketch" /></svg>
-                </div>
-                <div class="craft-build__plate" data-sheet="Sheet 02 / 05">
-                  <svg viewBox="0 0 400 400"><use href="#fg-wax" /></svg>
-                </div>
-                <div class="craft-build__plate" data-sheet="Sheet 03 / 05">
-                  <svg viewBox="0 0 400 400"><use href="#fg-cast" /></svg>
-                </div>
-                <div class="craft-build__plate" data-sheet="Sheet 04 / 05">
-                  <svg viewBox="0 0 400 400"><use href="#fg-set" /></svg>
-                </div>
-                <div class="craft-build__plate" data-sheet="Sheet 05 / 05">
-                  <svg viewBox="0 0 400 400"><use href="#fg-finish" /></svg>
-                </div>
-              </div>
-            </div>
-
-            <ol class="craft-build__copy">
-              <li class="bstage">
-                <div class="bstage__figure" aria-hidden="true">
-                  <svg viewBox="0 0 400 400"><use href="#fg-sketch" /></svg>
-                </div>
-                <p class="stage__label k-label">01 / Sketch</p>
-                <h3 class="stage__title">Graphite before anything is cut.</h3>
-                <p class="stage__body">
-                  Proportion, stone size, how it sits against the finger.
-                  Nothing is committed until the drawing is right.
-                </p>
-              </li>
-
-              <li class="bstage">
-                <div class="bstage__figure" aria-hidden="true">
-                  <svg viewBox="0 0 400 400"><use href="#fg-wax" /></svg>
-                </div>
-                <p class="stage__label k-label">02 / Wax</p>
-                <h3 class="stage__title">Carved at full scale.</h3>
-                <p class="stage__body">
-                  The design cut in wax at the size it will be worn. This is
-                  the last chance to change your mind.
-                </p>
-              </li>
-
-              <li class="bstage">
-                <div class="bstage__figure" aria-hidden="true">
-                  <svg viewBox="0 0 400 400"><use href="#fg-cast" /></svg>
-                </div>
-                <p class="stage__label k-label">03 / Cast</p>
-                <h3 class="stage__title">The wax burns away.</h3>
-                <p class="stage__body">
-                  Molten gold takes its place. One piece, one mould, no second
-                  copy.
-                </p>
-              </li>
-
-              <li class="bstage">
-                <div class="bstage__figure" aria-hidden="true">
-                  <svg viewBox="0 0 400 400"><use href="#fg-set" /></svg>
-                </div>
-                <p class="stage__label k-label">04 / Set</p>
-                <h3 class="stage__title">Seated by hand, under magnification.</h3>
-                <p class="stage__body">
-                  Each stone placed and closed individually. Millimetres
-                  decide whether it catches light.
-                </p>
-              </li>
-
-              <li class="bstage">
-                <div class="bstage__figure" aria-hidden="true">
-                  <svg viewBox="0 0 400 400"><use href="#fg-finish" /></svg>
-                </div>
-                <p class="stage__label k-label">05 / Finish</p>
-                <h3 class="stage__title">Filed, polished, inspected.</h3>
-                <p class="stage__body">
-                  Then it goes in a box with your name on it.
-                </p>
-              </li>
-            </ol>
-          </div>
-        </div>
-
-        <div class="wrap act-head craft-gallery__head">
-          <p class="act-eyebrow k-label reveal">Commissions</p>
-          <h2 class="act-title lines">
-            <span class="line"><span>Made to order.</span></span>
-          </h2>
-          <p class="act-lead reveal">
-            Bands cut to a profile no case holds, rings built around a family
-            stone, pieces that exist because somebody asked. Photographs take
-            their colour as you reach them &mdash; on this site, the work is
-            the only thing that ever carries any.
-          </p>
-        </div>
-
-        <div class="wrap craft-gallery">
-          <div class="g-item" data-drift="-20">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/craft-sketch.webp"
-                  width="1200"
-                  height="800"
-                  alt="A designer's hands drawing a jewelry sketch in pencil on paper."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">It starts on paper</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="26">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/craft-setting.webp"
-                  width="1000"
-                  height="1500"
-                  alt="A jeweler's hands setting a green stone into a gold pendant with a steel pusher."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">Set under magnification</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="-14">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/craft-bangle.webp"
-                  width="1200"
-                  height="800"
-                  alt="Hands working on a patterned gold bangle at the bench with tweezers."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">Gold, worked by hand</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="22">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/craft-sapphire.webp"
-                  width="1200"
-                  height="798"
-                  alt="A gold ring set with a blue sapphire and a halo of diamonds, resting on suede."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">Sapphire, halo&#8209;set</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="-24">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/craft-mirror.webp"
-                  width="1200"
-                  height="800"
-                  alt="An emerald-cut ring standing on black glass, photographed in black and white."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">Emerald cut, checked twice</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="18">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/craft-star.webp"
-                  width="1200"
-                  height="1200"
-                  alt="A gold star pendant set with pav&eacute; stones, hanging against dark leather."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">Pav&eacute;, point by point</figcaption>
-            </figure>
-          </div>
-          <div class="g-item" data-drift="-18">
-            <figure class="reveal">
-              <div class="g-frame">
-                <img
-                  src="assets/img/home/craft-pendant.webp"
-                  width="1000"
-                  height="1500"
-                  alt="A gold teardrop pendant on a fine chain, displayed on a white bust."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="k-label">Finished, and collected</figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <p class="craft-meta k-label reveal">
-          Bring a sketch &middot; a photograph &middot; or the idea you cannot
-          quite draw
-        </p>
-
-        <!-- The case opens. The work is finished, boxed, and carried out
-             into the day: a pale photograph parts the dark, and every act on
-             the far side of it lives on paper. -->
-        <div class="case-open" data-scene="curtain">
-          <div class="case-open__stage">
-            <figure class="case-open__media">
-              <img
-                src="assets/img/home/vow-daylight.webp"
-                width="1200"
-                height="1030"
-                alt="Two plain wedding bands standing upright on a pale grey surface."
-                loading="lazy"
-                decoding="async"
-              />
-              <figcaption class="k-label">Then the lights come on</figcaption>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= ACT III · THE SECOND LIFE ================= -->
-      <section
-        class="act act-repair"
-        id="the-second-life"
-        data-ground="light"
-        aria-labelledby="repair-title"
-      >
-        <div class="wrap act-head">
-          <span class="act-seam" aria-hidden="true"></span>
-          <p class="act-eyebrow k-label reveal">Act III &middot; The Second Life</p>
-          <h2 class="act-title lines" id="repair-title">
-            <span class="line"><span>Repair. Restore. Return.</span></span>
-          </h2>
-          <p class="act-lead reveal">
-            Most work is done at the bench on site, so your piece never leaves
-            the building. Everything is quoted before anything begins, and
-            heirlooms come back without losing what makes them old.
-          </p>
-        </div>
-
-        <!-- SHEET 06. The other five sheets drew a piece into being; this one
-             is scrubbed by the scroll and HEALS: the crack across the shank
-             erases as a solder seam draws over it, the sprung claw closes
-             back over the stone, the polish highlights ink themselves in, and
-             the three jobs are signed off one by one in the margin. Inline
-             rather than a <symbol>, because the scrub needs to reach the
-             parts individually and CSS cannot cross a <use> boundary. Every
-             driven value reads var(--p, 1), so the sheet at rest — no script,
-             reduced motion — is the FINISHED repair, never the damage. -->
-        <div class="mend" data-scene="mend">
-          <div class="mend__stage">
-            <figure class="mend__sheet" data-sheet="Sheet 06 / Restoration">
-              <svg viewBox="0 0 760 480" focusable="false" aria-hidden="true">
-                <!-- Construction: axes and the dimension ring. -->
-                <g fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.5">
-                  <path d="M300 78 V448" stroke-dasharray="7 6" />
-                  <path d="M116 258 H484" stroke-dasharray="7 6" />
-                </g>
-
-                <!-- The piece: a ring in elevation, its head at twelve. -->
-                <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-                  <circle cx="300" cy="258" r="136" />
-                  <circle cx="300" cy="258" r="108" />
-                  <!-- The head: girdle, crown, pavilion into the band. -->
-                  <path d="M270 102 H330" />
-                  <path d="M270 102 L280 84 H320 L330 102" />
-                  <path d="M280 84 L300 92 L320 84" opacity="0.6" />
-                  <path d="M270 102 L300 138 L330 102" />
-                  <!-- The sound claw, closed. -->
-                  <path d="M268 106 Q259 92 265 79" stroke-width="2.1" stroke-linecap="round" />
-                </g>
-
-                <!-- The sprung claw: drawn CLOSED, and rotated open about its
-                     root by the scrub — at rest it holds the stone. -->
-                <g class="mend-claw">
-                  <path d="M332 106 Q341 92 335 79" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" />
-                </g>
-
-                <!-- The crack, erased as the scroll advances... -->
-                <path
-                  class="mend-crack"
-                  d="M389 361 L388 352 377 355 382 345 371 348 375 339 369 338"
-                  pathLength="1"
-                  fill="none"
-                  stroke="#8f8f8f"
-                  stroke-width="1.6"
-                />
-                <!-- ...and the solder that takes its place, drawn in bright
-                     and fading to a whisper once the polish lands. -->
-                <path
-                  class="mend-weld"
-                  d="M389 361 L388 352 377 355 382 345 371 348 375 339 369 338"
-                  pathLength="1"
-                  fill="none"
-                  stroke="#c9c9c9"
-                  stroke-width="2.6"
-                  stroke-linecap="round"
-                />
-
-                <!-- The polish: the finish sheet's highlight strokes, inked
-                     in as the last beat. The right-hand arc is also what the
-                     third margin note's leader touches. -->
-                <g fill="none" stroke="#c9c9c9" stroke-width="2.4" stroke-linecap="round">
-                  <path class="mend-shine" d="M241 152 A122 122 0 0 1 379 165" pathLength="1" />
-                  <path class="mend-shine mend-shine--b" d="M203 300 A122 122 0 0 0 264 361" pathLength="1" />
-                  <path class="mend-shine mend-shine--c" d="M416 220 A122 122 0 0 1 416 296" pathLength="1" />
-                </g>
-
-                <!-- The margin: three jobs, signed off top to bottom in the
-                     order the scrub performs them — secure the stone, close
-                     the crack, polish last. -->
-                <g class="mend-note mend-note--1">
-                  <path d="M516 108 L346 92" fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.6" />
-                  <text x="524" y="106">01 / Rebuilt</text>
-                  <text x="524" y="126" class="mend-sub">the claw, holding again</text>
-                </g>
-                <g class="mend-note mend-note--2">
-                  <path d="M516 178 L436 210" fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.6" />
-                  <path d="M436 210 L392 342" fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.6" />
-                  <text x="524" y="176">02 / Soldered</text>
-                  <text x="524" y="196" class="mend-sub">the crack, closed for good</text>
-                </g>
-                <g class="mend-note mend-note--3">
-                  <path d="M516 258 L432 259" fill="none" stroke="#8f8f8f" stroke-width="0.7" opacity="0.6" />
-                  <text x="524" y="256">03 / Polished</text>
-                  <text x="524" y="276" class="mend-sub">the years kept, the wear gone</text>
-                </g>
-              </svg>
-              <figcaption class="k-label">
-                The bench copy &middot; every repair is drawn before it is done
-              </figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <div class="wrap">
-          <dl class="repair-list">
-            <div class="reveal">
-              <dt class="k-label">Resizing</dt>
-              <dd>Up or down, and kept perfectly round.</dd>
-            </div>
-            <div class="reveal">
-              <dt class="k-label">Chains &amp; clasps</dt>
-              <dd>Soldered, replaced, made safe again.</dd>
-            </div>
-            <div class="reveal">
-              <dt class="k-label">Stones</dt>
-              <dd>Tightened, matched, and re&#8209;set.</dd>
-            </div>
-            <div class="reveal">
-              <dt class="k-label">Prongs</dt>
-              <dd>Rebuilt before they let go of anything.</dd>
-            </div>
-            <div class="reveal">
-              <dt class="k-label">Cleaning</dt>
-              <dd>Professional and gentle &mdash; ask at the counter.</dd>
-            </div>
-            <div class="reveal">
-              <dt class="k-label">Restoration</dt>
-              <dd>Heirlooms kept old, made whole.</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <!-- ================= ACT IV · THE MAKER =================
-           The only photograph of a person on this page that matters: it is
-           real — Adriano at his own bench, eye to the stereo microscope, the
-           piece held in the ball vise. -->
-      <section
-        class="act act-maker"
-        id="the-maker"
-        data-ground="light"
-        aria-labelledby="maker-title"
-      >
-        <div class="wrap maker">
-          <div class="g-item maker__media" data-drift="14">
-            <figure class="reveal">
-              <div class="g-frame">
-                <picture>
-                  <source type="image/webp" srcset="assets/img/home/adriano-900.webp" />
-                  <img
-                    src="assets/img/adriano-900.jpg"
-                    width="900"
-                    height="1200"
-                    alt="Adriano at his bench, looking through a stereo microscope while working on a piece held in a ball vise."
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-              </div>
-              <figcaption class="k-label">
-                At the bench &middot; Washington Street, Boston
-              </figcaption>
-            </figure>
-          </div>
-
-          <div class="maker__body">
-            <p class="act-eyebrow k-label reveal">Act IV &middot; The Maker</p>
-            <h2 class="act-title lines" id="maker-title">
-              <span class="line"><span>Twenty-three years</span></span>
-              <span class="line"><span>at one bench.</span></span>
-            </h2>
-            <p class="act-lead reveal">
-              I grew up in a family of jewelers. I learned to repair and to
-              design in Europe, then brought that training to the United
-              States, where I&rsquo;ve spent twenty-three years building a
-              practice on it. European precision, American expectations.
-            </p>
-            <figure class="maker__quote reveal">
-              <p>Every piece that leaves this bench has been through my hands.</p>
-              <figcaption class="k-label">Adriano</figcaption>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= ACT V · THE VISIT =================
-           The finale is the address. When the appointment system is built,
-           its control stands in .visit-actions beside the pill below; the
-           telephone carries it until then. -->
-      <section
-        class="act act-visit"
-        id="the-visit"
-        data-ground="light"
-        aria-labelledby="visit-title"
-      >
-        <div class="wrap act-head">
-          <span class="act-seam" aria-hidden="true"></span>
-          <p class="act-eyebrow k-label reveal">Act V &middot; The Visit</p>
-          <h2 class="visit-address lines" id="visit-title">
-            <span class="line"><span>333 Washington</span></span>
-            <span class="line"><span>Street, Boston.</span></span>
-          </h2>
-
-          <ul class="visit-facts">
-            <li class="k-label reveal">Downtown Crossing &middot; MA 02108</li>
-            <li class="k-label reveal">
-              Open 09:00 &ndash; 16:30 &middot; call ahead to confirm the day
-            </li>
-            <li class="k-label reveal">
-              Store <a href="tel:+18579911679">857&#8209;991&#8209;1679</a>
-              &middot; Mobile <a href="tel:+14242068618">424&#8209;206&#8209;8618</a>
-            </li>
-            <li class="k-label reveal">
-              <a
-                href="https://www.instagram.com/adrianojewelry"
-                target="_blank"
-                rel="noopener noreferrer"
-                >@adrianojewelry</a
-              >
-            </li>
-          </ul>
-
-          <p class="visit-lead reveal">
-            Walk in during the day, or call and the hour is yours. Bring the
-            idea, the heirloom, or the broken clasp &mdash; a conversation at
-            the counter costs nothing.
-          </p>
-
-          <div class="visit-actions reveal">
-            <a class="page-contact u-caps" href="contact-us/">Plan your visit</a>
-          </div>
-        </div>
-      </section>
-    </main>
+    <!-- The page is deliberately empty: everything above the footer was removed
+         and nothing has replaced it yet. The scroll film that stood here is
+         gone, and so is the header bar above it -- "the footer only" was the
+         instruction, and the header is not the footer. index.html therefore
+         declares no header region, which build.js reports as a warning on every
+         run; that is expected until something goes back at the top of the page.
+         <main> is kept so the document still has its landmark and so .page's
+         flex rule can push the footer to the bottom of a short viewport. -->
+    <main class="page" aria-label="Adriano Jewelry"></main>
 
     <!-- @partial footer -->
     <footer class="site-footer">
       <div class="site-footer__inner">
-        <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.0</p>
+        <div class="site-social">
+          <span class="site-social__rule" aria-hidden="true"></span>
+          <nav class="site-social__links" aria-label="Adriano Jewelry on social media">
+            <a
+              class="site-social__link"
+              href="https://www.facebook.com/profile.php?id=100095448876299"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Adriano Jewelry on Facebook"
+            >
+              <svg viewBox="0 0 320 512" aria-hidden="true" focusable="false">
+                <path d="M80 299.3V512h116V299.3h86.5l18-97.8H196v-33.3c0-51.6 20.2-71.8 72.5-71.8 16.3 0 29.4.4 37 1.2V7.9C291.4 4 256.4 0 236.2 0 129.3 0 80 50.5 80 159.4v42.1H14v97.8h66z"/>
+              </svg>
+            </a>
+            <a
+              class="site-social__link"
+              href="https://www.instagram.com/adrianojewelry"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Adriano Jewelry on Instagram"
+            >
+              <svg viewBox="0 0 448 512" aria-hidden="true" focusable="false">
+                <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/>
+              </svg>
+            </a>
+          </nav>
+          <span class="site-social__rule" aria-hidden="true"></span>
+        </div>
 
         <nav class="site-footer__nav" aria-label="Legal">
           <a class="site-footer__link u-caps" href="terms-and-conditions/"
             >Terms &amp; Conditions</a
           >
-          <span class="site-footer__sep" aria-hidden="true"></span>
           <a class="site-footer__link u-caps" href="privacy-policy/"
             >Privacy Policy</a
           >
         </nav>
 
-        <nav class="site-social" aria-label="Adriano Jewelry on social media">
-          <a
-            class="site-social__link"
-            href="https://www.facebook.com/profile.php?id=100095448876299"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Adriano Jewelry on Facebook"
-          >
-            <svg viewBox="0 0 320 512" aria-hidden="true" focusable="false">
-              <path d="M80 299.3V512h116V299.3h86.5l18-97.8H196v-33.3c0-51.6 20.2-71.8 72.5-71.8 16.3 0 29.4.4 37 1.2V7.9C291.4 4 256.4 0 236.2 0 129.3 0 80 50.5 80 159.4v42.1H14v97.8h66z"/>
-            </svg>
-          </a>
-          <a
-            class="site-social__link"
-            href="https://www.instagram.com/adrianojewelry"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Adriano Jewelry on Instagram"
-          >
-            <svg viewBox="0 0 448 512" aria-hidden="true" focusable="false">
-              <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/>
-            </svg>
-          </a>
-        </nav>
-
-        <!-- The year is authored here as a literal and corrected at runtime by
-             the script below. Stamping it from Date() at build time instead would
-             make `build.js --check` fail every New Year's Day and block the
-             deploy until somebody rebuilt; deriving it only in script would show
-             nothing at all with JavaScript off. This way the markup is always
-             complete, the check never drifts, and every visitor with scripting on
-             sees the true year. -->
-        <p class="site-footer__copy">
-          Copyright &copy; <span data-year>2026</span> Adriano Jewelry - All Rights
-          Reserved.
-        </p>
+        <div class="site-footer__meta">
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.1</p>
+          <!-- The year is authored here as a literal and corrected at runtime by
+               the script below. Stamping it from Date() at build time instead would
+               make `build.js --check` fail every New Year's Day and block the
+               deploy until somebody rebuilt; deriving it only in script would show
+               nothing at all with JavaScript off. This way the markup is always
+               complete, the check never drifts, and every visitor with scripting on
+               sees the true year. -->
+          <p class="site-footer__copy">
+            Copyright &copy; <span data-year>2026</span> Adriano Jewelry - All Rights
+            Reserved.
+          </p>
+        </div>
       </div>
       <!-- Inline rather than assets/js/year.js, which this partial used to load.
            The site is now plain HTML and CSS with no external script anywhere, so
@@ -1051,18 +152,5 @@
     </footer>
     <!-- @end footer -->
 
-    <!-- Deferred, and allowed to fail: onerror lifts the motion flag so a
-         script that never arrives leaves a complete, still page rather than
-         a hidden one. -->
-    <script
-      src="assets/js/home.js"
-      defer
-      onerror="document.documentElement.classList.remove('motion')"
-    ></script>
-    <!-- The film's jewels — the rendered solitaire and the two bands. A
-         separate boot on purpose: it needs WebGL2, ~190KB of vendored
-         three.js and a GPU worth waking, and any of those missing must cost
-         this page nothing. No onerror: a page without it is complete. -->
-    <script src="assets/js/home3d.js" defer></script>
   </body>
 </html>

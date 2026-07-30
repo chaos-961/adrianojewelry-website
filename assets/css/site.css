@@ -1,9 +1,10 @@
 /* Adriano Jewelry — base stylesheet
    Shared shell for every page: the ambient ground, the contact button in the
-   top-right of main, prose pages, and the universal footer. The landing page
-   layers home.css on top of this file for its five acts; the four inner pages
-   load this alone. showcase.css, which styled the v0.1.4 four-ring reel, stays
-   deleted — recover it from history if it returns.
+   top-right of main, prose pages, and the universal footer. It is the only
+   stylesheet on the site — showcase.css styled the four-ring section the
+   landing page carried until it was emptied to its footer, and home.css styled
+   the landing sections removed in v0.1.2. Both are deleted; recover either from
+   history if they return.
 
    THE GROUND. Flat, light, and two steps of one grey. It carried film grain
    and a raking warm lamp until v0.1.2, a jeweller's-case green until v0.1.3,
@@ -148,12 +149,8 @@
      THE RULE THIS LEAVES: the grounds and --smoke move together. Darken either
      ground by any meaningful amount and --smoke must be lightened in the same
      commit, or the muted lines fall under the floor. --pewter-dim is the other
-     one to watch — it is the thinnest margin on the page, and in the footer it
-     is now the divider between the two policy links and the ring of the disc
-     that appears behind a social mark on hover. (The hairline under a policy
-     link is --footer-rule, which is far under the UI floor on purpose: it is a
-     decoration on a link that is already carried by --pewter at 9.3:1, not a
-     boundary anyone has to see to operate the control.) */
+     one to watch — it is the thinnest margin on the page, and it is the
+     footer's social rules and pill borders. */
 
   /* Legacy aliases. The four prose pages were authored against these names and
      go on working unchanged; this file is the single place the palette moved. */
@@ -864,24 +861,9 @@ a.legal__eyebrow:focus-visible {
 }
 
 /* --- Footer ---
-   One bar and one line. It was three stacked centred rows — an ornament of two
-   bordered discs held between hairlines, a pair of pill buttons, then the meta
-   line — which came to most of a phone screen for what is, on every page, an
-   endnote. It is now a single 44px bar with the version at the left wall, the
-   policies on the centre line and the two social marks at the right wall, and
-   the copyright set on one line underneath it.
-
-   NOTHING WAS DROPPED. Every link, the version and the copyright are all still
-   here. What went is the framing around them: the hairline rules either side of
-   the social pair, and the pill borders under the policy links. Pewter still
-   means "act here", so the links keep the colour — they lose the box, because
-   a footer is where you leave the page rather than where you act on it. The one
-   thing that still draws itself is the disc behind a social mark, and only
-   under the pointer.
-
-   THE 44px FLOOR SURVIVED THE SHRINK. Every link in here is still a full 44px
-   tap target, and the bar is 44px tall because of it. The saving is in the
-   number of rows, not in the size of anything a thumb has to hit. */
+   Universal across every page. Three centred rows — social, policies, meta —
+   with one gap value between them and equal space above the first and below
+   the last, so the block reads as symmetric at any width. */
 
 .site-footer {
   position: relative;
@@ -893,12 +875,11 @@ a.legal__eyebrow:focus-visible {
   background-color: var(--ground-footer);
   background-image: none;
   color: var(--footer-fg);
-  /* Tighter than it was at both ends, and that is arithmetic rather than taste:
-     the bar's rows are 44px tall around ink that is barely 11px, so each row
-     already carries about 16px of blank above and below it. Padding here is the
-     top-up, not the whole of the space. The bottom still takes the iPhone home
-     indicator when there is one, so it is never clipped. */
-  padding: clamp(0.7rem, 2.2vw, 1rem) max(0.85rem, env(safe-area-inset-right))
+  /* Open at the top, where the hairline needs air under it; tight at the
+     bottom and the walls, so the version sits into the corner rather than
+     floating off it. The bottom still takes the iPhone home indicator when
+     there is one, so it is never clipped. */
+  padding: clamp(1.5rem, 4vw, 2rem) max(0.85rem, env(safe-area-inset-right))
     max(0.7rem, env(safe-area-inset-bottom))
     max(0.85rem, env(safe-area-inset-left));
 }
@@ -919,68 +900,58 @@ a.legal__eyebrow:focus-visible {
   );
 }
 
-/* THE BAR. Deliberately unconstrained: it spans the full width so the version
+/* Deliberately unconstrained: the meta row spans the full width so the version
    sits at the viewport wall at every size. A centred max-width column here
-   would push it hundreds of pixels inboard on a wide monitor, and the version
-   on the wall is the whole shape of the layout.
+   would push it hundreds of pixels inboard on a wide monitor.
 
-   Named areas rather than source order, because the two arrangements want the
-   same markup in different places and an area map states which is which in one
-   place. Wide: everything on one line, with the two flexible outer columns
-   equal so the policies land on the page's true centre rather than centred in
-   the room the version leaves over. Narrow: the policies take a row of their
-   own and the version and the marks become the bookends beneath them. The
-   copyright is the last line either way. */
+   The rows are spaced with margins rather than one grid gap: the meta line is
+   a footnote to the two blocks above it and wants to sit tighter to them than
+   they do to each other. */
 .site-footer__inner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-areas:
-    "nav     nav"
-    "version social"
-    "copy    copy";
-  align-items: center;
-  column-gap: 0.75rem;
-  width: 100%;
+  justify-items: center;
+  text-align: center;
 }
 
-/* Measured against the widest the one-line arrangement gets: both policy
-   labels and their divider, the version and the two marks, all at their clamp
-   ceilings and set in Arial — the widest face the body stack can fall through
-   to. That comes to roughly 27em of content, so 36em clears it with the walls
-   still free. Below it the labels alone would crowd both ends. */
-@media (min-width: 36em) {
-  .site-footer__inner {
-    grid-template-columns: 1fr auto 1fr;
-    grid-template-areas:
-      "version nav social"
-      "copy    copy copy";
-  }
-}
-
-/* --- Social marks, at the right wall ---
-   Two glyphs and nothing else at rest. The bordered discs and the pair of
-   hairlines that used to hold them were the tallest and heaviest thing in the
-   footer, and they were a frame around two marks that are already recognisable
-   without one. The disc has not gone, it has become a state: it is drawn
-   behind the mark under the pointer and on keyboard focus, so the feedback
-   survives and the resting weight does not.
+/* --- Social medallions ---
+   Two silver discs held between short hairlines, like the clasp on a chain. One
+   gap value governs the whole cluster, so disc-to-disc and disc-to-rule are
+   identical and the ornament is symmetric about its centre. The rules flex to
+   fill whatever is left, so it is as wide as the footer allows and collapses
+   gracefully on a 320px phone.
 
    The glyphs are inline SVG rather than an icon font: two paths cost less than
    a font request, they inherit `currentColor` so the hover state is one
    property, and they can't flash a fallback box before a font loads. */
 
 .site-social {
-  grid-area: social;
-  justify-self: end;
   display: flex;
   align-items: center;
-  gap: clamp(0rem, 1vw, 0.25rem);
-  /* Pulls the cluster back out towards the wall. Each link is a 44px square
-     around a 15px mark, so its ink sits 14.5px inboard of its own edge, and
-     without this the marks would read as inset while the version sits flush at
-     the other end. Held under the footer's own side padding — 0.7rem at its
-     narrowest, in the 480px block below — so the box can never overflow it. */
-  margin-right: -0.55rem;
+  justify-content: center;
+  gap: var(--social-gap, 0.75rem);
+  width: 100%;
+  max-width: 22rem;
+}
+
+.site-social__rule {
+  flex: 1 1 0;
+  /* Caps the hairline so the discs stay near the middle on a wide monitor
+     instead of drifting to the far walls. */
+  max-width: 5rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--pewter-dim));
+}
+
+/* The right-hand rule fades the other way, so both taper away from the pair. */
+.site-social__rule:last-child {
+  background: linear-gradient(90deg, var(--pewter-dim), transparent);
+}
+
+/* Inherits the cluster gap, so the space between the two discs matches the
+   space between a disc and its rule exactly. */
+.site-social__links {
+  display: flex;
+  gap: var(--social-gap, 0.75rem);
 }
 
 .site-social__link {
@@ -988,49 +959,38 @@ a.legal__eyebrow:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Still 44px across. The frame went; the tap target did not. */
+  /* 44px across: a full tap target, and a disc small enough that two of them
+     plus both rules still fit inside 320px. */
   width: 44px;
   height: 44px;
-  /* No border of its own, but the radius stays so :focus-visible draws a round
-     ring rather than a square one around a round mark. */
+  border: 1px solid var(--pewter-dim);
   border-radius: 50%;
   color: var(--pewter);
-  transition: color 0.25s ease, transform 0.25s ease;
+  background: var(--pewter-wash);
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-/* The disc, drawn on demand. inset 5px leaves 34px inside the 44px target —
-   the size the bordered disc used to be, less the ring it no longer has to
-   clear. */
-.site-social__link::before {
-  content: "";
-  position: absolute;
-  inset: 5px;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  background-color: transparent;
-  transition: border-color 0.25s ease, background-color 0.25s ease;
-}
-
-.site-social__link:hover::before,
-.site-social__link:focus-visible::before {
-  border-color: var(--pewter-dim);
-  background-color: var(--pewter-wash);
+.site-social__link svg {
+  width: 15px;
+  height: 15px;
+  /* The glyph is the only fill, and it tracks the link colour — so lifting the
+     disc on hover lifts the mark with it. */
+  fill: currentColor;
+  transition: transform 0.25s ease;
 }
 
 .site-social__link:hover,
 .site-social__link:focus-visible {
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
   color: var(--pewter-strong);
-}
-
-.site-social__link svg {
-  /* Positioned so it paints above the disc, which is a ::before behind it. */
-  position: relative;
-  width: 15px;
-  height: 15px;
-  /* The glyph is the only fill, and it tracks the link colour — so the mark
-     darkens with the disc that appears behind it. */
-  fill: currentColor;
-  transition: transform 0.25s ease;
+  /* A cast shadow rather than a glow — tight, low alpha, the contact shadow a
+     disc lifts off paper. On the dark palette this was the same shape drawn in
+     light, because a raised object on a dark ground shows its sheen; on a
+     light ground it shows what it blocks. */
+  box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.22),
+    0 4px 18px rgba(26, 26, 26, 0.14);
 }
 
 .site-social__link:hover svg,
@@ -1042,91 +1002,89 @@ a.legal__eyebrow:focus-visible {
   transform: translateY(1px);
 }
 
-/* --- Policies, on the centre line --- */
+/* --- Policy buttons --- */
 
 .site-footer__nav {
-  grid-area: nav;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   justify-content: center;
-  gap: 0 clamp(0.55rem, 2.2vw, 0.9rem);
+  gap: 0.6rem 0.75rem;
+  margin-top: clamp(1.05rem, 3vw, 1.4rem);
 }
 
-/* The divider between the two, and the only rule left in the footer besides the
-   one along its top edge. A hairline rather than a middot: every other
-   separator on the site is a 1px line, and a dot at this size sits optically
-   low against caps that have no descenders to balance it. */
-.site-footer__sep {
-  width: 1px;
-  height: 0.62rem;
-  background: var(--pewter-dim);
-}
-
-/* No pill. The label carries the link on colour and a rule under the text, and
-   the tap target is carried by a 44px min-height that draws nothing.
-
-   --caps-drop still applies, for exactly the reason it applies inside a pill:
-   `align-items: center` centres the line box, and caps ink hangs high in a box
-   that reserves room for descenders it does not have. Split +drop / -drop
-   across the two paddings so the box height is untouched — see --caps-drop. */
+/* Pewter on paper, pill-shaped, sized so both still sit side by side at 360px
+   and wrap to one column only below that. */
 .site-footer__link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: calc(0.4rem + var(--caps-drop)) 0.1rem calc(0.4rem - var(--caps-drop));
+  padding: calc(0.5rem + var(--caps-drop)) clamp(0.9rem, 3.5vw, 1.35rem)
+    calc(0.5rem - var(--caps-drop));
+  border: 1px solid var(--pewter-dim);
+  border-radius: 999px;
   color: var(--pewter);
-  font-size: clamp(0.6rem, 2.2vw, 0.68rem);
+  font-size: clamp(0.66rem, 2.4vw, 0.72rem);
   font-weight: 400;
-  /* text-decoration rather than a border-bottom: it is drawn against the text's
-     own metrics, so it tracks the label instead of the bottom of the padded box
-     the tap target needs — a border here would sit a third of a centimetre
-     adrift under the words. Faint at rest, which is the affordance without the
-     weight, and full pewter under the pointer. */
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-decoration-color: var(--footer-rule);
-  text-underline-offset: 0.42em;
-  transition: color 0.25s ease, text-decoration-color 0.25s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--pewter-wash);
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease;
 }
 
 .site-footer__link:hover,
 .site-footer__link:focus-visible {
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
   color: var(--pewter-strong);
-  text-decoration-color: var(--pewter);
 }
 
 .site-footer__link:active {
   transform: translateY(1px);
 }
 
-/* Marks the policy page you are already on. Weight and ink, where the pill used
-   to fill its background — there is no box left here to fill. */
+/* Marks the policy page you are already on, so the pair reads as navigation
+   rather than two identical buttons. */
 .site-footer__link[aria-current="page"] {
+  border-color: var(--pewter);
   color: var(--pewter-strong);
-  font-weight: 500;
-  text-decoration-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.09);
 }
 
-/* --- Version at the left wall, copyright on the line below --- */
+/* --- Meta row: version at the left wall, copyright centred on the page ---
+   Three columns, the outer two equal and flexible with only the left one
+   filled. The empty right column is what keeps the copyright on the true
+   centre line of the footer rather than centred in the space the version
+   leaves over. */
+
+.site-footer__meta {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  width: 100%;
+  margin-top: clamp(0.95rem, 2.5vw, 1.2rem);
+}
+
+.site-footer__copy {
+  margin: 0;
+  color: var(--page-muted);
+  font-size: clamp(0.7rem, 2.5vw, 0.78rem);
+  letter-spacing: 0.045em;
+  text-align: center;
+}
 
 .site-footer__version {
-  grid-area: version;
-  /* Hard against the wall, at both arrangements of the bar. */
+  /* First column, hard against the wall. */
   justify-self: start;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: clamp(0.68rem, 2.2vw, 0.74rem);
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.1em;
-  /* Full ink: it is the one thing down here that is neither a link nor a legal
-     line, and at this size weight alone would not hold it. */
+  letter-spacing: 0.11em;
   color: var(--footer-fg);
   font-variant-numeric: tabular-nums;
-  /* A line box the height of the type, so what the row centres is the string
-     and not a leading half-line above and below it. */
-  line-height: 1;
 }
 
 /* The "v" carries the emphasis through weight and slant alone — it shares the
@@ -1137,18 +1095,6 @@ a.legal__eyebrow:focus-visible {
   font-weight: 700;
   color: inherit;
   padding-right: 0.06em;
-}
-
-.site-footer__copy {
-  grid-area: copy;
-  justify-self: center;
-  /* A top-up, not the whole gap — the 44px row above already leaves about 16px
-     of blank under its ink. */
-  margin: 0.3rem 0 0;
-  color: var(--page-muted);
-  font-size: clamp(0.62rem, 2.2vw, 0.72rem);
-  letter-spacing: 0.04em;
-  text-align: center;
 }
 
 /* 404.html carries its own copy of these rules inline — GitHub Pages serves it
@@ -1166,6 +1112,21 @@ a.legal__eyebrow:focus-visible {
   .page-top {
     padding-right: max(0.75rem, env(safe-area-inset-right));
     padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+}
+
+/* Narrow enough that the copyright can no longer be centred on the page with
+   the version beside it — the two would collide. It drops to its own line,
+   still centred, and the version keeps the wall underneath it. */
+@media (max-width: 30em) {
+  .site-footer__meta {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .site-footer__copy {
+    /* Back above the version, so the block still ends on the wall. */
+    order: -1;
   }
 }
 
