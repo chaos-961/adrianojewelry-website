@@ -33,14 +33,26 @@
     <meta property="og:image:alt" content="Adriano Jewelry" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- The only stylesheet, and the only sub-resource this page has beyond its
-         fonts and icons: there is no external JavaScript left on this site at
-         all. The five-act scroll film that stood here through v0.1.8-v0.2.0 was
-         reverted in v0.2.1, and the vendored three.js, the rendered rings it
-         drove, home.css, home.js and home3d.js all went with it — as did
-         showcase.css and the v0.1.4 ring viewer before them. Recover any of them
-         from git history if they return. -->
+    <!-- site.css is the shared shell every page loads; home.css styles only
+         the stage below and is loaded by this page alone. home.js is the one
+         piece of external JavaScript on the site: it renders the Adriano ring
+         box live on this page, on a fresh copy of three.js 0.185.1 vendored in
+         assets/js/vendor/ straight from the npm registry. All of it is new
+         work — nothing here is recovered from the v0.1.4 viewer or the
+         v0.1.8-v0.2.0 scroll film that stood on this page before it was
+         emptied in v0.2.1. -->
     <link rel="stylesheet" href="assets/css/site.css" />
+    <link rel="stylesheet" href="assets/css/home.css" />
+
+    <!-- The module graph is three levels deep (home.js -> models/ring-box.js
+         + models/geometry.js -> vendor three); preloading flattens the chain
+         so the render is not rounds of trips behind the parse. -->
+    <link rel="modulepreload" href="assets/js/home.js" />
+    <link rel="modulepreload" href="assets/js/models/ring-box.js" />
+    <link rel="modulepreload" href="assets/js/models/geometry.js" />
+    <link rel="modulepreload" href="assets/js/vendor/three.module.min.js" />
+    <link rel="modulepreload" href="assets/js/vendor/three.core.min.js" />
+    <script type="module" src="assets/js/home.js"></script>
 
     <script type="application/ld+json">
       {
@@ -67,15 +79,46 @@
     </script>
   </head>
   <body>
-    <!-- The page is deliberately empty: everything above the footer was removed
-         and nothing has replaced it yet. The scroll film that stood here is
-         gone, and so is the header bar above it -- "the footer only" was the
-         instruction, and the header is not the footer. index.html therefore
-         declares no header region, which build.js reports as a warning on every
-         run; that is expected until something goes back at the top of the page.
-         <main> is kept so the document still has its landmark and so .page's
-         flex rule can push the footer to the bottom of a short viewport. -->
-    <main class="page" aria-label="Adriano Jewelry"></main>
+    <!-- The page holds one thing: the store's ring box, modelled and rendered
+         live in the browser by home.js — the black lidded box with the lamp in
+         its lid, the Adriano marque inlaid on top, and no ring inside it. Drag
+         turns it; the two pills work the lid and the lamp. There is still no
+         header bar — "the footer only" was that instruction, and nothing above
+         this section has returned — so build.js goes on reporting its expected
+         "no header region" warning on every run.
+
+         Everything inside .stage is display:none until the script stands the
+         scene up, so with JavaScript off this page is exactly what v0.2.1
+         shipped: the ground, the footer, nothing else. The buttons are typed
+         out here rather than created by script so the markup is honest about
+         what the page can do — the script only ever toggles their labels. -->
+    <main class="page" aria-label="Adriano Jewelry">
+      <section class="stage" aria-label="The Adriano ring box">
+        <div class="stage__frame">
+          <canvas
+            class="stage__canvas"
+            id="stage-canvas"
+            tabindex="0"
+            role="img"
+            aria-label="A black Adriano Jewelry ring box, rendered live. Drag to turn it; the buttons below open the lid and work its lamp."
+          ></canvas>
+          <div class="stage__vignette" aria-hidden="true"></div>
+          <p class="stage__fallback" id="stage-fallback" hidden>
+            The ring box on this page is rendered live in your browser, and this
+            browser has WebGL switched off.
+          </p>
+        </div>
+        <p class="stage__hint" id="stage-hint">Drag the box to turn it</p>
+        <div class="stage__controls">
+          <button type="button" class="stage__btn u-caps" id="stage-lid">
+            Open the box
+          </button>
+          <button type="button" class="stage__btn u-caps" id="stage-led">
+            Turn on the light
+          </button>
+        </div>
+      </section>
+    </main>
 
     <!-- @partial footer -->
     <footer class="site-footer">
@@ -119,7 +162,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.1</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.2</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

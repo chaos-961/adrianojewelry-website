@@ -1,0 +1,212 @@
+/* Adriano Jewelry — landing stage
+   Styles for the one thing the landing page holds: the rendered ring box.
+   site.css stays the shared shell for every page; this sheet is loaded by
+   index.html alone and styles nothing outside .stage.
+
+   The stage inherits the site's rules rather than restating them: no hue in
+   anything painted here (the render inside the canvas is the only colour on
+   the page, exactly as the palette note in site.css intends), pills take the
+   same --caps-drop padding split as every other capitalised control, and all
+   sizing holds from a 320px phone to a wide desktop.
+
+   The section is invisible until home.js stands the scene up (.is-live), so a
+   reader with JavaScript off gets the empty page the site shipped before this
+   sheet existed — the footer and the ground and nothing else. If the script
+   runs but WebGL is off, .is-fallback shows the one-line explanation instead
+   of a dead black rectangle. */
+
+.stage {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 66rem;
+  margin: 0 auto;
+  /* The safe-area floors keep the canvas and pills off a notched phone's
+     walls, same as the footer's own padding does. */
+  padding: clamp(1.25rem, 4vw, 2.5rem) max(1rem, env(safe-area-inset-right))
+    clamp(1.5rem, 4.5vw, 2.75rem) max(1rem, env(safe-area-inset-left));
+}
+
+/* Nothing inside the stage exists until the script decides which face the
+   page shows — the render, or the fallback line. */
+.stage__frame,
+.stage__hint,
+.stage__controls {
+  display: none;
+}
+
+.stage.is-live .stage__frame,
+.stage.is-fallback .stage__frame {
+  display: block;
+}
+
+.stage.is-live .stage__hint {
+  display: block;
+}
+
+.stage.is-live .stage__controls {
+  display: flex;
+}
+
+.stage__frame {
+  position: relative;
+  width: 100%;
+  /* svh, so a phone's collapsing address bar does not resize the render mid
+     scroll; the vh line above it is the fallback. The floor keeps the box
+     legible on a short landscape phone, the ceiling keeps it a product shot
+     rather than a mural on a tall monitor. */
+  height: clamp(19rem, 62vh, 42rem);
+  height: clamp(19rem, 62svh, 42rem);
+  /* The render is a dark room now — the frame is its window: near-black
+     ground behind the canvas (so there is never a paper flash before the
+     first frame), a hairline to seat it on the page, corners clipped. */
+  background: #060607;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* A quiet photographic vignette over the render. CSS, not scene work: it
+   costs nothing and holds the corners down at every canvas size. */
+.stage__vignette {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 95% at 50% 42%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.45) 100%
+  );
+}
+
+.stage.is-live .stage__vignette {
+  display: block;
+}
+
+.stage__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* The drag is the page's one gesture, so the browser must not claim it for
+     scrolling — vertical scroll still works from the ground around the
+     canvas. */
+  touch-action: none;
+  cursor: grab;
+  /* Rendered frames fade up once the first one is drawn; before that the
+     ground shows through, so there is never a black flash. The reduced-motion
+     block in site.css flattens this to an instant appearance. */
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.stage__canvas.is-ready {
+  opacity: 1;
+}
+
+.stage__canvas:active {
+  cursor: grabbing;
+}
+
+/* WebGL-off line, centred where the render would have stood. Display is
+   driven by the section's is-fallback class, not the hidden attribute alone —
+   an author display value would override the attribute's UA display:none. */
+.stage__fallback {
+  display: none;
+}
+
+/* With no render, the frame turns back into a light card so the line stays
+   readable — the dark ground only exists for the picture. */
+.stage.is-fallback .stage__frame {
+  background: var(--paper-raised);
+}
+
+.stage.is-fallback .stage__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 1.5rem;
+  text-align: center;
+  color: var(--page-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* One quiet spec line under the render — mono, like every other measurement
+   and stage label on the site. */
+.stage__hint {
+  margin: clamp(0.9rem, 2.5vw, 1.35rem) 0 0;
+  color: var(--page-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.stage__controls {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem 0.75rem;
+  margin-top: clamp(0.9rem, 2.5vw, 1.3rem);
+}
+
+/* The same pill as the footer's policy links, restated here because this is a
+   <button> rather than an <a> and needs its native chrome stripped. The
+   --caps-drop split on the vertical padding is the measured caps correction —
+   see site.css; a one-sided pad would deliver half the movement and change
+   the pill's height. */
+.stage__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: calc(0.5rem + var(--caps-drop)) clamp(1rem, 3.5vw, 1.4rem)
+    calc(0.5rem - var(--caps-drop));
+  border: 1px solid var(--pewter-dim);
+  border-radius: 999px;
+  color: var(--pewter);
+  font-family: var(--font-body);
+  font-size: clamp(0.66rem, 2.4vw, 0.72rem);
+  font-weight: 400;
+  white-space: nowrap;
+  background: var(--pewter-wash);
+  cursor: pointer;
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.stage__btn:hover,
+.stage__btn:focus-visible {
+  border-color: var(--pewter);
+  background: rgba(26, 26, 26, 0.1);
+  color: var(--pewter-strong);
+}
+
+.stage__btn:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 480px) {
+  .stage {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .stage__frame {
+    height: clamp(17rem, 58vh, 30rem);
+    height: clamp(17rem, 58svh, 30rem);
+  }
+}
