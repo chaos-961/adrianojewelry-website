@@ -20,6 +20,7 @@
 
 import * as THREE from "./vendor/three.module.min.js";
 import { createRingBox, drawMarque } from "./models/ring-box.js";
+import { createSolitaireRing } from "./models/solitaire-ring.js";
 
 (function () {
   "use strict";
@@ -163,10 +164,21 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
   scene.add(rimLight);
 
 
-  const model = createRingBox({
-    renderer,
-    debug: { ledx: params.get("ledx"), ledshadow: params.get("ledshadow") },
-  });
+  /* The prop. The page's is the box; ?prop=ring stands the ring in the same
+   * room on its own, at full frame, which is how the piece gets looked at
+   * while it is being cut. Both modules export the same contract, so the
+   * stage never learns which one it was handed — the pills still drive an
+   * open and a lit the ring simply has no use for. */
+  const model =
+    params.get("prop") === "ring"
+      ? createSolitaireRing({ renderer, standing: true })
+      : createRingBox({
+          renderer,
+          debug: {
+            ledx: params.get("ledx"),
+            ledshadow: params.get("ledshadow"),
+          },
+        });
   scene.add(model.root);
 
   /* ------------------------------------------------------- state & springs */

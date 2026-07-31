@@ -1,10 +1,16 @@
 /* Adriano Jewelry — the ring box model.
  *
  * The store's black lidded LED ring box, complete in this one module: swept
- * shells for base and lid, velvet cushion with the empty ring slot, the lamp
- * in the lid with its spot, spill, lens bloom and a faint drawn beam, and
- * the Adriano marque — black marble under gold horses, crown, diamond and
- * wordmark — painted onto a canvas and inlaid flush in the lid's plateau.
+ * shells for base and lid, velvet cushion with the ring slot cut between its
+ * pads, the lamp in the lid with its spot, spill, lens bloom and a faint
+ * drawn beam, and the Adriano marque — black marble under gold horses,
+ * crown, diamond and wordmark — painted onto a canvas and inlaid flush in
+ * the lid's plateau.
+ *
+ * The one thing it does not build itself is the ring standing in that slot.
+ * That is its own prop in its own module, solitaire-ring.js, and this file
+ * only seats it — the box is the case, and a case holds whatever the bench
+ * puts in it.
  *
  * The stage (home.js) owns the renderer, camera, studio and ground; a model
  * module owns one prop. The contract a model exports:
@@ -21,6 +27,7 @@
 
 import * as THREE from "../vendor/three.module.min.js";
 import { sweep, quarterIn, capGeometry } from "./geometry.js";
+import { createSolitaireRing } from "./solitaire-ring.js";
 
 /* ------------------------------------------------------------------ marque
  * Painted once, synchronously — system serifs and canvas paths only, so the
@@ -505,6 +512,7 @@ export function createRingBox({ renderer, debug }) {
   const CAV_W = 4.95; // base cavity
   const CAV_D = 4.15;
   const CAV_R = 0.55;
+  const CAV_Y = 0.55; // its velvet floor, and the bottom of the ring slot
   const REC_W = 4.8; // lid recess
   const REC_D = 4.0;
   const REC_R = 0.5;
@@ -579,7 +587,7 @@ export function createRingBox({ renderer, debug }) {
     root.add(
       mesh(
         sweep(CAV_W, CAV_D, CAV_R, [
-          { i: 0, y: 0.55 },
+          { i: 0, y: CAV_Y },
           { i: 0, y: BASE_H },
         ], { flip: true }),
         satin,
@@ -589,22 +597,23 @@ export function createRingBox({ renderer, debug }) {
     const floor = mesh(capGeometry(CAV_W, CAV_D, CAV_R, true), velvet, {
       receive: true,
     });
-    floor.position.y = 0.55;
+    floor.position.y = CAV_Y;
     root.add(floor);
     const under = mesh(capGeometry(W - 0.4, D - 0.4, R - 0.2, false), satin);
     under.position.y = 0.001;
     root.add(under);
   }
 
-  // Cushion: two velvet pads, the empty ring slot between them.
+  // Cushion: two velvet pads with the ring slot between them.
   {
     const padW = 4.62;
     const padD = 1.82;
-    // The ring's seat: wide enough to read as a place, still snug enough
-    // that a band would be held. Nothing stands in it — the box ships empty.
+    // The ring's seat. The solitaire's widest section is 2.36mm across and
+    // this gap is 2.4mm, so the band drops in and is gripped — the same fit
+    // the real cushion is die-cut for.
     const slit = 0.24;
     const profile = [];
-    profile.push({ i: 0, y: 0.55 });
+    profile.push({ i: 0, y: CAV_Y });
     profile.push({ i: 0, y: 1.6 });
     quarterIn(profile, 0, 1.6, 0.34, 1.94, 5);
     for (const dz of [-1, 1]) {
@@ -623,6 +632,25 @@ export function createRingBox({ renderer, debug }) {
       cap.position.set(0, 1.94, pad.position.z);
       root.add(cap);
     }
+  }
+
+  /* The ring, stood in that slot. Its height is arithmetic rather than
+   * taste, and it is pinned between two hard facts: the band hangs
+   * metrics.drop below the finger's centre and cannot go through the velvet
+   * floor, and the claws stand metrics.rise above it and cannot go up
+   * through the closed lid's ceiling. Take whichever seat is lower, so
+   * neither a resized ring nor a resized box can put metal through plastic.
+   * As drawn the ring rests in the slot and clears the shut lid by 1.5mm. */
+  const ring = createSolitaireRing({ renderer });
+  {
+    const NAP = 0.035; // the velvet's own pile, under the band
+    const HEADROOM = 0.12; // what the claws keep clear of the shut lid
+    const seat = Math.min(
+      CAV_Y + ring.metrics.drop + NAP,
+      BASE_H + 0.5 - HEADROOM - ring.metrics.rise
+    );
+    ring.root.position.y = seat;
+    root.add(ring.root);
   }
 
   // Lid, hinged along the back rim.
@@ -689,7 +717,7 @@ export function createRingBox({ renderer, debug }) {
 
     // Lamp housing on the recess ceiling, out by the free edge, lens in its
     // face. This is the box the photograph shows: the light lives in the lid
-    // and looks down at where the ring would stand.
+    // and looks down at the ring.
     const housingProfile = [];
     quarterIn(housingProfile, 0.05, 0, 0, 0.05, 2);
     housingProfile.push({ i: 0, y: 0.2 });
@@ -708,9 +736,9 @@ export function createRingBox({ renderer, debug }) {
     lid.add(lensMesh);
   }
 
-  // The lamp: a spot from the lens down to the empty slot, a point for the
-  // spill inside the lid, a sprite for the bloom on the lens, a faint cone
-  // for the air the beam crosses.
+  // The lamp: a spot from the lens down onto the ring in the slot, a point
+  // for the spill inside the lid, a sprite for the bloom on the lens, a
+  // faint cone for the air the beam crosses.
   const ledTarget = new THREE.Object3D();
   ledTarget.position.set(0, 1.9, 0.35);
   root.add(ledTarget);
@@ -755,78 +783,11 @@ export function createRingBox({ renderer, debug }) {
     lid.add(glowSprite);
   }
 
-  /* The lamp's reach beyond the box: shafts bursting up out of the open
-   * mouth, a glow line breathing through the seam when the lid only cracks,
-   * and a pool of spill on the floor around the box. All of it is the box's
-   * own light — the room has none of its own — so every opacity below is
-   * driven from update() by how open and how lit the box is. */
-  const rayTex = (() => {
-    const c = document.createElement("canvas");
-    c.width = 64;
-    c.height = 256;
-    const g = c.getContext("2d");
-    const v = g.createLinearGradient(0, 256, 0, 0);
-    v.addColorStop(0, "rgba(240,246,255,0.9)");
-    v.addColorStop(0.35, "rgba(240,246,255,0.38)");
-    v.addColorStop(1, "rgba(240,246,255,0)");
-    g.fillStyle = v;
-    g.fillRect(0, 0, 64, 256);
-    const h = g.createLinearGradient(0, 0, 64, 0);
-    h.addColorStop(0, "rgba(0,0,0,0)");
-    h.addColorStop(0.3, "rgba(0,0,0,1)");
-    h.addColorStop(0.7, "rgba(0,0,0,1)");
-    h.addColorStop(1, "rgba(0,0,0,0)");
-    g.globalCompositeOperation = "destination-in";
-    g.fillStyle = h;
-    g.fillRect(0, 0, 64, 256);
-    return new THREE.CanvasTexture(c);
-  })();
-
-  const burstMeshes = [];
-  {
-    const mouth = new THREE.Vector3(0, 2.65, 0.2);
-    // tilt forward (deg), tilt sideways (deg), length, width, opacity
-    const shafts = [
-      [14, 0, 6.5, 1.7, 0.11],
-      [34, 6, 5.2, 1.1, 0.085],
-      [8, -26, 5.6, 0.9, 0.075],
-      [10, 28, 5.6, 0.9, 0.075],
-      [52, -8, 4.2, 1.3, 0.06],
-      [2, 2, 7.2, 2.4, 0.05],
-    ];
-    const D2R = Math.PI / 180;
-    for (const [fwd, side2, len, w, o] of shafts) {
-      const dir = new THREE.Vector3(
-        Math.sin(side2 * D2R),
-        Math.cos(fwd * D2R) * Math.cos(side2 * D2R),
-        Math.sin(fwd * D2R)
-      ).normalize();
-      const quat = new THREE.Quaternion().setFromUnitVectors(
-        new THREE.Vector3(0, 1, 0),
-        dir
-      );
-      for (const roll of [0, Math.PI * 0.45]) {
-        const mat = new THREE.MeshBasicMaterial({
-          map: rayTex,
-          transparent: true,
-          opacity: 0,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-          fog: false,
-        });
-        mat.userData.base = o;
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), mat);
-        m.quaternion.copy(quat);
-        m.rotateY(roll);
-        m.position.copy(mouth).addScaledVector(dir, len / 2);
-        m.visible = false;
-        root.add(m);
-        burstMeshes.push(m);
-      }
-    }
-  }
-
+  /* The lamp's reach beyond the box: a glow line breathing through the seam
+   * when the lid only cracks, and a pool of spill on the floor around the
+   * box. Only light the lamp itself would actually throw — no drawn shafts
+   * in the air (tried in v0.2.3, removed on request). Every opacity below
+   * is driven from update() by how open and how lit the box is. */
   let seamGlow;
   {
     const c = document.createElement("canvas");
@@ -928,6 +889,8 @@ export function createRingBox({ renderer, debug }) {
      * overshoot slightly; everything here tolerates it). */
     update({ open, lit }) {
       lidPivot.rotation.x = OPEN_ANGLE * open;
+      // The ring is lit by this box and nothing else: hand it the lamp.
+      ring.update({ lit });
 
       const openFade = THREE.MathUtils.smoothstep(open, 0.45, 0.85);
       led.intensity = 900 * lit * (parseFloat(dbg.ledx) || 1);
@@ -936,13 +899,8 @@ export function createRingBox({ renderer, debug }) {
       glowSprite.material.opacity =
         0.85 * lit * THREE.MathUtils.smoothstep(open, 0.2, 0.5);
 
-      // The lamp's reach: shafts and floor pool swell as the mouth opens;
-      // the seam line glows only in the sliver between cracked and open.
-      const burstFade = lit * THREE.MathUtils.smoothstep(open, 0.5, 0.92);
-      for (const m of burstMeshes) {
-        m.material.opacity = m.material.userData.base * burstFade;
-        m.visible = burstFade > 0.01;
-      }
+      // The lamp's reach: the floor pool swells as the mouth opens; the
+      // seam line glows only in the sliver between cracked and open.
       const crack =
         lit *
         THREE.MathUtils.smoothstep(open, 0.006, 0.05) *
