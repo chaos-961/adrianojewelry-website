@@ -211,34 +211,57 @@ function buildBrilliant() {
  * because the shader pushes anything above 0.86 far past white — that split
  * is what lets the panels stay photographic while the specks blow out into
  * sparkles. */
+/* The standing panels: centre u, half width, top v, bottom v, then the
+ * panel's colour.
+ *
+ * Two things are being bought here. The first is EDGES — nine narrow panels
+ * with black between them give a turning stone far more hard lines to rake
+ * across itself than four broad ones, and every one of those lines is a
+ * flash on the way past and a band of fire where the spectrum straddles it.
+ *
+ * The second is the warm/cool split, which is not decoration: it is how a
+ * bench actually lights a stone. Gel one side warm and the other cool and
+ * the same facet throws a different colour depending on which way it is
+ * turned, so the colour inside the stone changes as it moves instead of
+ * sitting there. The ceiling — the panel the stone answers to most of the
+ * time — is left a hair cool, so the body of it reads icy and the fire comes
+ * up warm against that. Nothing here is more than a few percent off neutral;
+ * a stone with an obvious colour cast is a stone with a problem. */
 const PANELS = [
-  // centre u, half width, top v, bottom v, value
-  [0.06, 0.03, 0.3, 0.5, 0.5],
-  [0.3, 0.05, 0.28, 0.52, 0.66],
-  [0.52, 0.024, 0.32, 0.47, 0.34],
-  [0.74, 0.058, 0.29, 0.51, 0.58],
-  [0.9, 0.02, 0.33, 0.46, 0.44],
+  [0.055, 0.028, 0.3, 0.5, 0.54, 0.51, 0.45],
+  [0.155, 0.014, 0.33, 0.47, 0.33, 0.37, 0.44],
+  [0.3, 0.044, 0.28, 0.52, 0.66, 0.66, 0.68],
+  [0.41, 0.012, 0.31, 0.45, 0.46, 0.42, 0.35],
+  [0.52, 0.02, 0.32, 0.47, 0.3, 0.34, 0.4],
+  [0.63, 0.015, 0.29, 0.49, 0.44, 0.44, 0.44],
+  [0.74, 0.048, 0.29, 0.51, 0.62, 0.58, 0.5],
+  [0.865, 0.014, 0.33, 0.46, 0.36, 0.41, 0.48],
+  [0.945, 0.018, 0.3, 0.48, 0.5, 0.5, 0.52],
 ];
 const SPECKS = [
-  [0.02, 0.6, 4], [0.17, 0.55, 6], [0.21, 0.72, 3], [0.4, 0.58, 5],
-  [0.46, 0.68, 3], [0.6, 0.56, 7], [0.64, 0.75, 3], [0.83, 0.6, 5],
-  [0.87, 0.7, 4], [0.97, 0.57, 6], [0.12, 0.26, 5], [0.44, 0.24, 4],
-  [0.68, 0.25, 6], [0.95, 0.27, 4],
+  [0.02, 0.6, 4], [0.11, 0.53, 5], [0.17, 0.63, 6], [0.21, 0.72, 3],
+  [0.35, 0.55, 4], [0.4, 0.66, 5], [0.46, 0.75, 3], [0.57, 0.54, 7],
+  [0.6, 0.7, 4], [0.68, 0.6, 3], [0.79, 0.58, 5], [0.83, 0.71, 4],
+  [0.91, 0.55, 3], [0.97, 0.65, 6], [0.08, 0.25, 5], [0.31, 0.23, 4],
+  [0.56, 0.26, 6], [0.78, 0.24, 4], [0.95, 0.26, 5],
 ];
 
 /* The three lights the flare is allowed to catch: the ceiling straight
- * overhead, and the two widest panels. Directions, in the room's own frame —
- * derived from the panel table above rather than typed twice. */
+ * overhead, and the two widest panels — picked off the table above rather
+ * than named, so adding a panel cannot leave this pointing at nothing. */
 const FLARE_DIRS = [[0, 1, 0]].concat(
-  [PANELS[1], PANELS[3]].map((p) => {
-    const az = (p[0] - 0.5) * Math.PI * 2;
-    const el = ((p[2] + p[3]) / 2) * Math.PI;
-    return [
-      Math.cos(az) * Math.sin(el),
-      Math.cos(el),
-      Math.sin(az) * Math.sin(el),
-    ];
-  })
+  PANELS.slice()
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map((p) => {
+      const az = (p[0] - 0.5) * Math.PI * 2;
+      const el = ((p[2] + p[3]) / 2) * Math.PI;
+      return [
+        Math.cos(az) * Math.sin(el),
+        Math.cos(el),
+        Math.sin(az) * Math.sin(el),
+      ];
+    })
 );
 
 function tentTexture() {
@@ -248,42 +271,89 @@ function tentTexture() {
   c.width = W;
   c.height = H;
   const g = c.getContext("2d");
-  const lv = (v) => {
-    const b = Math.round(Math.min(Math.max(v, 0), 1) * 255);
-    return `rgb(${b},${b},${b})`;
-  };
+  const to255 = (v) => Math.round(Math.min(Math.max(v, 0), 1) * 255);
+  const lv = (r, gr, b) =>
+    `rgb(${to255(r)},${to255(gr === undefined ? r : gr)},${to255(
+      b === undefined ? r : b
+    )})`;
 
   g.fillStyle = lv(0.004);
   g.fillRect(0, 0, W, H);
 
-  // The ceiling panel: everything from straight up out to 27 degrees off it,
-  // with one hard edge. The stone spends most of its time reflecting this.
-  g.fillStyle = lv(0.55);
-  g.fillRect(0, 0, W, H * 0.15);
-  const fade = g.createLinearGradient(0, H * 0.15, 0, H * 0.19);
-  fade.addColorStop(0, lv(0.55));
+  /* The ceiling: everything from straight up out to 42 degrees off it, and
+   * coffered rather than flat.
+   *
+   * How WIDE it is turns out to matter more than how bright. The light that
+   * leaves a stone's table has come down through the crown, off the pavilion
+   * twice and back up — so the eye at 30 degrees above the table is reading
+   * the room roughly 55 degrees up on the far side. A tight overhead misses
+   * that on every ordinary viewing angle and the table goes grey, which is
+   * no way to light the one facet everybody looks at. Out to 42 degrees, the
+   * table's light path lands inside it from about 15 degrees of tilt all the
+   * way to straight down. The gap between this and the standing panels is
+   * left dark on purpose: that is where the direct reflection lands, and the
+   * black in it is what gives the crown its contrast.
+   *
+   * This is the single biggest thing the crown reflects, and one unbroken
+   * panel comes back as one unbroken sheet — half the top of the stone goes
+   * blank white, which is the look of cheap render glass. Broken into cells
+   * with dark seams between them, the same facets catch a cell, then a seam,
+   * then the next cell, and the crown reads as structure instead of paint.
+   * The seams are also edges, and edges are where the fire lives.
+   *
+   * Every cell is gelled a percent or two off its neighbours, and the ring
+   * of cells dims going outward the way a real overhead falls off. So what
+   * comes back out of the stone is not one white — it is a dozen, and they
+   * change places as it turns. */
+  const RINGS = [0, 0.07, 0.135, 0.19, 0.235];
+  const CELLS = 12;
+  const SEAM_U = 0.0035;
+  const SEAM_V = 0.005;
+  const TINTS = [
+    [1.0, 0.99, 0.962], [1.0, 1.0, 1.0], [0.968, 0.988, 1.026],
+    [1.0, 0.997, 0.982], [0.984, 0.995, 1.014], [1.0, 0.982, 0.955],
+  ];
+  for (let ring = 0; ring < RINGS.length - 1; ring++) {
+    for (let k = 0; k < CELLS; k++) {
+      const t = TINTS[(k + ring * 2) % TINTS.length];
+      // Held under the shader's hot threshold: a ceiling cell is a panel,
+      // not a speck, and must never be handed the sparkle multiplier.
+      const l = 0.6 * (1 - ring * 0.11) * (0.94 + (0.12 * ((k * 5) % 7)) / 6);
+      g.fillStyle = lv(l * t[0], l * t[1], l * t[2]);
+      g.fillRect(
+        (k / CELLS + SEAM_U) * W,
+        (RINGS[ring] + (ring ? SEAM_V : 0)) * H,
+        (1 / CELLS - SEAM_U * 2) * W,
+        (RINGS[ring + 1] - RINGS[ring] - (ring ? SEAM_V : 0)) * H
+      );
+    }
+  }
+  const CEIL_V = RINGS[RINGS.length - 1];
+  const fade = g.createLinearGradient(0, H * CEIL_V, 0, H * (CEIL_V + 0.022));
+  fade.addColorStop(0, lv(0.2, 0.21, 0.23));
   fade.addColorStop(1, "rgba(0,0,0,0)");
   g.fillStyle = fade;
-  g.fillRect(0, H * 0.15, W, H * 0.04);
+  g.fillRect(0, H * CEIL_V, W, H * 0.022);
 
   // The standing panels, with black between them. The gaps matter as much as
   // the panels — a tent lit all the way round reflects as fog.
-  for (const [u, hw, v0, v1, val] of PANELS) {
+  for (const [u, hw, v0, v1, r, gr, b] of PANELS) {
     const grd = g.createLinearGradient(0, v0 * H, 0, v1 * H);
-    grd.addColorStop(0, lv(val));
-    grd.addColorStop(0.75, lv(val * 0.82));
-    grd.addColorStop(1, lv(val * 0.4));
+    grd.addColorStop(0, lv(r, gr, b));
+    grd.addColorStop(0.75, lv(r * 0.82, gr * 0.82, b * 0.82));
+    grd.addColorStop(1, lv(r * 0.4, gr * 0.4, b * 0.4));
     g.fillStyle = grd;
-    // Drawn twice a third of a turn apart so the wrap is never a seam.
+    // Drawn either side of the wrap so the seam is never a seam.
     for (const shift of [-1, 0, 1]) {
       g.fillRect((u + shift - hw) * W, v0 * H, hw * 2 * W, (v1 - v0) * H);
     }
   }
 
-  // The floor: a low bounce off the table the tent stands on, falling away.
+  // The floor: a low bounce off the bench the tent stands on, warm the way
+  // a wooden bench is, falling away to nothing.
   const floor = g.createLinearGradient(0, H * 0.56, 0, H);
-  floor.addColorStop(0, lv(0.045));
-  floor.addColorStop(0.45, lv(0.02));
+  floor.addColorStop(0, lv(0.05, 0.045, 0.037));
+  floor.addColorStop(0.45, lv(0.022, 0.02, 0.017));
   floor.addColorStop(1, lv(0.003));
   g.fillStyle = floor;
   g.fillRect(0, H * 0.56, W, H * 0.44);
@@ -434,7 +504,13 @@ const FRAG_BACK = [
  * that. The bands overlap, so a facet that catches a light catches it in
  * nearly all of them and reads white, and the colour appears only where the
  * bands disagree — on the EDGE, where one has swung onto a light and the
- * next has not. Spectral colour belongs on edges. */
+ * next has not. Spectral colour belongs on edges.
+ *
+ * Each band takes the tent's own colour with it rather than just its
+ * brightness, so a warm panel puts warmth into the bands that carry red and
+ * a cool one cools the far end. With a neutral tent this is exactly the grey
+ * behaviour it replaced; with a gelled one it is the difference between fire
+ * that is always the same colour and fire that changes as the stone turns. */
 const BANDS = [
   ["1.0 + uDisp", "0.5319, 0.0556, 0.0"],
   ["1.0 + 0.5 * uDisp", "0.3723, 0.2593, 0.0160"],
@@ -469,7 +545,7 @@ const FRAG_FRONT = [
         b[1] +
         ") * tent(returned(refract(V, N, uEta * (" +
         b[0] +
-        ")))).g;"
+        "))));"
     )
   )
   .concat([
@@ -527,7 +603,7 @@ export function createBrilliantDiamond(opts) {
       uHot,
       uEta: { value: 0.62 },
       uDisp: { value: 0.035 },
-      uThru: { value: 0.5 },
+      uThru: { value: 0.46 },
       uRefl: { value: 1.0 },
     },
     side: THREE.FrontSide,

@@ -516,6 +516,12 @@ export function createRingBox({ renderer, debug }) {
   const REC_W = 4.8; // lid recess
   const REC_D = 4.0;
   const REC_R = 0.5;
+  /* How deep the lid is hollowed out, and so how high the ceiling stands over
+   * the base's rim when the box is shut. This is the number the stone lives
+   * under: it is what the seat below spends, and a box sold with a two-carat
+   * solitaire in it is hollowed for one. Everything in the lid — the lamp
+   * housing, its face, the lens, the light itself — hangs off this. */
+  const REC_H = 0.62;
   const OPEN_ANGLE = -1.72; // ~98.5 deg past closed
 
   const satin = new THREE.MeshPhysicalMaterial({
@@ -641,14 +647,14 @@ export function createRingBox({ renderer, debug }) {
    * stone, since v0.2.5 — and cannot go up through the closed lid's ceiling.
    * Take whichever seat is lower, so neither a resized ring nor a resized box
    * can put metal or stone through plastic. As drawn the ring rests in the
-   * slot and the table clears the shut lid by 1.3mm. */
+   * slot and the table clears the shut lid by 1.5mm. */
   const ring = createSolitaireRing({ renderer });
   const seat = (() => {
     const NAP = 0.035; // the velvet's own pile, under the band
     const HEADROOM = 0.12; // what the piece keeps clear of the shut lid
     const y = Math.min(
       CAV_Y + ring.metrics.drop + NAP,
-      BASE_H + 0.5 - HEADROOM - ring.metrics.rise
+      BASE_H + REC_H - HEADROOM - ring.metrics.rise
     );
     ring.root.position.y = y;
     root.add(ring.root);
@@ -707,7 +713,7 @@ export function createRingBox({ renderer, debug }) {
       mesh(
         sweep(REC_W, REC_D, REC_R, [
           { i: 0, y: 0 },
-          { i: 0, y: 0.5 },
+          { i: 0, y: REC_H },
         ], { flip: true }),
         satin,
         { receive: true }
@@ -716,7 +722,7 @@ export function createRingBox({ renderer, debug }) {
     const ceiling = mesh(capGeometry(REC_W, REC_D, REC_R, false), velvet, {
       receive: true,
     });
-    ceiling.position.y = 0.5;
+    ceiling.position.y = REC_H;
     lid.add(ceiling);
 
     // Lamp housing on the recess ceiling, out by the free edge, lens in its
@@ -730,13 +736,13 @@ export function createRingBox({ renderer, debug }) {
       satin
     );
     housing.rotation.x = Math.PI;
-    housing.position.set(0, 0.5, 1.45);
+    housing.position.set(0, REC_H, 1.45);
     lid.add(housing);
     const housingFace = mesh(capGeometry(1.15, 0.62, 0.2, false), satin);
-    housingFace.position.set(0, 0.3, 1.45);
+    housingFace.position.set(0, REC_H - 0.2, 1.45);
     lid.add(housingFace);
     lensMesh = mesh(capGeometry(0.58, 0.3, 0.13, false), lens);
-    lensMesh.position.set(0, 0.295, 1.45);
+    lensMesh.position.set(0, REC_H - 0.205, 1.45);
     lid.add(lensMesh);
   }
 
@@ -748,7 +754,7 @@ export function createRingBox({ renderer, debug }) {
   root.add(ledTarget);
 
   const led = new THREE.SpotLight(0xf7fbff, 0, 12, 0.45, 0.7, 1.3);
-  led.position.set(0, 0.24, 1.45);
+  led.position.set(0, REC_H - 0.26, 1.45);
   led.target = ledTarget;
   led.castShadow = dbg.ledshadow !== "0";
   led.shadow.mapSize.set(1024, 1024);
@@ -759,7 +765,7 @@ export function createRingBox({ renderer, debug }) {
   lid.add(led);
 
   const ledSpill = new THREE.PointLight(0xf7fbff, 0, 3, 2);
-  ledSpill.position.set(0, 0.18, 1.42);
+  ledSpill.position.set(0, REC_H - 0.32, 1.42);
   lid.add(ledSpill);
 
   let glowSprite;
@@ -783,7 +789,7 @@ export function createRingBox({ renderer, debug }) {
       })
     );
     glowSprite.scale.setScalar(1.05);
-    glowSprite.position.set(0, 0.24, 1.42);
+    glowSprite.position.set(0, REC_H - 0.26, 1.42);
     lid.add(glowSprite);
   }
 

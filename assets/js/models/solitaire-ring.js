@@ -62,7 +62,7 @@ const FLARE = 0.78; // radians either side of the top the flare is spread over
  * The girdle plane is not a taste decision. A brilliant's pavilion runs 43%
  * of its diameter below the girdle, and that point cannot be inside the top
  * of the band, which is what fixes how tall this head has to stand. */
-const STONE_D = 0.65; // a 6.5mm round brilliant — about a carat
+const STONE_D = 0.82; // an 8.2mm round brilliant — about two carats
 const STONE_R = STONE_D / 2;
 const PAVILION = BRILLIANT.pavilion * STONE_R; // culet below the girdle
 const CROWN_H = BRILLIANT.crown * STONE_R; // girdle up to the table
