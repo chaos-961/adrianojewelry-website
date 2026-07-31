@@ -1,20 +1,23 @@
 /* Adriano Jewelry — the four-claw solitaire.
  *
- * The ring in the reference photograph, built from it and standing without
- * its stone: a tapered white-gold shank that thickens and widens as it
- * climbs, and four straight claws standing off the top of it, open, holding
- * nothing. The absence is the brief — this is the setting, and the setting
- * is the piece the bench makes; the stone is the customer's.
+ * The ring in the reference photograph: a tapered white-gold shank that
+ * thickens and widens as it climbs, four straight claws standing off the top
+ * of it, and the brilliant they close over. The head was cut for that stone
+ * before the stone existed (v0.2.4 shipped this setting deliberately empty),
+ * so setting one is not a fitting job — every dimension of the claws was
+ * already solved from the diamond's own numbers, and brilliant-diamond.js
+ * publishes those numbers for both of us to read.
  *
- * Empty is not the same as vague. The head is solved from the brilliant it
- * is cut for, and reports it in metrics.stone, so a diamond dropped in here
- * later lands where a set stone lands rather than being fitted by eye.
+ * The stone lifts. It is held on a spring the stage drives, and at full lift
+ * it stands clear of its claws and turns on its own axis, which is the only
+ * way to look at a stone properly — the setting is what a photograph of a
+ * ring shows you, and the stone is what you actually came to see.
  *
- * Every part of it is one wire: an elliptical section swept along a path by
- * geometry.js's tube(). The shank is a closed loop whose section grows
- * toward the top; a claw is a straight run from a root buried in that shank
- * to a domed tip. There is no basket, gallery or bezel in this design and
- * nothing is soldered on.
+ * Every part of the metal is one wire: an elliptical section swept along a
+ * path by geometry.js's tube(). The shank is a closed loop whose section
+ * grows toward the top; a claw is a straight run from a root buried in that
+ * shank to a domed tip. There is no basket, gallery or bezel in this design
+ * and nothing is soldered on.
  *
  * Sizes are the centimetres of the same imagined bench the box is drawn on:
  * a size-6 finger, a 6.5mm stone.
@@ -22,12 +25,10 @@
  * The stage contract, as every model here:
  *
  *   createSolitaireRing({ renderer, standing }) -> {
- *     root,        a Group with the finger's centre at its origin
- *     metrics,     what a box needs to seat one, and what a stone needs to
- *                  be set in it (see below)
- *     update(),    nothing about a ring moves; here so the stage can drive
- *                  it like any other prop
- *     framing(),   { cy, cr } bounding sphere for camera fit
+ *     root,          a Group with the finger's centre at its origin
+ *     metrics,       what a box needs to seat one, and where its stone sits
+ *     update(state), light, and how far the stone is out of the setting
+ *     framing(state) { cy, cr } bounding sphere for camera fit
  *   }
  *
  * The renderer is only for pre-filtering the light tent this model carries
@@ -39,6 +40,7 @@
 
 import * as THREE from "../vendor/three.module.min.js";
 import { tube } from "./geometry.js";
+import { BRILLIANT, createBrilliantDiamond } from "./brilliant-diamond.js";
 
 /* The spec. One place, so the ring can be resized like a real order. */
 const RI = 0.79; // inner radius: a size 6
@@ -50,23 +52,29 @@ const FLARE = 0.78; // radians either side of the top the flare is spread over
 
 /* The stone this head is cut for.
  *
- * Nothing here draws a diamond — the ring is deliberately without one — but
- * the head is not guessed around an empty space either. Every dimension of
- * it is solved from the stone it is waiting for, so the day one is dropped
- * in it sits where a stone sits: girdle bearing on all four claws at once,
- * culet clear of the shank underneath, and the crown standing proud of the
- * tips. An empty setting that is honestly a setting.
+ * Every dimension of the head is solved from the diamond rather than fitted
+ * to it: girdle bearing on all four claws at once, culet clear of the shank
+ * underneath, and the crown standing proud of the tips with the nails laid
+ * over it. The stone's proportions are read straight out of the cut — this
+ * file must never restate them, or the two halves of the same joint would be
+ * free to drift apart.
  *
- * The girdle plane is not a taste decision. A brilliant's pavilion runs
- * 43% of its diameter below the girdle, and that point cannot be inside the
- * top of the band, which is what fixes how tall this head has to stand. */
+ * The girdle plane is not a taste decision. A brilliant's pavilion runs 43%
+ * of its diameter below the girdle, and that point cannot be inside the top
+ * of the band, which is what fixes how tall this head has to stand. */
 const STONE_D = 0.65; // a 6.5mm round brilliant — about a carat
 const STONE_R = STONE_D / 2;
-const PAVILION = 0.43 * STONE_D; // culet below the girdle, on a standard cut
-const CROWN_H = 0.162 * STONE_D; // girdle up to the table, likewise
-const TABLE_R = 0.55 * STONE_R;
+const PAVILION = BRILLIANT.pavilion * STONE_R; // culet below the girdle
+const CROWN_H = BRILLIANT.crown * STONE_R; // girdle up to the table
+const TABLE_R = BRILLIANT.table * STONE_R;
 const SHANK_TOP = RI + BT1;
 const GIRDLE_Y = SHANK_TOP + PAVILION + 0.042; // culet clears by 0.42mm
+
+/* How far out of its claws the stone comes when it is lifted. Enough that it
+ * stands clear of the open lid as well as the setting — the box's own maths
+ * checks that, and a camera closing on the stone has to have somewhere to
+ * stand that the lid is not already in. */
+const LIFT = 2.1;
 
 /* A claw, written for the +x/+z quarter and mirrored into the other three.
  * It is a straight post with a nail turned over at the top, which is the
@@ -322,31 +330,60 @@ export function createSolitaireRing(opts) {
     }
   }
 
+  /* The stone, set. It goes exactly on the girdle plane the claws were leaned
+   * to meet — no offset, no easing it down until it looks right. If it ever
+   * stops sitting on all four bearings, that is a fact about the arithmetic
+   * above and wants fixing there, not here. */
+  const stone = createBrilliantDiamond({ renderer: o.renderer, diameter: STONE_D });
+  stone.root.position.y = GIRDLE_Y;
+  root.add(stone.root);
+
   return {
     root,
 
     /** What a box needs to seat one: how far the shank hangs below the
-     * finger's centre, how far the claws stand above it, and how wide a slot
-     * the band has to pass through. `stone` is the other half of it — the
-     * brilliant this head was solved for, and the plane its girdle sits on,
-     * so whatever sets one later does not have to measure the claws to find
-     * out where it goes. */
+     * finger's centre, how far the piece stands above it, and how wide a slot
+     * the band has to pass through. The rise is the table of the stone, not
+     * the claw tips — the stone is the tallest thing here now. `stone` is the
+     * other half of it: where its girdle sits and how far it comes up when
+     * it is lifted, so a box can work out what its lid has to clear. */
     metrics: {
       drop: RI + BT0,
-      rise: NAIL_Y + TIP_R,
+      rise: Math.max(NAIL_Y + TIP_R, GIRDLE_Y + CROWN_H),
       width: BW1,
-      stone: { diameter: STONE_D, girdleY: GIRDLE_Y },
+      stone: { diameter: STONE_D, girdleY: GIRDLE_Y, lift: LIFT },
     },
 
-    /** Nothing on a ring moves; only the light on it does. */
+    /** Nothing on the metal moves; the light on it does, and the stone comes
+     * up out of it. Lifted, the stone is out in the open and under the studio
+     * whatever the box's lamp is doing, so its own light comes up with it. */
     update(state) {
-      const lit =
-        standing || !state || typeof state.lit !== "number" ? 1 : state.lit;
+      const s = state || {};
+      const lift = s.lift || 0;
+      const lit = standing || typeof s.lit !== "number" ? 1 : s.lit;
       metal.envMapIntensity = TENT_DARK + (TENT_LIT - TENT_DARK) * lit;
+      stone.root.position.y = GIRDLE_Y + LIFT * lift;
+      stone.update({
+        lit: Math.max(lit, lift),
+        spin: s.spin || 0,
+        reveal: Math.max(typeof s.reveal === "number" ? s.reveal : 1, lift),
+        eye: s.eye,
+      });
     },
 
-    framing() {
-      return { cy: (standing ? RI + BT0 : 0) + 0.11, cr: 1.22 };
+    /** The ring's own shot, closing on the stone as it comes up out of it.
+     * Centred between the bottom of the shank and the table of the stone,
+     * which is higher than the bare setting's centre was — a set ring is
+     * taller than the head it was measured as. */
+    framing(state) {
+      const base = standing ? RI + BT0 : 0;
+      const lift = (state && state.lift) || 0;
+      const k = THREE.MathUtils.smoothstep(lift, 0.05, 1);
+      const s = stone.framing();
+      return {
+        cy: THREE.MathUtils.lerp(base + 0.22, base + GIRDLE_Y + LIFT, k),
+        cr: THREE.MathUtils.lerp(1.26, s.cr, k),
+      };
     },
   };
 }

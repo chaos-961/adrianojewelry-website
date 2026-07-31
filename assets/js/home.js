@@ -21,6 +21,7 @@
 import * as THREE from "./vendor/three.module.min.js";
 import { createRingBox, drawMarque } from "./models/ring-box.js";
 import { createSolitaireRing } from "./models/solitaire-ring.js";
+import { createBrilliantDiamond } from "./models/brilliant-diamond.js";
 
 (function () {
   "use strict";
@@ -31,7 +32,8 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
   const fallbackEl = document.getElementById("stage-fallback");
   const lidBtn = document.getElementById("stage-lid");
   const ledBtn = document.getElementById("stage-led");
-  if (!section || !canvas || !frame || !lidBtn || !ledBtn) return;
+  const liftBtn = document.getElementById("stage-lift");
+  if (!section || !canvas || !frame || !lidBtn || !ledBtn || !liftBtn) return;
 
   const params = new URLSearchParams(location.search);
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -165,20 +167,25 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
 
 
   /* The prop. The page's is the box; ?prop=ring stands the ring in the same
-   * room on its own, at full frame, which is how the piece gets looked at
-   * while it is being cut. Both modules export the same contract, so the
-   * stage never learns which one it was handed — the pills still drive an
-   * open and a lit the ring simply has no use for. */
+   * room on its own and ?prop=diamond hangs the stone there alone, both at
+   * full frame, which is how a piece gets looked at while it is being cut.
+   * Every module exports the same contract, so the stage never learns which
+   * one it was handed — the pills still drive an open and a lit that a bare
+   * ring or a loose stone simply has no use for. */
+  const prop = params.get("prop");
+  const hasLid = prop !== "ring" && prop !== "diamond";
   const model =
-    params.get("prop") === "ring"
+    prop === "ring"
       ? createSolitaireRing({ renderer, standing: true })
-      : createRingBox({
-          renderer,
-          debug: {
-            ledx: params.get("ledx"),
-            ledshadow: params.get("ledshadow"),
-          },
-        });
+      : prop === "diamond"
+        ? createBrilliantDiamond({ renderer, standing: true })
+        : createRingBox({
+            renderer,
+            debug: {
+              ledx: params.get("ledx"),
+              ledshadow: params.get("ledshadow"),
+            },
+          });
   scene.add(model.root);
 
   /* ------------------------------------------------------- state & springs */
@@ -233,9 +240,37 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
   lidSpring.dir = [42, 9, 46, 15]; // springy open; over-damped close
   lidSpring.floor = 0;
   const ledSpring = spring(0, 120, 21); // the lamp comes up like an LED
+  const liftSpring = spring(0, 30, 10); // the stone, out of its claws and back
 
   let lidOpen = false;
   let ledOn = false;
+  let lifted = false;
+  let teasing = false;
+
+  /* The stone's own turn, while it is up. It is only allowed to run at full
+   * lift, and on the way back down it does not stop where it was let go —
+   * it turns to the nearest eighth, because the claws stand on four of the
+   * eight bezel facets and a stone set a few degrees out of square is the
+   * one mistake a jeweller would see from across the room. */
+  const SPIN = 0.5; // radians a second
+  const FACET = Math.PI / 4; // the brilliant's own eight-fold symmetry
+  let spinAngle = 0;
+  function stepSpin(dt) {
+    // ?spin names an angle, so it means that angle and not one that has run
+    // on since — a turning stone cannot be photographed otherwise.
+    if (params.has("spin")) return false;
+    if (liftSpring.x > 0.02 && !reduceMotion.matches) {
+      spinAngle = (spinAngle + dt * SPIN) % (Math.PI * 2);
+      return true;
+    }
+    const square = Math.round(spinAngle / FACET) * FACET;
+    if (Math.abs(spinAngle - square) < 0.0004) {
+      spinAngle = square;
+      return false;
+    }
+    spinAngle += (square - spinAngle) * Math.min(1, dt * 7);
+    return true;
+  }
 
   // View state. The turn is the reader's; the framing follows the lid.
   let yaw = -0.42;
@@ -251,37 +286,78 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
       Math.max(PITCH_MIN, (parseFloat(params.get("tilt")) * Math.PI) / 180)
     );
 
+  /* Every spring target in one place, because two of the three are not free:
+   * the lid cannot shut through a stone standing out of the box, and the
+   * stone cannot rise through a shut lid. Each waits on the other's actual
+   * position rather than on a timer, so however fast the reader works the
+   * pills, nothing is ever asked to pass through anything. */
+  const TEASE_LID = 0.042;
+  const TEASE_LIT = 0.55;
+  function syncTargets() {
+    if (held) return;
+    lidSpring.target =
+      liftSpring.x > 0.02 ? 1 : teasing ? TEASE_LID : lidOpen ? 1 : 0;
+    ledSpring.target = teasing ? TEASE_LIT : ledOn ? 1 : 0;
+    liftSpring.target = lifted && (!hasLid || lidSpring.x > 0.7) ? 1 : 0;
+  }
+
   function setLid(open, instant) {
     lidOpen = open;
-    lidSpring.target = open ? 1 : 0;
-    if (instant) lidSpring.x = lidSpring.target;
     lidBtn.textContent = open ? "Close the box" : "Open the box";
     section.dataset.lid = open ? "open" : "closed";
+    syncTargets();
+    if (instant) lidSpring.x = lidSpring.target;
   }
   function setLed(on, instant) {
     ledOn = on;
-    ledSpring.target = on ? 1 : 0;
-    if (instant) ledSpring.x = ledSpring.target;
     ledBtn.textContent = on ? "Turn off the light" : "Turn on the light";
     section.dataset.led = on ? "on" : "off";
+    syncTargets();
+    if (instant) ledSpring.x = ledSpring.target;
+  }
+  function setLift(up, instant) {
+    // Asking for the stone asks for the box it is in: nothing comes out of a
+    // shut box, so the lid and the lamp come with it.
+    if (up && hasLid && !lidOpen) {
+      setLid(true, instant);
+      setLed(true, instant);
+    }
+    lifted = up;
+    liftBtn.textContent = up ? "Set the diamond back" : "Lift the diamond";
+    section.dataset.lift = up ? "up" : "down";
+    syncTargets();
+    if (instant) liftSpring.x = liftSpring.target;
   }
 
-  // Boot state, overridable for deep links: ?open=1&lit=0&turn=-30&tilt=24.
-  // Fractions hold a mid-pose (?open=0.055&lit=0.55 is the tease, held) —
-  // that is how the in-between states get photographed, since headless
-  // virtual time jumps straight over animation.
+  /* Boot state, overridable for deep links:
+   * ?open=1&lit=0&lift=1&turn=-30&tilt=24&spin=22.
+   * Fractions hold a mid-pose (?open=0.042&lit=0.55 is the tease, held) —
+   * that is how the in-between states get photographed, since headless
+   * virtual time jumps straight over animation. A held pose is exactly that:
+   * syncTargets stands down for the rest of the page's life so nothing
+   * springs out from under the camera. */
   const openParam = parseFloat(params.get("open") || "0") || 0;
+  const liftParam = parseFloat(params.get("lift") || "0") || 0;
   const litParam = params.has("lit")
     ? parseFloat(params.get("lit")) || 0
-    : openParam >= 1
+    : openParam >= 1 || liftParam > 0
       ? 1
       : 0;
-  setLid(openParam >= 1, true);
+  const part = (v) => v > 0 && v < 1;
+  const held = part(openParam) || part(litParam) || part(liftParam);
+  setLid(openParam >= 1 || liftParam > 0, true);
   setLed(litParam >= 1, true);
-  if (openParam > 0 && openParam < 1)
-    lidSpring.x = lidSpring.target = openParam;
-  if (litParam > 0 && litParam < 1)
-    ledSpring.x = ledSpring.target = litParam;
+  setLift(liftParam >= 1, true);
+  if (params.has("spin"))
+    spinAngle = (parseFloat(params.get("spin")) * Math.PI) / 180 || 0;
+  if (held) {
+    // A part-lifted stone is only a pose worth holding out of an open box,
+    // so asking for one asks for the lid too.
+    if (openParam > 0 || liftParam > 0)
+      lidSpring.x = lidSpring.target = openParam > 0 ? openParam : 1;
+    if (litParam > 0) ledSpring.x = ledSpring.target = litParam;
+    if (liftParam > 0) liftSpring.x = liftSpring.target = liftParam;
+  }
 
   /* The tease. Left closed and untouched, every few seconds the lid cracks
    * a few degrees with the lamp breathing through the gap, then settles —
@@ -289,13 +365,11 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
    * labels, only leans on the springs; any touch postpones it, opening the
    * box ends it, and reduced motion suppresses it entirely. */
   let teaseTimer = 0;
-  let teasing = false;
   function endTease() {
     if (!teasing) return;
     teasing = false;
     section.dataset.tease = "0";
-    lidSpring.target = lidOpen ? 1 : 0;
-    ledSpring.target = ledOn ? 1 : 0;
+    syncTargets();
   }
   function restTease(delay) {
     clearTimeout(teaseTimer);
@@ -303,14 +377,13 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
     teaseTimer = setTimeout(tease, delay);
   }
   function tease() {
-    if (lidOpen || dragging || reduceMotion.matches || document.hidden) {
+    if (lidOpen || lifted || dragging || reduceMotion.matches || document.hidden) {
       restTease(4500);
       return;
     }
     teasing = true;
     section.dataset.tease = "1";
-    lidSpring.target = 0.042;
-    ledSpring.target = 0.55;
+    syncTargets();
     wake();
     teaseTimer = setTimeout(() => {
       endTease();
@@ -318,19 +391,28 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
       teaseTimer = setTimeout(tease, 5200);
     }, 460);
   }
-  teaseTimer = setTimeout(tease, 2600);
+  if (!held) teaseTimer = setTimeout(tease, 2600);
 
   lidBtn.addEventListener("click", () => {
     restTease(9000);
-    setLid(!lidOpen);
+    const open = !lidOpen;
+    // Shutting the box sets the stone back down first — the lid then waits
+    // on it, so the two never argue about the same piece of air.
+    if (!open && lifted) setLift(false);
+    setLid(open);
     // The real box switches its lamp with the lid; the light pill can still
     // overrule either way afterwards.
-    setLed(lidOpen);
+    setLed(open);
     wake();
   });
   ledBtn.addEventListener("click", () => {
     restTease(9000);
     setLed(!ledOn);
+    wake();
+  });
+  liftBtn.addEventListener("click", () => {
+    restTease(9000);
+    setLift(!lifted);
     wake();
   });
 
@@ -391,12 +473,20 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
   /* ----------------------------------------------------------------- frame */
 
   function applyState() {
-    const openT = lidSpring.x;
-    model.update({ open: openT, lit: ledSpring.x });
+    const state = {
+      open: lidSpring.x,
+      lit: ledSpring.x,
+      lift: liftSpring.x,
+      spin: spinAngle,
+    };
 
-    // Fit the model's bounding sphere in both fields of view; the shot
-    // loosens as the lid stands up, tightens again as it closes.
-    const f = model.framing(openT);
+    /* Fit the model's bounding sphere in both fields of view; the shot
+     * loosens as the lid stands up, tightens again as it closes, and closes
+     * right in on the stone when it comes out. Framing is a pure reading of
+     * the state, so the camera can be placed before the model is told
+     * anything — which is what lets the stone's flare be asked about this
+     * frame's eye rather than the last one's. */
+    const f = model.framing(state);
     const vHalf = (camera.fov * Math.PI) / 360;
     const hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
     const dist = (f.cr / Math.sin(Math.min(vHalf, hHalf))) * 1.03;
@@ -407,6 +497,9 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
       Math.cos(yaw) * dist * cp
     );
     camera.lookAt(0, f.cy, 0);
+
+    state.eye = camera.position;
+    model.update(state);
   }
 
   let queued = false;
@@ -427,7 +520,11 @@ import { createSolitaireRing } from "./models/solitaire-ring.js";
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (canvas.width !== Math.floor(frame.clientWidth * dpr)) resize();
 
+    // The lid and the stone re-read each other every frame, since each is
+    // waiting on where the other actually is rather than on being told.
+    syncTargets();
     let moving = stepSprings(dt);
+    if (stepSpin(dt)) moving = true;
 
     if (!dragging && Math.abs(yawVel) > 0.02) {
       yaw += yawVel * dt;

@@ -637,21 +637,25 @@ export function createRingBox({ renderer, debug }) {
   /* The ring, stood in that slot. Its height is arithmetic rather than
    * taste, and it is pinned between two hard facts: the band hangs
    * metrics.drop below the finger's centre and cannot go through the velvet
-   * floor, and the claws stand metrics.rise above it and cannot go up
-   * through the closed lid's ceiling. Take whichever seat is lower, so
-   * neither a resized ring nor a resized box can put metal through plastic.
-   * As drawn the ring rests in the slot and clears the shut lid by 1.5mm. */
+   * floor, and the piece stands metrics.rise above it — the table of the
+   * stone, since v0.2.5 — and cannot go up through the closed lid's ceiling.
+   * Take whichever seat is lower, so neither a resized ring nor a resized box
+   * can put metal or stone through plastic. As drawn the ring rests in the
+   * slot and the table clears the shut lid by 1.3mm. */
   const ring = createSolitaireRing({ renderer });
-  {
+  const seat = (() => {
     const NAP = 0.035; // the velvet's own pile, under the band
-    const HEADROOM = 0.12; // what the claws keep clear of the shut lid
-    const seat = Math.min(
+    const HEADROOM = 0.12; // what the piece keeps clear of the shut lid
+    const y = Math.min(
       CAV_Y + ring.metrics.drop + NAP,
       BASE_H + 0.5 - HEADROOM - ring.metrics.rise
     );
-    ring.root.position.y = seat;
+    ring.root.position.y = y;
     root.add(ring.root);
-  }
+    return y;
+  })();
+  // Where the stone's girdle stands once it is lifted right out of the box.
+  const STONE_UP = seat + ring.metrics.stone.girdleY + ring.metrics.stone.lift;
 
   // Lid, hinged along the back rim.
   const lidPivot = new THREE.Group();
@@ -885,12 +889,21 @@ export function createRingBox({ renderer, debug }) {
   return {
     root,
 
-    /** Applies eased state: open and lit both run 0..1 (springs may
+    /** Applies eased state: open, lit and lift all run 0..1 (springs may
      * overshoot slightly; everything here tolerates it). */
-    update({ open, lit }) {
+    update(state) {
+      const { open, lit } = state;
       lidPivot.rotation.x = OPEN_ANGLE * open;
-      // The ring is lit by this box and nothing else: hand it the lamp.
-      ring.update({ lit });
+      /* The ring is lit by this box and nothing else: hand it the lamp. It
+       * also gets told how much of it can be seen at all, because a stone
+       * shut in a black box must not throw its flare out through the lid. */
+      ring.update({
+        lit,
+        lift: state.lift || 0,
+        spin: state.spin || 0,
+        eye: state.eye,
+        reveal: THREE.MathUtils.smoothstep(open, 0.02, 0.3),
+      });
 
       const openFade = THREE.MathUtils.smoothstep(open, 0.45, 0.85);
       led.intensity = 900 * lit * (parseFloat(dbg.ledx) || 1);
@@ -926,9 +939,19 @@ export function createRingBox({ renderer, debug }) {
     },
 
     /** Bounding sphere for the camera: tight around the closed box, loose
-     * around the standing lid, blended by the eased open value. */
-    framing(open) {
-      return { cy: 2.0 + 1.6 * open, cr: 3.6 + 1.45 * open };
+     * around the standing lid, and then all the way in onto the stone once
+     * it is lifted out — a box is a product shot, a lifted stone is not. */
+    framing(state) {
+      const open = state.open;
+      const box = { cy: 2.0 + 1.6 * open, cr: 3.6 + 1.45 * open };
+      const lift = state.lift || 0;
+      if (lift < 0.002) return box;
+      const k = THREE.MathUtils.smoothstep(lift, 0.02, 1);
+      const s = ring.framing({ lift: 1 });
+      return {
+        cy: THREE.MathUtils.lerp(box.cy, STONE_UP, k),
+        cr: THREE.MathUtils.lerp(box.cr, s.cr, k),
+      };
     },
   };
 }

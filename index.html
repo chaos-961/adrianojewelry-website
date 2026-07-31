@@ -44,13 +44,14 @@
     <link rel="stylesheet" href="assets/css/site.css" />
     <link rel="stylesheet" href="assets/css/home.css" />
 
-    <!-- The module graph is four levels deep (home.js -> models/ring-box.js
-         -> models/solitaire-ring.js + models/geometry.js -> vendor three);
-         preloading flattens the chain so the render is not rounds of trips
-         behind the parse. -->
+    <!-- The module graph is five levels deep (home.js -> models/ring-box.js
+         -> models/solitaire-ring.js -> models/brilliant-diamond.js, with
+         models/geometry.js and vendor three under them); preloading flattens
+         the chain so the render is not rounds of trips behind the parse. -->
     <link rel="modulepreload" href="assets/js/home.js" />
     <link rel="modulepreload" href="assets/js/models/ring-box.js" />
     <link rel="modulepreload" href="assets/js/models/solitaire-ring.js" />
+    <link rel="modulepreload" href="assets/js/models/brilliant-diamond.js" />
     <link rel="modulepreload" href="assets/js/models/geometry.js" />
     <link rel="modulepreload" href="assets/js/vendor/three.module.min.js" />
     <link rel="modulepreload" href="assets/js/vendor/three.core.min.js" />
@@ -84,10 +85,11 @@
     <!-- The page holds one thing: the store's ring box, modelled and rendered
          live in the browser by home.js — the black lidded box with the lamp in
          its lid, the Adriano marque inlaid on top, and the four-claw solitaire
-         standing in the slot, its stone out of the setting. Drag turns it; the
-         two pills work the lid and the lamp. There is still no header bar —
-         "the footer only" was that instruction, and nothing above this section
-         has returned — so build.js goes on reporting its expected "no header
+         standing in the slot with its brilliant set in it. Drag turns it; the
+         three pills work the lid, the lamp, and lift the stone out of its
+         claws for a proper look at it. There is still no header bar — "the
+         footer only" was that instruction, and nothing above this section has
+         returned — so build.js goes on reporting its expected "no header
          region" warning on every run.
 
          Everything inside .stage is display:none until the script stands the
@@ -103,7 +105,7 @@
             id="stage-canvas"
             tabindex="0"
             role="img"
-            aria-label="A black Adriano Jewelry ring box holding a white gold four-claw solitaire setting, its stone not yet set, rendered live. Drag to turn it; the buttons below open the lid and work its lamp."
+            aria-label="A black Adriano Jewelry ring box holding a white gold four-claw solitaire ring set with a round brilliant diamond, rendered live. Drag to turn it; the buttons below open the lid, work its lamp, and lift the diamond out of the setting."
           ></canvas>
           <div class="stage__vignette" aria-hidden="true"></div>
           <p class="stage__fallback" id="stage-fallback" hidden>
@@ -118,6 +120,9 @@
           </button>
           <button type="button" class="stage__btn u-caps" id="stage-led">
             Turn on the light
+          </button>
+          <button type="button" class="stage__btn u-caps" id="stage-lift">
+            Lift the diamond
           </button>
         </div>
       </section>
@@ -165,7 +170,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.4</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.5</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the
