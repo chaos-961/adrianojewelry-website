@@ -117,11 +117,12 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
     if ("environmentIntensity" in scene) scene.environmentIntensity = 1.0;
   }
 
-  /* The room. Dark, like the reference: a black floor melting into a black
-   * void, and no cast shadow on the ground at all — the box stands in a
-   * splash of window-light instead. The floor exists as a surface so the
-   * lamp and the shafts have somewhere to land; the fog is what lets its
-   * far edge disappear instead of drawing a horizon. */
+  /* The room. Dark, and no cast shadow on the ground at all: every visible
+   * shaft, glow and pool of light in it belongs to the box's own lamp and
+   * lives in the model — the stage only keeps the quiet studio that makes
+   * black plastic legible. The floor exists as a surface for the lamp to
+   * land on; the fog lets its far edge disappear instead of drawing a
+   * horizon. */
   scene.background = new THREE.Color(0x060607);
   scene.fog = new THREE.Fog(0x060607, 15, 42);
   if ("environmentIntensity" in scene) scene.environmentIntensity = 0.65;
@@ -138,10 +139,9 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
     scene.add(floor);
   }
 
-  /* Window light. The key rakes in from high back-left along the same line
-   * the visible shafts draw, so the box is lit by the light the reader can
-   * see. It still casts within the box — the lid onto the base, the pads
-   * into the ring slot — but nothing onto the ground. */
+  /* Studio. The key rakes in from high back-left; it still casts within the
+   * box — the lid onto the base, the pads into the ring slot — but nothing
+   * onto the ground. */
   const key = new THREE.DirectionalLight(0xffffff, 3.0);
   key.position.set(-5.5, 8.5, -1.5);
   key.castShadow = true;
@@ -162,113 +162,6 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
   rimLight.position.set(3.5, 4, -5);
   scene.add(rimLight);
 
-  /* The shafts themselves: crossed additive quads fanned along the key's
-   * line, plus a dappled splash of light on the floor where they land.
-   * Painted textures, static geometry, no postprocessing — the whole effect
-   * costs a handful of transparent quads on frames that already render. */
-  {
-    const rc = document.createElement("canvas");
-    rc.width = 128;
-    rc.height = 512;
-    const rg = rc.getContext("2d");
-    const v = rg.createLinearGradient(0, 0, 0, 512);
-    v.addColorStop(0, "rgba(255,255,255,0.85)");
-    v.addColorStop(0.3, "rgba(255,255,255,0.45)");
-    v.addColorStop(0.75, "rgba(255,255,255,0.1)");
-    v.addColorStop(1, "rgba(255,255,255,0)");
-    rg.fillStyle = v;
-    rg.fillRect(0, 0, 128, 512);
-    const hMask = rg.createLinearGradient(0, 0, 128, 0);
-    hMask.addColorStop(0, "rgba(0,0,0,0)");
-    hMask.addColorStop(0.25, "rgba(0,0,0,1)");
-    hMask.addColorStop(0.75, "rgba(0,0,0,1)");
-    hMask.addColorStop(1, "rgba(0,0,0,0)");
-    rg.globalCompositeOperation = "destination-in";
-    rg.fillStyle = hMask;
-    rg.fillRect(0, 0, 128, 512);
-    const rayTex = new THREE.CanvasTexture(rc);
-
-    const origin = new THREE.Vector3(-7.5, 12, -4.5);
-    const landing = new THREE.Vector3(2.4, 0, 2.6);
-    const dir = landing.clone().sub(origin).normalize();
-    const side = new THREE.Vector3()
-      .crossVectors(dir, new THREE.Vector3(0, 1, 0))
-      .normalize();
-    const quat = new THREE.Quaternion().setFromUnitVectors(
-      new THREE.Vector3(0, -1, 0),
-      dir
-    );
-    // offset across the fan, length, width, opacity — a window's worth.
-    const blades = [
-      [-3.6, 19, 2.8, 0.08],
-      [-2.2, 20, 1.5, 0.14],
-      [-1.1, 21, 0.8, 0.1],
-      [0, 21, 2.2, 0.16],
-      [1.2, 20, 0.7, 0.11],
-      [2.4, 19, 1.6, 0.13],
-      [3.8, 18, 2.6, 0.07],
-    ];
-    for (const [off, len, w, o] of blades) {
-      for (const roll of [0, Math.PI * 0.42]) {
-        const m = new THREE.Mesh(
-          new THREE.PlaneGeometry(w, len),
-          new THREE.MeshBasicMaterial({
-            map: rayTex,
-            transparent: true,
-            opacity: o,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-            fog: false,
-          })
-        );
-        m.quaternion.copy(quat);
-        m.rotateY(roll);
-        m.position
-          .copy(origin)
-          .addScaledVector(dir, len / 2)
-          .addScaledVector(side, off);
-        scene.add(m);
-      }
-    }
-
-    const sc = document.createElement("canvas");
-    sc.width = sc.height = 256;
-    const sg = sc.getContext("2d");
-    const dapple = (x, y, rx, ry, rot, a) => {
-      sg.save();
-      sg.translate(x, y);
-      sg.rotate(rot);
-      sg.scale(1, ry / rx);
-      const g = sg.createRadialGradient(0, 0, 2, 0, 0, rx);
-      g.addColorStop(0, `rgba(235,240,248,${a})`);
-      g.addColorStop(1, "rgba(235,240,248,0)");
-      sg.fillStyle = g;
-      sg.beginPath();
-      sg.arc(0, 0, rx, 0, Math.PI * 2);
-      sg.fill();
-      sg.restore();
-    };
-    dapple(128, 128, 110, 58, 0.5, 0.34);
-    dapple(88, 96, 60, 26, 0.55, 0.3);
-    dapple(178, 170, 66, 30, 0.5, 0.26);
-    dapple(70, 180, 42, 16, 0.6, 0.22);
-    dapple(190, 84, 40, 15, 0.45, 0.2);
-    const splash = new THREE.Mesh(
-      new THREE.PlaneGeometry(15, 11),
-      new THREE.MeshBasicMaterial({
-        map: new THREE.CanvasTexture(sc),
-        transparent: true,
-        opacity: 0.5,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      })
-    );
-    splash.rotation.x = -Math.PI / 2;
-    splash.rotation.z = Math.atan2(dir.z, dir.x);
-    splash.position.set(0.8, 0.003, 0.9);
-    scene.add(splash);
-  }
 
   const model = createRingBox({
     renderer,
@@ -302,15 +195,31 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
         s.active = false;
         continue;
       }
+      // A spring may swing differently by direction: the lid opens with a
+      // little bounce but closes over-damped, so it settles shut instead of
+      // ping-ponging through the base.
+      if (s.dir) {
+        const opening = s.target >= s.x;
+        s.k = opening ? s.dir[0] : s.dir[2];
+        s.c = opening ? s.dir[1] : s.dir[3];
+      }
       s.v += (-s.k * dx - s.c * s.v) * dt;
       s.x += s.v * dt;
+      // The hard stop at closed: geometry, not taste — past 0 the lid is
+      // inside the base.
+      if (s.floor !== undefined && s.x <= s.floor) {
+        s.x = s.floor;
+        if (s.v < 0) s.v = 0;
+      }
       s.active = true;
       moving = true;
     }
     return moving;
   }
 
-  const lidSpring = spring(0, 42, 9); // 0 closed .. 1 open, light overshoot
+  const lidSpring = spring(0, 42, 9); // 0 closed .. 1 open
+  lidSpring.dir = [42, 9, 46, 15]; // springy open; over-damped close
+  lidSpring.floor = 0;
   const ledSpring = spring(0, 120, 21); // the lamp comes up like an LED
 
   let lidOpen = false;
@@ -345,13 +254,62 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
     section.dataset.led = on ? "on" : "off";
   }
 
-  // Boot state, overridable for deep links: ?open=1&lit=0&turn=-30&tilt=24
-  const bootOpen = params.get("open") === "1";
-  const bootLit = params.has("lit") ? params.get("lit") === "1" : bootOpen;
-  setLid(bootOpen, true);
-  setLed(bootLit, true);
+  // Boot state, overridable for deep links: ?open=1&lit=0&turn=-30&tilt=24.
+  // Fractions hold a mid-pose (?open=0.055&lit=0.55 is the tease, held) —
+  // that is how the in-between states get photographed, since headless
+  // virtual time jumps straight over animation.
+  const openParam = parseFloat(params.get("open") || "0") || 0;
+  const litParam = params.has("lit")
+    ? parseFloat(params.get("lit")) || 0
+    : openParam >= 1
+      ? 1
+      : 0;
+  setLid(openParam >= 1, true);
+  setLed(litParam >= 1, true);
+  if (openParam > 0 && openParam < 1)
+    lidSpring.x = lidSpring.target = openParam;
+  if (litParam > 0 && litParam < 1)
+    ledSpring.x = ledSpring.target = litParam;
+
+  /* The tease. Left closed and untouched, every few seconds the lid cracks
+   * a few degrees with the lamp breathing through the gap, then settles —
+   * a box asking to be opened. It never flips the real state or the pill
+   * labels, only leans on the springs; any touch postpones it, opening the
+   * box ends it, and reduced motion suppresses it entirely. */
+  let teaseTimer = 0;
+  let teasing = false;
+  function endTease() {
+    if (!teasing) return;
+    teasing = false;
+    section.dataset.tease = "0";
+    lidSpring.target = lidOpen ? 1 : 0;
+    ledSpring.target = ledOn ? 1 : 0;
+  }
+  function restTease(delay) {
+    clearTimeout(teaseTimer);
+    endTease();
+    teaseTimer = setTimeout(tease, delay);
+  }
+  function tease() {
+    if (lidOpen || dragging || reduceMotion.matches || document.hidden) {
+      restTease(4500);
+      return;
+    }
+    teasing = true;
+    section.dataset.tease = "1";
+    lidSpring.target = 0.042;
+    ledSpring.target = 0.55;
+    wake();
+    teaseTimer = setTimeout(() => {
+      endTease();
+      wake();
+      teaseTimer = setTimeout(tease, 5200);
+    }, 460);
+  }
+  teaseTimer = setTimeout(tease, 2600);
 
   lidBtn.addEventListener("click", () => {
+    restTease(9000);
     setLid(!lidOpen);
     // The real box switches its lamp with the lid; the light pill can still
     // overrule either way afterwards.
@@ -359,6 +317,7 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
     wake();
   });
   ledBtn.addEventListener("click", () => {
+    restTease(9000);
     setLed(!ledOn);
     wake();
   });
@@ -371,6 +330,7 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
   let lastT = 0;
 
   canvas.addEventListener("pointerdown", (e) => {
+    restTease(9000);
     dragging = true;
     yawVel = 0;
     lastX = e.clientX;
@@ -406,6 +366,7 @@ import { createRingBox, drawMarque } from "./models/ring-box.js";
 
   // Keyboard turn for anyone not on a pointer.
   canvas.addEventListener("keydown", (e) => {
+    restTease(9000);
     if (e.key === "ArrowLeft") yawVel += 1.8;
     else if (e.key === "ArrowRight") yawVel -= 1.8;
     else if (e.key === "ArrowUp") pitch = Math.min(PITCH_MAX, pitch + 0.09);

@@ -755,6 +755,142 @@ export function createRingBox({ renderer, debug }) {
     lid.add(glowSprite);
   }
 
+  /* The lamp's reach beyond the box: shafts bursting up out of the open
+   * mouth, a glow line breathing through the seam when the lid only cracks,
+   * and a pool of spill on the floor around the box. All of it is the box's
+   * own light — the room has none of its own — so every opacity below is
+   * driven from update() by how open and how lit the box is. */
+  const rayTex = (() => {
+    const c = document.createElement("canvas");
+    c.width = 64;
+    c.height = 256;
+    const g = c.getContext("2d");
+    const v = g.createLinearGradient(0, 256, 0, 0);
+    v.addColorStop(0, "rgba(240,246,255,0.9)");
+    v.addColorStop(0.35, "rgba(240,246,255,0.38)");
+    v.addColorStop(1, "rgba(240,246,255,0)");
+    g.fillStyle = v;
+    g.fillRect(0, 0, 64, 256);
+    const h = g.createLinearGradient(0, 0, 64, 0);
+    h.addColorStop(0, "rgba(0,0,0,0)");
+    h.addColorStop(0.3, "rgba(0,0,0,1)");
+    h.addColorStop(0.7, "rgba(0,0,0,1)");
+    h.addColorStop(1, "rgba(0,0,0,0)");
+    g.globalCompositeOperation = "destination-in";
+    g.fillStyle = h;
+    g.fillRect(0, 0, 64, 256);
+    return new THREE.CanvasTexture(c);
+  })();
+
+  const burstMeshes = [];
+  {
+    const mouth = new THREE.Vector3(0, 2.65, 0.2);
+    // tilt forward (deg), tilt sideways (deg), length, width, opacity
+    const shafts = [
+      [14, 0, 6.5, 1.7, 0.11],
+      [34, 6, 5.2, 1.1, 0.085],
+      [8, -26, 5.6, 0.9, 0.075],
+      [10, 28, 5.6, 0.9, 0.075],
+      [52, -8, 4.2, 1.3, 0.06],
+      [2, 2, 7.2, 2.4, 0.05],
+    ];
+    const D2R = Math.PI / 180;
+    for (const [fwd, side2, len, w, o] of shafts) {
+      const dir = new THREE.Vector3(
+        Math.sin(side2 * D2R),
+        Math.cos(fwd * D2R) * Math.cos(side2 * D2R),
+        Math.sin(fwd * D2R)
+      ).normalize();
+      const quat = new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        dir
+      );
+      for (const roll of [0, Math.PI * 0.45]) {
+        const mat = new THREE.MeshBasicMaterial({
+          map: rayTex,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+          fog: false,
+        });
+        mat.userData.base = o;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), mat);
+        m.quaternion.copy(quat);
+        m.rotateY(roll);
+        m.position.copy(mouth).addScaledVector(dir, len / 2);
+        m.visible = false;
+        root.add(m);
+        burstMeshes.push(m);
+      }
+    }
+  }
+
+  let seamGlow;
+  {
+    const c = document.createElement("canvas");
+    c.width = 256;
+    c.height = 64;
+    const g = c.getContext("2d");
+    const h = g.createLinearGradient(0, 0, 256, 0);
+    h.addColorStop(0, "rgba(240,246,255,0)");
+    h.addColorStop(0.25, "rgba(240,246,255,0.85)");
+    h.addColorStop(0.75, "rgba(240,246,255,0.85)");
+    h.addColorStop(1, "rgba(240,246,255,0)");
+    g.fillStyle = h;
+    g.fillRect(0, 0, 256, 64);
+    const v = g.createLinearGradient(0, 0, 0, 64);
+    v.addColorStop(0, "rgba(0,0,0,0)");
+    v.addColorStop(0.5, "rgba(0,0,0,1)");
+    v.addColorStop(1, "rgba(0,0,0,0)");
+    g.globalCompositeOperation = "destination-in";
+    g.fillStyle = v;
+    g.fillRect(0, 0, 256, 64);
+    seamGlow = new THREE.Mesh(
+      new THREE.PlaneGeometry(4.9, 0.55),
+      new THREE.MeshBasicMaterial({
+        map: new THREE.CanvasTexture(c),
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        fog: false,
+      })
+    );
+    seamGlow.position.set(0, BASE_H + 0.06, D / 2 + 0.04);
+    seamGlow.visible = false;
+    root.add(seamGlow);
+  }
+
+  let floorPool;
+  {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const g = c.getContext("2d");
+    const r = g.createRadialGradient(128, 128, 10, 128, 128, 126);
+    r.addColorStop(0, "rgba(238,244,255,0.5)");
+    r.addColorStop(0.5, "rgba(238,244,255,0.16)");
+    r.addColorStop(1, "rgba(238,244,255,0)");
+    g.fillStyle = r;
+    g.fillRect(0, 0, 256, 256);
+    floorPool = new THREE.Mesh(
+      new THREE.PlaneGeometry(10, 8),
+      new THREE.MeshBasicMaterial({
+        map: new THREE.CanvasTexture(c),
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    floorPool.rotation.x = -Math.PI / 2;
+    floorPool.position.set(0, 0.006, 0.9);
+    floorPool.visible = false;
+    root.add(floorPool);
+  }
+
   const beam = new THREE.Mesh(
     new THREE.CylinderGeometry(0.17, 0.7, 1, 40, 1, true),
     new THREE.ShaderMaterial({
@@ -799,6 +935,23 @@ export function createRingBox({ renderer, debug }) {
       lens.emissiveIntensity = 5 * lit;
       glowSprite.material.opacity =
         0.85 * lit * THREE.MathUtils.smoothstep(open, 0.2, 0.5);
+
+      // The lamp's reach: shafts and floor pool swell as the mouth opens;
+      // the seam line glows only in the sliver between cracked and open.
+      const burstFade = lit * THREE.MathUtils.smoothstep(open, 0.5, 0.92);
+      for (const m of burstMeshes) {
+        m.material.opacity = m.material.userData.base * burstFade;
+        m.visible = burstFade > 0.01;
+      }
+      const crack =
+        lit *
+        THREE.MathUtils.smoothstep(open, 0.006, 0.05) *
+        (1 - THREE.MathUtils.smoothstep(open, 0.18, 0.42));
+      seamGlow.material.opacity = 0.7 * crack;
+      seamGlow.visible = crack > 0.01;
+      const poolFade = lit * THREE.MathUtils.smoothstep(open, 0.4, 0.9);
+      floorPool.material.opacity = 0.75 * poolFade;
+      floorPool.visible = poolFade > 0.01;
 
       const beamA = 0.2 * lit * openFade;
       beam.visible = beamA > 0.004;
