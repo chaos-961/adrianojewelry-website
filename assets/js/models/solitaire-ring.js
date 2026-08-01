@@ -24,12 +24,18 @@
  *
  * The stage contract, as every model here:
  *
- *   createSolitaireRing({ renderer, standing }) -> {
+ *   createSolitaireRing({ renderer, standing, bare }) -> {
  *     root,          a Group with the finger's centre at its origin
  *     metrics,       what a box needs to seat one, and where its stone sits
  *     update(state), light, and how far the stone is out of the setting
  *     framing(state) { cy, cr } bounding sphere for camera fit
  *   }
+ *
+ * `bare` leaves the head empty, the way v0.2.4 shipped it: the claws are
+ * still cut for the stone named below, the metrics still speak for it, but
+ * no stone is built. That is for a stage that seats the stone itself so the
+ * two can part ways mid-shot; the empty setting is a supported state, not a
+ * missing one.
  *
  * The renderer is only for pre-filtering the light tent this model carries
  * with it; without one it falls back on whatever room it is standing in.
@@ -333,10 +339,15 @@ export function createSolitaireRing(opts) {
   /* The stone, set. It goes exactly on the girdle plane the claws were leaned
    * to meet — no offset, no easing it down until it looks right. If it ever
    * stops sitting on all four bearings, that is a fact about the arithmetic
-   * above and wants fixing there, not here. */
-  const stone = createBrilliantDiamond({ renderer: o.renderer, diameter: STONE_D });
-  stone.root.position.y = GIRDLE_Y;
-  root.add(stone.root);
+   * above and wants fixing there, not here. A bare ring builds none and
+   * leaves the seating to whoever asked for it bare. */
+  const stone = o.bare
+    ? null
+    : createBrilliantDiamond({ renderer: o.renderer, diameter: STONE_D });
+  if (stone) {
+    stone.root.position.y = GIRDLE_Y;
+    root.add(stone.root);
+  }
 
   return {
     root,
@@ -362,6 +373,7 @@ export function createSolitaireRing(opts) {
       const lift = s.lift || 0;
       const lit = standing || typeof s.lit !== "number" ? 1 : s.lit;
       metal.envMapIntensity = TENT_DARK + (TENT_LIT - TENT_DARK) * lit;
+      if (!stone) return;
       stone.root.position.y = GIRDLE_Y + LIFT * lift;
       stone.update({
         lit: Math.max(lit, lift),
@@ -377,12 +389,14 @@ export function createSolitaireRing(opts) {
      * taller than the head it was measured as. */
     framing(state) {
       const base = standing ? RI + BT0 : 0;
-      const lift = (state && state.lift) || 0;
+      const lift = stone ? (state && state.lift) || 0 : 0;
       const k = THREE.MathUtils.smoothstep(lift, 0.05, 1);
-      const s = stone.framing();
+      // A bare ring never lifts, so its close-shot radius is never read;
+      // any finite number keeps the lerp honest at k = 0.
+      const cr = stone ? stone.framing().cr : 1.26;
       return {
         cy: THREE.MathUtils.lerp(base + 0.22, base + GIRDLE_Y + LIFT, k),
-        cr: THREE.MathUtils.lerp(1.26, s.cr, k),
+        cr: THREE.MathUtils.lerp(1.26, cr, k),
       };
     },
   };

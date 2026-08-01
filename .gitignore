@@ -18,6 +18,12 @@ CLAUDE.md
 AGENT.md
 AGENTS.md
 
+# Source photography and renders. 15.5MB of full-size PNGs that only exist to
+# be optimized into assets/img/jewelry/*.webp, which IS tracked. GitHub Pages
+# publishes every tracked file, so shipping the originals would put 15MB of
+# unreferenced images on the CDN and in the repo history for no benefit.
+assets/jewelry/
+
 # Node / tooling
 node_modules/
 npm-debug.log*

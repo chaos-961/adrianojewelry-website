@@ -1,212 +1,770 @@
-/* Adriano Jewelry — landing stage
-   Styles for the one thing the landing page holds: the rendered ring box.
-   site.css stays the shared shell for every page; this sheet is loaded by
-   index.html alone and styles nothing outside .stage.
+/* Adriano Jewelry - the landing journey.
+   Loaded by index.html alone; site.css stays the shared shell for every page.
 
-   The stage inherits the site's rules rather than restating them: no hue in
-   anything painted here (the render inside the canvas is the only colour on
-   the page, exactly as the palette note in site.css intends), pills take the
-   same --caps-drop padding split as every other capitalised control, and all
-   sizing holds from a 320px phone to a wide desktop.
+   The landing page is now one continuous scroll story run by home.js: a black
+   room holding the ring box, a sticky viewport the story plays in, text beats
+   that enter and leave with scroll, a white passage through the inside of the
+   diamond, and a finale on black. This sheet is the costume for all of it.
 
-   The section is invisible until home.js stands the scene up (.is-live), so a
-   reader with JavaScript off gets the empty page the site shipped before this
-   sheet existed — the footer and the ground and nothing else. If the script
-   runs but WebGL is off, .is-fallback shows the one-line explanation instead
-   of a dead black rectangle. */
+   THE GROUND HERE IS INK, NOT PAPER. The journey opens on near-black
+   (#050506, matched to the render's own room) and the shared light palette
+   would fail against it, so this sheet carries the dark half of the site's
+   one grey ramp. The rule from site.css still holds: R, G and B equal in
+   every token, no hue anywhere, so the gold of the marque, the fire in the
+   stone and the photographed pieces are the only colour on the page.
 
-.stage {
-  flex: 1 0 auto;
+   CONTRAST FLOOR, DARK GROUND (WCAG 2.1 relative luminance, measured):
+   on #050506 - --pearl #ececec 17.3:1, --silver #c9c9c9 12.3:1,
+   --fog #9a9a9a 7.3:1, and --hairline (rgba(236,236,236,0.42) composited)
+   3.55:1. Text needs 4.5:1 and UI hairlines 3:1, so every painted value
+   clears with margin. The 0.42 alpha is not taste: at site.css's 0.34 a
+   light hairline composites to 2.68:1 on this ground and fails the UI
+   floor. A translucent light line on ink needs MORE alpha than the light
+   ground's dark lines carry, the mirror of the lesson recorded in site.css.
+   The same tokens restyle the footer at the foot of this page; on its
+   slightly lifted #0a0a0b ground the tightest value is --fog at 7.0:1.
+
+   INSIDE THE DIAMOND the ground is white and the ink beats reuse site.css
+   tokens: --graphite 15:1 and --smoke at worst 5.2:1 against the darkest
+   patch the crystal shader is allowed to put behind text (>= #e6).
+
+   Every measurement from a 320px phone to a wide monitor is clamp()ed, the
+   outer paddings take env(safe-area-inset-*), and the portrait composition
+   (text above the prop, prop in the lower field) switches on the same
+   aspect threshold home.js uses for its camera: width/height under 0.9. */
+
+:root {
+  --ink: #050506;
+  --ink-lifted: #0a0a0b;
+  --pearl: #ececec;
+  --silver: #c9c9c9;
+  --fog: #9a9a9a;
+  --hairline: rgba(236, 236, 236, 0.42);
+  --hairline-faint: rgba(236, 236, 236, 0.16);
+  --wash: rgba(236, 236, 236, 0.06);
+}
+
+/* The dark ground exists only when the journey can run. With JavaScript off
+   nothing below is displayed and site.css's paper page (the footer and the
+   ground, nothing else) ships exactly as it has since v0.2.1. */
+html.js {
+  background-color: var(--ink);
+  /* Dark scrollbar and UA chrome on the dark page. */
+  color-scheme: dark;
+}
+
+html.js body::before {
+  background-color: var(--ink);
+}
+
+.loader,
+.nav,
+.journey,
+.finale {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- loader */
+
+html.js .loader {
   display: flex;
+}
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  max-width: 66rem;
-  margin: 0 auto;
-  /* The safe-area floors keep the canvas and pills off a notched phone's
-     walls, same as the footer's own padding does. */
-  padding: clamp(1.25rem, 4vw, 2.5rem) max(1rem, env(safe-area-inset-right))
-    clamp(1.5rem, 4.5vw, 2.75rem) max(1rem, env(safe-area-inset-left));
+  gap: 0.65rem;
+  background: var(--ink);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 700ms var(--ease-soft), visibility 0s 700ms;
 }
 
-/* Nothing inside the stage exists until the script decides which face the
-   page shows — the render, or the fallback line. */
-.stage__frame,
-.stage__hint,
-.stage__controls {
-  display: none;
+.loader.is-done {
+  opacity: 0;
+  visibility: hidden;
 }
 
-.stage.is-live .stage__frame,
-.stage.is-fallback .stage__frame {
-  display: block;
+.loader__mark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(2.3rem, 7vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--pearl);
 }
 
-.stage.is-live .stage__hint {
-  display: block;
+.loader__sub {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  color: var(--fog);
 }
 
-.stage.is-live .stage__controls {
-  display: flex;
-}
-
-.stage__frame {
-  position: relative;
-  width: 100%;
-  /* svh, so a phone's collapsing address bar does not resize the render mid
-     scroll; the vh line above it is the fallback. The floor keeps the box
-     legible on a short landscape phone, the ceiling keeps it a product shot
-     rather than a mural on a tall monitor. */
-  height: clamp(19rem, 62vh, 42rem);
-  height: clamp(19rem, 62svh, 42rem);
-  /* The render is a dark room now — the frame is its window: near-black
-     ground behind the canvas (so there is never a paper flash before the
-     first frame), a hairline to seat it on the page, corners clipped. */
-  background: #060607;
-  border: 1px solid var(--pewter-dim);
-  border-radius: 12px;
+.loader__bar {
+  width: min(13rem, 56vw);
+  height: 1px;
+  margin-top: 1.4rem;
+  background: var(--hairline-faint);
   overflow: hidden;
 }
 
-/* A quiet photographic vignette over the render. CSS, not scene work: it
-   costs nothing and holds the corners down at every canvas size. */
-.stage__vignette {
-  display: none;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    120% 95% at 50% 42%,
-    transparent 55%,
-    rgba(0, 0, 0, 0.45) 100%
-  );
+.loader__fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--pearl);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 450ms var(--ease-soft);
 }
 
-.stage.is-live .stage__vignette {
+/* -------------------------------------------------------------------- nav */
+
+html.js .nav {
+  display: flex;
+}
+
+.nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 50;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: max(0.65rem, env(safe-area-inset-top))
+    max(clamp(1rem, 3vw, 2rem), env(safe-area-inset-right)) 0.65rem
+    max(clamp(1rem, 3vw, 2rem), env(safe-area-inset-left));
+  /* A breath of scrim so the wordmark holds against whatever the render
+     puts behind it; it fades to nothing a little way down. */
+  background: linear-gradient(rgba(5, 5, 6, 0.8), rgba(5, 5, 6, 0));
+  transform: translateY(-110%);
+  opacity: 0;
+  transition: transform 600ms var(--ease-out), opacity 500ms ease,
+    background-color 400ms ease;
+  /* The costume switches with the ground: these are the dark-room values,
+     and .nav--ink swaps them while the reader is inside the stone. */
+  --nav-fg: var(--pearl);
+  --nav-muted: var(--silver);
+  --nav-dim: var(--hairline);
+  --nav-wash: var(--wash);
+  --nav-solid: var(--pearl);
+  --nav-solid-fg: #0a0a0b;
+}
+
+.nav.is-boot {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.nav.is-hidden {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+
+.nav--ink {
+  background: linear-gradient(rgba(244, 244, 244, 0.88), rgba(244, 244, 244, 0));
+  --nav-fg: var(--graphite);
+  --nav-muted: var(--pewter);
+  --nav-dim: rgba(26, 26, 26, 0.55);
+  --nav-wash: rgba(26, 26, 26, 0.05);
+  --nav-solid: #1a1a1a;
+  --nav-solid-fg: #f4f4f4;
+}
+
+.nav__brand {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3.5vw, 1.45rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--nav-fg);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 400ms ease, opacity 0.25s ease;
+}
+
+.nav__brand:hover,
+.nav__brand:focus-visible {
+  opacity: 0.75;
+}
+
+.nav__actions {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.4rem, 1.5vw, 0.6rem);
+}
+
+.nav__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: calc(0.42rem + var(--caps-drop)) clamp(0.8rem, 2.5vw, 1.25rem)
+    calc(0.42rem - var(--caps-drop));
+  border: 1px solid var(--nav-dim);
+  border-radius: 999px;
+  color: var(--nav-fg);
+  font-family: var(--font-body);
+  font-size: clamp(0.58rem, 1.9vw, 0.68rem);
+  font-weight: 400;
+  white-space: nowrap;
+  text-decoration: none;
+  background: var(--nav-wash);
+  cursor: pointer;
+  transition: border-color 0.25s ease, background-color 0.4s ease,
+    color 0.4s ease, opacity 0.25s ease, transform 0.25s ease;
+}
+
+.nav__btn:hover,
+.nav__btn:focus-visible {
+  border-color: var(--nav-fg);
+}
+
+.nav__btn:active {
+  transform: translateY(1px);
+}
+
+.nav__btn--book {
+  border-color: transparent;
+  background: var(--nav-solid);
+  color: var(--nav-solid-fg);
+}
+
+.nav__btn--book:hover,
+.nav__btn--book:focus-visible {
+  border-color: transparent;
+  opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------- journey */
+
+html.js .journey {
   display: block;
 }
 
-.stage__canvas {
+.journey {
+  /* The scroll track: fifteen screens of story. Everything visible lives in
+     the sticky pin; this element only supplies the road. */
+  height: 1500vh;
+  position: relative;
+}
+
+.journey__pin {
+  position: sticky;
+  top: 0;
+  /* svh, not dvh: a phone's collapsing address bar must not resize the
+     render mid-scroll. The sliver it can leave under the pin is the same
+     near-black as the page ground, so nothing shows. */
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.journey__canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
-  /* The drag is the page's one gesture, so the browser must not claim it for
-     scrolling — vertical scroll still works from the ground around the
-     canvas. */
-  touch-action: none;
-  cursor: grab;
-  /* Rendered frames fade up once the first one is drawn; before that the
-     ground shows through, so there is never a black flash. The reduced-motion
-     block in site.css flattens this to an instant appearance. */
+  /* First frames fade up over the ink ground, so there is no black flash
+     and no pop. */
   opacity: 0;
   transition: opacity var(--dur-slow) var(--ease-out);
 }
 
-.stage__canvas.is-ready {
+.journey__canvas.is-ready {
   opacity: 1;
 }
 
-.stage__canvas:active {
-  cursor: grabbing;
-}
-
-/* WebGL-off line, centred where the render would have stood. Display is
-   driven by the section's is-fallback class, not the hidden attribute alone —
-   an author display value would override the attribute's UA display:none. */
-.stage__fallback {
-  display: none;
-}
-
-/* With no render, the frame turns back into a light card so the line stays
-   readable — the dark ground only exists for the picture. */
-.stage.is-fallback .stage__frame {
-  background: var(--paper-raised);
-}
-
-.stage.is-fallback .stage__fallback {
+/* A quiet photographic vignette over the dark-room chapters, driven by the
+   film (--vig): it holds the corners down around the box and the stone and
+   lifts away entirely inside the white of the diamond. */
+.journey__pin::after {
+  content: "";
   position: absolute;
   inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 95% at 50% 44%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.42) 100%
+  );
+  opacity: var(--vig, 1);
+}
+
+.journey__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* WebGL off: the journey collapses to one quiet dark card carrying the
+   fallback line and the hero copy, and the page continues to the finale and
+   the footer as ordinary scrolling content. */
+.journey.is-fallback {
+  height: auto;
+}
+
+.journey.is-fallback .journey__pin {
+  position: static;
+  height: auto;
+  min-height: 72svh;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.journey.is-fallback .journey__canvas,
+.journey.is-fallback .journey__veil,
+.journey.is-fallback .gallery,
+.journey.is-fallback .beat,
+.journey.is-fallback .journey__cue {
+  display: none;
+}
+
+.journey.is-fallback .journey__fallback {
+  display: block;
   margin: 0;
   padding: 0 1.5rem;
+  max-width: 30rem;
   text-align: center;
-  color: var(--page-muted);
+  color: var(--fog);
   font-size: 0.9rem;
-  line-height: 1.7;
+  line-height: 1.8;
 }
 
-/* One quiet spec line under the render — mono, like every other measurement
-   and stage label on the site. */
-.stage__hint {
-  margin: clamp(0.9rem, 2.5vw, 1.35rem) 0 0;
-  color: var(--page-muted);
+.journey__fallback {
+  display: none;
+}
+
+/* The scroll cue. Appears only if the reader has not moved four seconds
+   after the room opens; the first scroll retires it. */
+.journey__cue {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: max(4svh, calc(env(safe-area-inset-bottom) + 1.2rem));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 400;
-  letter-spacing: 0.32em;
-  text-indent: 0.32em;
-  text-transform: uppercase;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  color: var(--fog);
+  opacity: 0;
+  transition: opacity 900ms var(--ease-soft);
+  pointer-events: none;
+}
+
+.journey__cue.is-shown {
+  opacity: 1;
+}
+
+.journey__cue.is-gone {
+  opacity: 0;
+  transition-duration: 350ms;
+}
+
+.journey__cue-line {
+  width: 1px;
+  height: 2.2rem;
+  background: linear-gradient(var(--hairline), transparent);
+  animation: cue-drop 2.2s var(--ease-soft) infinite;
+  transform-origin: top center;
+}
+
+@keyframes cue-drop {
+  0% {
+    transform: scaleY(0);
+  }
+  45% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ beats */
+
+/* A beat is one passage of copy tied to one stretch of scroll. home.js
+   writes a single number onto it (--k, its way through enter, hold and
+   exit) and everything else is derived here, so the same arithmetic runs
+   every line on the page and the whole system scrubs backwards for free.
+
+   Lines wrapped in .bl are masked and rise into view; --i staggers them.
+   The eyebrow and the sub take the same envelope without the mask. */
+
+/* Beats are gated by opacity alone, never visibility or display: a line
+   outside its window computes opacity 0 from --k, so the eye sees one beat
+   at a time while a screen reader keeps the whole story, in order. */
+.beat {
+  --k: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0 max(clamp(1.25rem, 6vw, 5.5rem), env(safe-area-inset-left));
+  pointer-events: none;
+}
+
+.beat--low {
+  justify-content: flex-end;
+  padding-bottom: clamp(3.5rem, 12svh, 8rem);
+}
+
+.beat--center {
+  align-items: center;
+  text-align: center;
+  padding-right: max(clamp(1.25rem, 6vw, 5.5rem), env(safe-area-inset-right));
+}
+
+.bl {
+  display: block;
+  overflow: hidden;
+  /* The mask must not shave descenders while the line settles. */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.bl__in {
+  display: block;
+  /* The whole animation, derived from the beat's one number:
+     --e enters this line (staggered by --i), --x exits it. Both are pushed
+     through a smoothstep so the motion has the site's ease even though the
+     value arrives linear from the scroll. */
+  --e: clamp(0, calc((var(--k) - 0.03 - var(--i) * 0.05) / 0.17), 1);
+  --x: clamp(0, calc((var(--k) - 0.76 - var(--i) * 0.018) / 0.19), 1);
+  --ee: calc(var(--e) * var(--e) * (3 - 2 * var(--e)));
+  --xx: calc(var(--x) * var(--x) * (3 - 2 * var(--x)));
+  transform: translateY(calc((1 - var(--ee)) * 114% - var(--xx) * 46%));
+  opacity: calc(var(--ee) * (1 - var(--xx)));
+  filter: blur(calc(var(--xx) * 5px));
+}
+
+.beat__eyebrow {
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: clamp(0.56rem, 1.8vw, 0.64rem);
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--fog);
+}
+
+/* The eyebrow's own entrance: it condenses out of wider tracking as it
+   arrives, which no other element does - the one flourish of the system. */
+.beat__eyebrow .bl__in {
+  letter-spacing: calc(0.34em + (1 - var(--ee)) * 0.3em);
+}
+
+.beat__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.05rem, 4.6vw + 0.7rem, 3.8rem);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: 0.01em;
+  color: var(--pearl);
+  text-wrap: balance;
+}
+
+.beat__sub {
+  margin: 1.1rem 0 0;
+  max-width: 24rem;
+  font-size: clamp(0.86rem, 2.6vw, 0.96rem);
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--fog);
+}
+
+/* Ink beats stand on the white inside of the stone, over the drifting
+   pieces: a soft white halo keeps the words legible across whatever is
+   passing behind them without drawing a card around them. */
+.beat--ink .beat__title {
+  color: var(--graphite);
+  text-shadow: 0 0 26px rgba(255, 255, 255, 0.95), 0 0 9px rgba(255, 255, 255, 0.8);
+}
+
+.beat--ink .beat__sub {
+  color: var(--smoke);
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.85);
+}
+
+.beat--ink .beat__eyebrow {
+  color: var(--smoke);
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.95);
+}
+
+/* "Step inside." It does not rise like copy; it grows like a doorway. */
+.beat--enter {
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
-.stage__controls {
+.beat__enter {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  font-weight: 400;
+  color: var(--pearl);
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.55);
+  opacity: calc(min(var(--k) / 0.25, 1) * (1 - clamp(0, (var(--k) - 0.68) / 0.28, 1)));
+  transform: scale(calc(0.92 + var(--k) * 1.15));
+  letter-spacing: calc(0.02em + var(--k) * 0.06em);
+}
+
+/* ---------------------------------------------------------------- gallery */
+
+/* Inside the stone: the pieces, scattered in three depths. home.js builds
+   the items from the manifest, seeds their positions, and translates the
+   three bands; nothing in here is laid out by hand. */
+.gallery {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.gallery.is-on {
+  visibility: visible;
+}
+
+.gallery__band {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.gallery__item {
+  position: absolute;
+  will-change: transform;
+}
+
+.gallery__item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  filter: drop-shadow(0 16px 28px rgba(26, 26, 26, 0.22));
+}
+
+/* ----------------------------------------------------------------- finale */
+
+html.js .finale {
+  display: flex;
+}
+
+.finale {
+  min-height: 88svh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(4rem, 12svh, 8rem)
+    max(clamp(1.25rem, 5vw, 3rem), env(safe-area-inset-right))
+    clamp(4.5rem, 14svh, 9rem)
+    max(clamp(1.25rem, 5vw, 3rem), env(safe-area-inset-left));
+}
+
+.finale__eyebrow {
+  margin: 0 0 1.15rem;
+  font-family: var(--font-mono);
+  font-size: clamp(0.56rem, 1.8vw, 0.64rem);
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--fog);
+}
+
+.finale__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.3rem, 7vw, 4.3rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  color: var(--pearl);
+  text-wrap: balance;
+}
+
+.finale__sub {
+  margin: 1.25rem 0 0;
+  max-width: 26rem;
+  font-size: clamp(0.88rem, 2.6vw, 0.98rem);
+  line-height: 1.65;
+  color: var(--fog);
+}
+
+.finale__actions {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem 0.75rem;
-  margin-top: clamp(0.9rem, 2.5vw, 1.3rem);
+  gap: 0.7rem 0.8rem;
+  margin-top: clamp(1.75rem, 5svh, 2.6rem);
 }
 
-/* The same pill as the footer's policy links, restated here because this is a
-   <button> rather than an <a> and needs its native chrome stripped. The
-   --caps-drop split on the vertical padding is the measured caps correction —
-   see site.css; a one-sided pad would deliver half the movement and change
-   the pill's height. */
-.stage__btn {
+.finale__btn {
   appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: calc(0.5rem + var(--caps-drop)) clamp(1rem, 3.5vw, 1.4rem)
-    calc(0.5rem - var(--caps-drop));
-  border: 1px solid var(--pewter-dim);
+  min-height: 48px;
+  padding: calc(0.68rem + var(--caps-drop)) clamp(1.3rem, 4vw, 1.9rem)
+    calc(0.68rem - var(--caps-drop));
+  border: 1px solid var(--hairline);
   border-radius: 999px;
-  color: var(--pewter);
+  color: var(--pearl);
   font-family: var(--font-body);
-  font-size: clamp(0.66rem, 2.4vw, 0.72rem);
+  font-size: clamp(0.64rem, 2.2vw, 0.72rem);
   font-weight: 400;
   white-space: nowrap;
-  background: var(--pewter-wash);
+  text-decoration: none;
+  background: var(--wash);
   cursor: pointer;
   transition: border-color 0.25s ease, background-color 0.25s ease,
-    color 0.25s ease;
+    color 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
 }
 
-.stage__btn:hover,
-.stage__btn:focus-visible {
-  border-color: var(--pewter);
-  background: rgba(26, 26, 26, 0.1);
-  color: var(--pewter-strong);
+.finale__btn:hover,
+.finale__btn:focus-visible {
+  border-color: var(--pearl);
+  background: rgba(236, 236, 236, 0.12);
 }
 
-.stage__btn:active {
+.finale__btn:active {
   transform: translateY(1px);
 }
 
-@media (max-width: 480px) {
-  .stage {
-    padding-right: max(0.75rem, env(safe-area-inset-right));
-    padding-left: max(0.75rem, env(safe-area-inset-left));
+.finale__btn--book {
+  border-color: transparent;
+  background: var(--pearl);
+  color: #0a0a0b;
+}
+
+.finale__btn--book:hover,
+.finale__btn--book:focus-visible {
+  border-color: transparent;
+  background: #ffffff;
+  opacity: 0.92;
+}
+
+/* The finale settles in as it arrives; site.css's reduced-motion block
+   flattens this to an instant appearance. */
+.finale__eyebrow,
+.finale__title,
+.finale__sub,
+.finale__actions {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 900ms var(--ease-out), transform 900ms var(--ease-out);
+}
+
+.finale.is-in .finale__eyebrow {
+  transition-delay: 0ms;
+}
+
+.finale.is-in .finale__title {
+  transition-delay: 90ms;
+}
+
+.finale.is-in .finale__sub {
+  transition-delay: 190ms;
+}
+
+.finale.is-in .finale__actions {
+  transition-delay: 290ms;
+}
+
+.finale.is-in .finale__eyebrow,
+.finale.is-in .finale__title,
+.finale.is-in .finale__sub,
+.finale.is-in .finale__actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ------------------------------------------------------- footer, on ink */
+
+/* The universal footer partial stays byte-identical across the site; this
+   page dresses it for the dark ground by swapping the tokens site.css draws
+   it with. Ratios for these values are in the header note. */
+html.js .site-footer {
+  --ground-footer: var(--ink-lifted);
+  --footer-fg: var(--silver);
+  --page-muted: var(--fog);
+  --pewter: var(--silver);
+  --pewter-strong: #ffffff;
+  --pewter-dim: var(--hairline);
+  --pewter-wash: var(--wash);
+  --footer-rule: var(--hairline-faint);
+}
+
+/* Site.css draws focus rings in pewter, which is invisible on ink: the
+   landing chrome restates them in its own foreground values. */
+.nav :focus-visible {
+  outline: 2px solid var(--nav-fg);
+  outline-offset: 3px;
+}
+
+.finale :focus-visible {
+  outline: 2px solid var(--pearl);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------ small ends */
+
+@media (max-width: 380px) {
+  .nav__brand-tail,
+  .nav__btn-tail {
+    display: none;
+  }
+}
+
+/* Portrait composition: the camera drops the prop into the lower field and
+   the words take the top. Same threshold as home.js's camera bias. */
+@media (max-aspect-ratio: 9/10) {
+  .beat,
+  .beat--low {
+    justify-content: flex-start;
+    padding-top: max(16svh, calc(env(safe-area-inset-top) + 5rem));
+    padding-bottom: 0;
   }
 
-  .stage__frame {
-    height: clamp(17rem, 58vh, 30rem);
-    height: clamp(17rem, 58svh, 30rem);
+  .beat--enter {
+    justify-content: center;
+    padding-top: 0;
+  }
+
+  .beat__sub {
+    max-width: 21rem;
   }
 }

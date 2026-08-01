@@ -15,11 +15,18 @@
  * The stage (home.js) owns the renderer, camera, studio and ground; a model
  * module owns one prop. The contract a model exports:
  *
- *   createRingBox({ renderer }) -> {
+ *   createRingBox({ renderer, ring }) -> {
  *     root,                  a Group to add to the scene
+ *     metrics,               seat and shell numbers, for a stage that
+ *                            places the pieces itself
  *     update({ open, lit }), applies eased state each frame (0..1 each)
  *     framing(open),         { cy, cr } bounding sphere for camera fit
  *   }
+ *
+ * `ring` is optional: pass a solitaire handle and the box computes the seat
+ * for that ring without taking it, so a caller who needs the pieces to part
+ * ways mid-shot can keep every prop at the top of its own scene. Left out,
+ * the box builds and seats its own ring, as it always has.
  *
  * drawMarque() is exported separately so the stage's ?flat=1 debug view can
  * inspect the artwork without standing the scene up.
@@ -499,7 +506,7 @@ export function drawMarque() {
 
 /* ------------------------------------------------------------------- model */
 
-export function createRingBox({ renderer, debug }) {
+export function createRingBox({ renderer, debug, ring: givenRing }) {
   const dbg = debug || {};
   /* Dimensions, in centimetres of an imagined bench. One place, so the box
    * can be resized like a real product spec. */
@@ -648,7 +655,13 @@ export function createRingBox({ renderer, debug }) {
    * Take whichever seat is lower, so neither a resized ring nor a resized box
    * can put metal or stone through plastic. As drawn the ring rests in the
    * slot and the table clears the shut lid by 1.5mm. */
-  const ring = createSolitaireRing({ renderer });
+  /* A caller may hand in a ring it intends to keep for itself. The scroll
+   * stage does: pieces that part ways mid-journey have to live at the top of
+   * the scene rather than inside each other, so the box only does the seat
+   * arithmetic for the guest and the caller places it there. Without a guest
+   * the box builds and keeps its own ring, exactly as before. */
+  const ownsRing = !givenRing;
+  const ring = givenRing || createSolitaireRing({ renderer });
   const seat = (() => {
     const NAP = 0.035; // the velvet's own pile, under the band
     const HEADROOM = 0.12; // what the piece keeps clear of the shut lid
@@ -656,8 +669,10 @@ export function createRingBox({ renderer, debug }) {
       CAV_Y + ring.metrics.drop + NAP,
       BASE_H + REC_H - HEADROOM - ring.metrics.rise
     );
-    ring.root.position.y = y;
-    root.add(ring.root);
+    if (ownsRing) {
+      ring.root.position.y = y;
+      root.add(ring.root);
+    }
     return y;
   })();
   // Where the stone's girdle stands once it is lifted right out of the box.
@@ -895,6 +910,19 @@ export function createRingBox({ renderer, debug }) {
   return {
     root,
 
+    /** The box's own numbers, for a stage that seats the pieces itself:
+     * where a guest ring's origin sits, where a fully lifted stone's girdle
+     * stands, and the shell's outer dimensions for composing a shot. */
+    metrics: {
+      seatY: seat,
+      stoneUpY: STONE_UP,
+      width: W,
+      depth: D,
+      baseH: BASE_H,
+      lidH: LID_H,
+      openAngle: OPEN_ANGLE,
+    },
+
     /** Applies eased state: open, lit and lift all run 0..1 (springs may
      * overshoot slightly; everything here tolerates it). */
     update(state) {
@@ -902,17 +930,23 @@ export function createRingBox({ renderer, debug }) {
       lidPivot.rotation.x = OPEN_ANGLE * open;
       /* The ring is lit by this box and nothing else: hand it the lamp. It
        * also gets told how much of it can be seen at all, because a stone
-       * shut in a black box must not throw its flare out through the lid. */
-      ring.update({
-        lit,
-        lift: state.lift || 0,
-        spin: state.spin || 0,
-        eye: state.eye,
-        reveal: THREE.MathUtils.smoothstep(open, 0.02, 0.3),
-      });
+       * shut in a black box must not throw its flare out through the lid.
+       * A guest ring is the caller's to drive, with these same numbers. */
+      if (ownsRing) {
+        ring.update({
+          lit,
+          lift: state.lift || 0,
+          spin: state.spin || 0,
+          eye: state.eye,
+          reveal: THREE.MathUtils.smoothstep(open, 0.02, 0.3),
+        });
+      }
 
       const openFade = THREE.MathUtils.smoothstep(open, 0.45, 0.85);
       led.intensity = 900 * lit * (parseFloat(dbg.ledx) || 1);
+      // An unlit lamp must not bill for a shadow pass: three renders a
+      // light's map regardless of intensity, so the caster flag follows it.
+      led.castShadow = dbg.ledshadow !== "0" && lit > 0.004;
       ledSpill.intensity = 2.6 * lit;
       lens.emissiveIntensity = 5 * lit;
       glowSprite.material.opacity =

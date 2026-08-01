@@ -4,24 +4,25 @@
     <meta charset="utf-8" />
     <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve on iOS. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Adriano Jewelry — Custom Design, Repair and Restoration in Boston</title>
+    <title>Adriano Jewelry | Custom Design, Repair and Restoration in Boston</title>
     <meta
       name="description"
       content="Twenty-three years at the bench. Custom pieces made from a drawing, repairs, and heirloom restoration at 333 Washington Street, Boston. Trained in Europe, working in America."
     />
     <link rel="canonical" href="https://adrianojewelry.com/" />
 
-    <!-- Matches the page ground the site paints, so the browser chrome on a
-         phone does not sit against a colour the page never uses. Moved with the
-         palette when it went light — leave it on --paper, not on the footer's
-         --paper-sunk, because the top of the page is what this meets. -->
-    <meta name="theme-color" content="#f4f4f4" />
+    <!-- The landing page is a dark room now: the browser chrome on a phone
+         meets the black the journey opens on, not the paper the inner pages
+         keep. With scripting off the page is the light footer-only page, but
+         the meta is static and the lit journey is what nearly every visitor
+         meets first. -->
+    <meta name="theme-color" content="#050506" />
     <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Adriano Jewelry" />
-    <meta property="og:title" content="Adriano Jewelry — every piece begins as a drawing" />
+    <meta property="og:title" content="Adriano Jewelry: every piece begins as a drawing" />
     <meta
       property="og:description"
       content="Twenty-three years at the bench in Boston. Custom design, repair and heirloom restoration, by hand."
@@ -33,14 +34,19 @@
     <meta property="og:image:alt" content="Adriano Jewelry" />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!-- The one inline line of script in the head: it marks the document as
+         script-capable before first paint, and every piece of landing chrome
+         below (loader, nav, journey, finale) is gated behind html.js in
+         home.css. With JavaScript off none of it exists and this page is the
+         footer-only page the site has shipped since v0.2.1. -->
+    <script>document.documentElement.classList.add("js");</script>
+
     <!-- site.css is the shared shell every page loads; home.css styles only
-         the stage below and is loaded by this page alone. home.js is the one
-         piece of external JavaScript on the site: it renders the Adriano ring
-         box live on this page, on a fresh copy of three.js 0.185.1 vendored in
-         assets/js/vendor/ straight from the npm registry. All of it is new
-         work — nothing here is recovered from the v0.1.4 viewer or the
-         v0.1.8-v0.2.0 scroll film that stood on this page before it was
-         emptied in v0.2.1. -->
+         the landing journey and is loaded by this page alone. home.js is the
+         one piece of external JavaScript on the site: it runs the scroll
+         journey (the ring box opened, the ring lifted, the stone entered) on
+         a fresh copy of three.js 0.185.1 vendored in assets/js/vendor/
+         straight from the npm registry. All of it is new work. -->
     <link rel="stylesheet" href="assets/css/site.css" />
     <link rel="stylesheet" href="assets/css/home.css" />
 
@@ -49,6 +55,7 @@
          models/geometry.js and vendor three under them); preloading flattens
          the chain so the render is not rounds of trips behind the parse. -->
     <link rel="modulepreload" href="assets/js/home.js" />
+    <link rel="modulepreload" href="assets/js/jewelry-manifest.js" />
     <link rel="modulepreload" href="assets/js/models/ring-box.js" />
     <link rel="modulepreload" href="assets/js/models/solitaire-ring.js" />
     <link rel="modulepreload" href="assets/js/models/brilliant-diamond.js" />
@@ -82,48 +89,147 @@
     </script>
   </head>
   <body>
-    <!-- The page holds one thing: the store's ring box, modelled and rendered
-         live in the browser by home.js — the black lidded box with the lamp in
-         its lid, the Adriano marque inlaid on top, and the four-claw solitaire
-         standing in the slot with its brilliant set in it. Drag turns it; the
-         three pills work the lid, the lamp, and lift the stone out of its
-         claws for a proper look at it. There is still no header bar — "the
-         footer only" was that instruction, and nothing above this section has
-         returned — so build.js goes on reporting its expected "no header
-         region" warning on every run.
+    <!-- The loading room. Black, the marque's own name, a hairline that fills
+         as the scene stands up. home.js retires it the moment the first frame
+         has actually been drawn, never on a timer. -->
+    <div class="loader" id="loader" role="status" aria-label="Loading the Adriano ring box">
+      <p class="loader__mark">Adriano</p>
+      <p class="loader__sub u-caps">Fine Jewelry &middot; Boston</p>
+      <div class="loader__bar" aria-hidden="true"><span class="loader__fill" id="loader-fill"></span></div>
+    </div>
 
-         Everything inside .stage is display:none until the script stands the
-         scene up, so with JavaScript off this page is exactly what v0.2.1
-         shipped: the ground, the footer, nothing else. The buttons are typed
-         out here rather than created by script so the markup is honest about
-         what the page can do — the script only ever toggles their labels. -->
+    <!-- The landing chrome: name on the left, the two things a visitor can do
+         on the right. It hides when the reader scrolls down into the story
+         and returns the moment they scroll back up. The booking button is
+         deliberately inert for now; the contact pill goes to the page that
+         already exists. -->
+    <header class="nav" id="nav">
+      <a class="nav__brand" href="./" aria-label="Adriano Jewelry, home">
+        Adriano<span class="nav__brand-tail"> Jewelry</span>
+      </a>
+      <nav class="nav__actions" aria-label="Site">
+        <button type="button" class="nav__btn nav__btn--book u-caps" id="nav-book">
+          Book<span class="nav__btn-tail"> an Appointment</span>
+        </button>
+        <a class="nav__btn u-caps" href="contact-us/">Contact Us</a>
+      </nav>
+    </header>
+
     <main class="page" aria-label="Adriano Jewelry">
-      <section class="stage" aria-label="The Adriano ring box">
-        <div class="stage__frame">
+      <!-- The journey. One tall scroll track; everything visible lives inside
+           the sticky pin: the canvas rendering the box, the ring and the
+           stone, the text beats that come and go with scroll, the veil the
+           reader passes through into the diamond, and the gallery scattered
+           inside it. home.js drives all of it from a single scroll-derived
+           progress, so the film runs forward and backward at whatever speed
+           the reader's thumb sets. -->
+      <section class="journey" id="journey" aria-label="The Adriano ring box, opened as you scroll">
+        <div class="journey__pin" id="journey-pin">
           <canvas
-            class="stage__canvas"
+            class="journey__canvas"
             id="stage-canvas"
-            tabindex="0"
             role="img"
-            aria-label="A black Adriano Jewelry ring box holding a white gold four-claw solitaire ring set with a round brilliant diamond, rendered live. Drag to turn it; the buttons below open the lid, work its lamp, and lift the diamond out of the setting."
+            aria-label="A black Adriano Jewelry ring box in a dark room. As the page scrolls it turns to face you, opens under its own lamp, and gives up its four-claw solitaire; the two-carat brilliant lifts from the setting, fills the screen, and carries you inside the stone to a white gallery of finished pieces."
           ></canvas>
-          <div class="stage__vignette" aria-hidden="true"></div>
-          <p class="stage__fallback" id="stage-fallback" hidden>
-            The ring box on this page is rendered live in your browser, and this
-            browser has WebGL switched off.
+          <div class="journey__veil" id="veil" aria-hidden="true"></div>
+          <div class="gallery" id="gallery" aria-hidden="true"></div>
+
+          <div class="beat beat--hero" id="beat-hero" data-a="0" data-b="0.075">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Adriano Jewelry &middot; Boston</span></p>
+            <h1 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">Some questions</span></span>
+              <span class="bl"><span class="bl__in" style="--i:2">are only asked once.</span></span>
+            </h1>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">The ring that answers is made here, at our bench, by hand.</span></p>
+          </div>
+
+          <div class="beat beat--low" data-a="0.085" data-b="0.165">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">The Workshop</span></p>
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">Twenty-three years</span></span>
+              <span class="bl"><span class="bl__in" style="--i:2">at the bench.</span></span>
+            </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">Trained in Europe. Working in America.</span></p>
+          </div>
+
+          <div class="beat" data-a="0.175" data-b="0.265">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">The Adriano ring box</span></p>
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">It opens</span></span>
+              <span class="bl"><span class="bl__in" style="--i:2">with its own light.</span></span>
+            </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">A lamp in the lid, so the moment shines wherever you ask.</span></p>
+          </div>
+
+          <div class="beat" data-a="0.275" data-b="0.4">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">The four-claw solitaire</span></p>
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">Held by four claws,</span></span>
+              <span class="bl"><span class="bl__in" style="--i:2">and nothing else.</span></span>
+            </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">White gold, drawn to a taper and polished to a mirror.</span></p>
+          </div>
+
+          <div class="beat" data-a="0.43" data-b="0.535">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Two carats, excellent cut</span></p>
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">And at its heart,</span></span>
+              <span class="bl"><span class="bl__in" style="--i:2">the stone.</span></span>
+            </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">Lifted clear of its claws, so you can see what they hold.</span></p>
+          </div>
+
+          <div class="beat" data-a="0.575" data-b="0.675">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Fifty-eight facets</span></p>
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">Cut for fire.</span></span>
+            </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">Every facet is a plane, and every plane returns the light.</span></p>
+          </div>
+
+          <div class="beat beat--enter" data-a="0.685" data-b="0.745">
+            <p class="beat__enter">Step inside.</p>
+          </div>
+
+          <div class="beat beat--ink beat--center" data-a="0.75" data-b="0.83">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Custom design</span></p>
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">Every piece begins</span></span>
+              <span class="bl"><span class="bl__in" style="--i:2">as a drawing.</span></span>
+            </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">A sketch, a photograph, an idea. The bench takes it from there.</span></p>
+          </div>
+
+          <div class="beat beat--ink beat--center" data-a="0.855" data-b="0.915">
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:0">Made once.</span></span>
+              <span class="bl"><span class="bl__in" style="--i:1">Made for you.</span></span>
+            </h2>
+          </div>
+
+          <p class="journey__cue u-caps" id="cue" hidden>
+            <span class="journey__cue-line" aria-hidden="true"></span>Scroll
+          </p>
+
+          <p class="journey__fallback" id="stage-fallback" hidden>
+            The ring box on this page is drawn live in the browser, and this
+            browser does not offer the WebGL2 it needs. The store itself needs
+            nothing but a visit: 333 Washington Street, Boston.
           </p>
         </div>
-        <p class="stage__hint" id="stage-hint">Drag the box to turn it</p>
-        <div class="stage__controls">
-          <button type="button" class="stage__btn u-caps" id="stage-lid">
-            Open the box
+      </section>
+
+      <!-- After the stone. In normal flow below the track, on the same black
+           the journey ends on, so arriving here is one continuous motion. -->
+      <section class="finale" id="finale">
+        <p class="finale__eyebrow u-caps">333 Washington Street &middot; Boston</p>
+        <h2 class="finale__title">The next box we close<br />could be yours.</h2>
+        <p class="finale__sub">Come tell us the story. We will make the ring.</p>
+        <div class="finale__actions">
+          <button type="button" class="finale__btn finale__btn--book u-caps" id="finale-book">
+            Book an Appointment
           </button>
-          <button type="button" class="stage__btn u-caps" id="stage-led">
-            Turn on the light
-          </button>
-          <button type="button" class="stage__btn u-caps" id="stage-lift">
-            Lift the diamond
-          </button>
+          <a class="finale__btn u-caps" href="contact-us/">Contact Us</a>
         </div>
       </section>
     </main>
@@ -170,7 +276,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.6</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.7</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the
@@ -185,9 +291,10 @@
         </div>
       </div>
       <!-- Inline rather than assets/js/year.js, which this partial used to load.
-           The site is now plain HTML and CSS with no external script anywhere, so
-           every page opens correctly straight off the filesystem — a file:// page
-           fetches no .js at all. Four lines carried in the markup cost less than a
+           Every inner page is plain HTML and CSS with no external script, so each
+           opens correctly straight off the filesystem: a file:// page fetches no
+           .js at all (the landing page alone loads its renderer, and hides all of
+           it when scripting is off). Four lines carried in the markup cost less than a
            request, and the DOM is left untouched for the whole of the year the
            page was last built in. -->
       <script>

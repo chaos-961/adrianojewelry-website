@@ -529,7 +529,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.6</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.7</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the
@@ -544,9 +544,10 @@
         </div>
       </div>
       <!-- Inline rather than assets/js/year.js, which this partial used to load.
-           The site is now plain HTML and CSS with no external script anywhere, so
-           every page opens correctly straight off the filesystem — a file:// page
-           fetches no .js at all. Four lines carried in the markup cost less than a
+           Every inner page is plain HTML and CSS with no external script, so each
+           opens correctly straight off the filesystem: a file:// page fetches no
+           .js at all (the landing page alone loads its renderer, and hides all of
+           it when scripting is off). Four lines carried in the markup cost less than a
            request, and the DOM is left untouched for the whole of the year the
            page was last built in. -->
       <script>

@@ -54,9 +54,10 @@
     </div>
   </div>
   <!-- Inline rather than assets/js/year.js, which this partial used to load.
-       The site is now plain HTML and CSS with no external script anywhere, so
-       every page opens correctly straight off the filesystem — a file:// page
-       fetches no .js at all. Four lines carried in the markup cost less than a
+       Every inner page is plain HTML and CSS with no external script, so each
+       opens correctly straight off the filesystem: a file:// page fetches no
+       .js at all (the landing page alone loads its renderer, and hides all of
+       it when scripting is off). Four lines carried in the markup cost less than a
        request, and the DOM is left untouched for the whole of the year the
        page was last built in. -->
   <script>
