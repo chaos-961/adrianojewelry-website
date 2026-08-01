@@ -129,21 +129,29 @@
             class="journey__canvas"
             id="stage-canvas"
             role="img"
-            aria-label="A black Adriano Jewelry ring box in a dark room. As the page scrolls it turns to face you, opens under its own lamp, and gives up its four-claw solitaire; the two-carat brilliant lifts from the setting, fills the screen, and carries you inside the stone to a white gallery of finished pieces."
+            aria-label="A black Adriano Jewelry ring box in a dark room. As the page scrolls it turns to face you, opens under its own lamp, and gives up its four-claw solitaire; the two-carat brilliant lifts from the setting, fills the screen, and carries you inside the stone to a white gallery of finished pieces. On the way out the brilliant returns for a last turn in the dark before the page hands over to the finale."
           ></canvas>
           <div class="journey__veil" id="veil" aria-hidden="true"></div>
           <div class="gallery" id="gallery" aria-hidden="true"></div>
 
-          <div class="beat beat--hero" id="beat-hero" data-a="0" data-b="0.075">
+          <!-- The crystal room's own two beams, carried out of the canvas and
+               across the drifting pieces. home.js runs the shader's own
+               arithmetic to place them, so these are those beams and not an
+               imitation of them; they screen, so the white room is untouched
+               and only a photographed piece ever flares. -->
+          <div class="beam beam--0" aria-hidden="true"></div>
+          <div class="beam beam--1" aria-hidden="true"></div>
+
+          <div class="beat beat--hero" id="beat-hero" data-a="0" data-b="0.066">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Adriano Jewelry &middot; Boston</span></p>
             <h1 class="beat__title">
               <span class="bl"><span class="bl__in" style="--i:1">Some questions</span></span>
               <span class="bl"><span class="bl__in" style="--i:2">are only asked once.</span></span>
             </h1>
-            <p class="beat__sub"><span class="bl__in" style="--i:3">The ring that answers is made here, at our bench, by hand.</span></p>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">The ring that answers it is made here in Boston, by hand.</span></p>
           </div>
 
-          <div class="beat beat--low" data-a="0.085" data-b="0.165">
+          <div class="beat beat--low" data-a="0.075" data-b="0.146">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">The Workshop</span></p>
             <h2 class="beat__title">
               <span class="bl"><span class="bl__in" style="--i:1">Twenty-three years</span></span>
@@ -152,16 +160,16 @@
             <p class="beat__sub"><span class="bl__in" style="--i:3">Trained in Europe. Working in America.</span></p>
           </div>
 
-          <div class="beat" data-a="0.175" data-b="0.265">
+          <div class="beat" data-a="0.154" data-b="0.234">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">The Adriano ring box</span></p>
             <h2 class="beat__title">
               <span class="bl"><span class="bl__in" style="--i:1">It opens</span></span>
               <span class="bl"><span class="bl__in" style="--i:2">with its own light.</span></span>
             </h2>
-            <p class="beat__sub"><span class="bl__in" style="--i:3">A lamp in the lid, so the moment shines wherever you ask.</span></p>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">A lamp in the lid, so the moment has light wherever it happens.</span></p>
           </div>
 
-          <div class="beat" data-a="0.275" data-b="0.4">
+          <div class="beat" data-a="0.243" data-b="0.353">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">The four-claw solitaire</span></p>
             <h2 class="beat__title">
               <span class="bl"><span class="bl__in" style="--i:1">Held by four claws,</span></span>
@@ -170,7 +178,7 @@
             <p class="beat__sub"><span class="bl__in" style="--i:3">White gold, drawn to a taper and polished to a mirror.</span></p>
           </div>
 
-          <div class="beat" data-a="0.43" data-b="0.535">
+          <div class="beat" data-a="0.379" data-b="0.472">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Two carats, excellent cut</span></p>
             <h2 class="beat__title">
               <span class="bl"><span class="bl__in" style="--i:1">And at its heart,</span></span>
@@ -179,7 +187,7 @@
             <p class="beat__sub"><span class="bl__in" style="--i:3">Lifted clear of its claws, so you can see what they hold.</span></p>
           </div>
 
-          <div class="beat" data-a="0.575" data-b="0.675">
+          <div class="beat" data-a="0.507" data-b="0.596">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Fifty-eight facets</span></p>
             <h2 class="beat__title">
               <span class="bl"><span class="bl__in" style="--i:1">Cut for fire.</span></span>
@@ -187,11 +195,14 @@
             <p class="beat__sub"><span class="bl__in" style="--i:3">Every facet is a plane, and every plane returns the light.</span></p>
           </div>
 
-          <div class="beat beat--enter" data-a="0.685" data-b="0.745">
+          <div class="beat beat--enter" data-a="0.604" data-b="0.657">
             <p class="beat__enter">Step inside.</p>
           </div>
 
-          <div class="beat beat--ink beat--center" data-a="0.75" data-b="0.83">
+          <!-- The ink beats start once the room has opened around the reader:
+               Snell's window lands them in the dark until 0.699, and dark
+               grey type on a near-black frame is nobody's idea of legible. -->
+          <div class="beat beat--ink beat--center" data-a="0.688" data-b="0.748">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Custom design</span></p>
             <h2 class="beat__title">
               <span class="bl"><span class="bl__in" style="--i:1">Every piece begins</span></span>
@@ -200,11 +211,25 @@
             <p class="beat__sub"><span class="bl__in" style="--i:3">A sketch, a photograph, an idea. The bench takes it from there.</span></p>
           </div>
 
-          <div class="beat beat--ink beat--center" data-a="0.855" data-b="0.915">
+          <div class="beat beat--ink beat--center" data-a="0.754" data-b="0.812">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">The Showcase</span></p>
             <h2 class="beat__title">
-              <span class="bl"><span class="bl__in" style="--i:0">Made once.</span></span>
-              <span class="bl"><span class="bl__in" style="--i:1">Made for you.</span></span>
+              <span class="bl"><span class="bl__in" style="--i:1" id="count-line">74 pieces. One bench.</span></span>
             </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:2">Custom work, repairs and restorations, every one finished by hand.</span></p>
+          </div>
+
+          <!-- The coda: the words that stand beside the returned stone. The
+               window runs past 1 on purpose, so the lines assemble as the
+               stone slides left and then hold while the pin scrolls away;
+               they never play their exit. -->
+          <div class="beat beat--coda" data-a="0.91" data-b="1.10">
+            <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Adriano Jewelry &middot; Boston</span></p>
+            <h2 class="beat__title">
+              <span class="bl"><span class="bl__in" style="--i:1">Made once.</span></span>
+              <span class="bl"><span class="bl__in" style="--i:2">Made for you.</span></span>
+            </h2>
+            <p class="beat__sub"><span class="bl__in" style="--i:3">Designed, set and finished at one bench in Boston.</span></p>
           </div>
 
           <p class="journey__cue u-caps" id="cue" hidden>
@@ -276,7 +301,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.7</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.8</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

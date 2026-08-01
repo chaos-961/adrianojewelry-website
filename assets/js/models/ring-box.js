@@ -529,6 +529,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
    * solitaire in it is hollowed for one. Everything in the lid — the lamp
    * housing, its face, the lens, the light itself — hangs off this. */
   const REC_H = 0.62;
+  const PAD_TOP = 1.94; // the cushion's crown, where the ring stands out of
   const OPEN_ANGLE = -1.72; // ~98.5 deg past closed
 
   const satin = new THREE.MeshPhysicalMaterial({
@@ -628,7 +629,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
     const profile = [];
     profile.push({ i: 0, y: CAV_Y });
     profile.push({ i: 0, y: 1.6 });
-    quarterIn(profile, 0, 1.6, 0.34, 1.94, 5);
+    quarterIn(profile, 0, 1.6, 0.34, PAD_TOP, 5);
     for (const dz of [-1, 1]) {
       const pad = mesh(
         sweep(padW, padD, 0.3, profile, { rMin: 0.1, cSeg: 8 }),
@@ -642,7 +643,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
         velvet,
         { receive: true }
       );
-      cap.position.set(0, 1.94, pad.position.z);
+      cap.position.set(0, PAD_TOP, pad.position.z);
       root.add(cap);
     }
   }
@@ -912,10 +913,13 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
 
     /** The box's own numbers, for a stage that seats the pieces itself:
      * where a guest ring's origin sits, where a fully lifted stone's girdle
-     * stands, and the shell's outer dimensions for composing a shot. */
+     * stands, the crown of the velvet the seated piece throws its light onto,
+     * and the shell's outer dimensions for composing a shot. baseH doubles as
+     * the height of the lid seam, since the lid parts exactly on the rim. */
     metrics: {
       seatY: seat,
       stoneUpY: STONE_UP,
+      cushionY: PAD_TOP,
       width: W,
       depth: D,
       baseH: BASE_H,
