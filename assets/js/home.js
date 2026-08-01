@@ -90,6 +90,23 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const params = new URLSearchParams(location.search);
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
+  /* What this page is allowed to spend.
+   *
+   * A coarse pointer means a touch device, and a touch device is drawing
+   * into a screen with two or three times the pixels of a laptop, off a
+   * fraction of the power budget, on a battery. Everything gated on this is
+   * a straight trade of resolution nobody can resolve on a phone held at
+   * arm's length for frames everybody can feel under their thumb. Nothing
+   * here changes what the film IS — no beat is cut and no shot is
+   * simplified; it is the same film rendered for less.
+   *
+   * `?lp=1` forces it on so the cheap path can be photographed, since
+   * headless Chrome reports a fine pointer whatever size its window is. */
+  const lowPower =
+    params.get("lp") === "1" || matchMedia("(pointer: coarse)").matches;
+  const DPR_CAP = lowPower ? 1.6 : 2;
+  const pixelRatio = () => Math.min(window.devicePixelRatio || 1, DPR_CAP);
+
   const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
   const seg = (p, a, b) => clamp((p - a) / (b - a), 0, 1);
   const smooth = (t) => t * t * (3 - 2 * t);
@@ -254,19 +271,48 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * belongs to the box's own lamp and lives in the model. The fog lets the
    * floor's far edge disappear instead of drawing a horizon. */
   scene.background = new THREE.Color(0x060607);
-  scene.fog = new THREE.Fog(0x060607, 15, 42);
+  /* Lifted off the room's own black toward the dome's horizon, so the band
+   * where the ground is both fogging and fading has nothing to step across.
+   * The floor's alpha does the real work; this only keeps the two halves of
+   * the transition on speaking terms. */
+  scene.fog = new THREE.Fog(0x101011, 15, 42);
   if ("environmentIntensity" in scene) scene.environmentIntensity = 0.65;
   {
     /* The floor takes a little of the studio back: a satin sheen rather
      * than dead matte, so the props stand on something that answers their
      * light instead of on a hole. */
+    /* The ground does not END anywhere; it thins out. Fogging it to a colour
+     * and letting its rim arrive is what used to draw a hard line across the
+     * frame — the floor reaching one brightness while the dome behind it (a
+     * raw shader, unfogged) sat at another, worst in portrait where the
+     * camera stands back and puts that join through the middle of the
+     * picture. A radial fade in its own alpha means there is no brightness
+     * to match: the ground simply becomes the room, at any distance the film
+     * ever stands off to, with nothing to tune.
+     *
+     * CircleGeometry lays its uv out from the centre, so the map's own
+     * radius is the floor's. */
+    const fade = document.createElement("canvas");
+    fade.width = fade.height = 128;
+    {
+      const g = fade.getContext("2d");
+      const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grd.addColorStop(0, "#ffffff");
+      grd.addColorStop(0.52, "#ffffff");
+      grd.addColorStop(1, "#000000");
+      g.fillStyle = grd;
+      g.fillRect(0, 0, 128, 128);
+    }
+    const fadeTex = new THREE.CanvasTexture(fade);
     const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(30, 48),
+      new THREE.CircleGeometry(90, 64),
       new THREE.MeshStandardMaterial({
         color: 0x0b0b0c,
         roughness: 0.62,
         metalness: 0,
         envMapIntensity: 0.5,
+        alphaMap: fadeTex,
+        transparent: true,
       })
     );
     floor.rotation.x = -Math.PI / 2;
@@ -316,7 +362,11 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const key = new THREE.DirectionalLight(0xffffff, 3.0);
   key.position.set(-5.5, 8.5, -1.5);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  /* The shadow map is re-rendered on every frame the props move against the
+   * lights, which is every frame of a scroll. Halving it on a phone is a
+   * quarter of the shadow rasterisation for a softness nobody can see at
+   * this size: the only caster is a box on a cushion. */
+  key.shadow.mapSize.set(lowPower ? 1024 : 2048, lowPower ? 1024 : 2048);
   key.shadow.camera.left = key.shadow.camera.bottom = -7;
   key.shadow.camera.right = key.shadow.camera.top = 7;
   key.shadow.camera.near = 1;
@@ -355,7 +405,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       const w = pin.clientWidth;
       const h = pin.clientHeight;
       renderer.shadowMap.needsUpdate = true;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(pixelRatio());
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
@@ -629,14 +679,32 @@ import { JEWELRY } from "./jewelry-manifest.js";
     while (i < ps.length - 2 && pc > ps[i + 1]) i++;
     const widthK = clamp((aspect - 0.9) / 0.5, 0, 1);
     const sx = splineAt("sx", i, pc) * widthK;
-    const fitW = splineAt("fitW", i, pc);
     const fov = splineAt("fov", i, pc);
     let d = splineAt("d", i, pc);
     const tanV = Math.tan((fov * Math.PI) / 360);
+    /* The named width is what a WIDE frame has to hold: the prop with room
+     * beside it for the words. A portrait frame does not lay the words
+     * beside anything — it stacks them above, on the same line as sx going
+     * to zero — so it only has to hold the prop, and asking it to hold the
+     * wide composition's width as well is what used to send a phone's camera
+     * two and a half times further back than the key intended, out into the
+     * fog, for a shot of a ring box the size of a postage stamp. */
+    const fitW = splineAt("fitW", i, pc) * (0.8 + 0.2 * widthK);
     if (fitW > 0) {
-      // Half the named width, plus the off-centre slide, must fit across.
+      // Half that width, plus the off-centre slide, must fit across.
       const dNeed = (fitW / 2 + Math.abs(sx)) / (tanV * aspect);
       d = Math.max(d, dNeed);
+    }
+    /* The fog is graded to the SHOT, not to the room. Its job is to let the
+     * floor's far edge disappear rather than draw a horizon, and a fixed
+     * range does that only at the distance it was set for: at the distance a
+     * narrow viewport backs off to, the same numbers put the subject itself
+     * three quarters of the way into the haze. Held four units beyond
+     * whatever the camera is looking at, it can never touch the subject and
+     * still always swallows the ground behind it. */
+    if (scene.fog) {
+      scene.fog.near = Math.max(15, d + 4);
+      scene.fog.far = scene.fog.near + 27;
     }
     // Portrait: the subject sits low so the words own the top of the frame.
     // The coda pairs its words BESIDE the stone instead of over it, so it
@@ -954,6 +1022,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * this pass does the sRGB encode itself on the way to the canvas. Half
    * float for exactly that reason: eight bits of LINEAR light, in a room
    * this dark, bands on sight. */
+  const TAPS = lowPower ? 8 : 16;
   const lens = (() => {
     const lScene = new THREE.Scene();
     const lCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -1028,12 +1097,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "    } else {",
         "      vec3 sum = texture2D(uCol, vUv).rgb;",
         "      float wsum = 1.0;",
-        // Sixteen taps on a golden-angle spiral: an even disc at any radius,
-        // and no ring artefacts, which a square kernel gives away instantly.
-        "      for (int i = 0; i < 16; i++) {",
+        /* Taps on a golden-angle spiral: an even disc at any radius, and no
+         * ring artefacts, which a square kernel gives away instantly.
+         * Sixteen of them, or eight on a phone — where the aperture is
+         * narrowed to match, so the SPACING between samples stays about the
+         * same and the halved count costs sharpness of the bokeh rather than
+         * introducing the rings a sparser disc would. */
+        "      for (int i = 0; i < " + TAPS + "; i++) {",
         "        float fi = float(i);",
         "        float a = fi * 2.3999632;",
-        "        vec2 o = vec2(cos(a), sin(a)) * sqrt((fi + 0.5) / 16.0) * rad * uTexel;",
+        "        vec2 o = vec2(cos(a), sin(a)) * sqrt((fi + 0.5) / " + TAPS + ".0) * rad * uTexel;",
         "        vec2 su = vUv + o;",
         "        float zs = viewZ(su);",
         // A neighbour is allowed to bleed inward only if it is behind this
@@ -1460,7 +1533,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * it. Aperture opens and closes around the stretch so the rest of the
      * film never pays for the pass. */
     const aperF =
-      0.017 *
+      (lowPower ? 0.012 : 0.017) *
       smooth(seg(p, B.focus[0], B.focus[0] + 0.052)) *
       (1 - smooth(seg(p, B.focus[1] - 0.048, B.focus[1])));
     const pressK = easeIn3(seg(p, B.press[0], B.press[1]));
@@ -1620,7 +1693,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     lastFrame = t;
 
     // Self-heal the buffer: some embedded viewers resize without an event.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = pixelRatio();
     if (canvas.width !== Math.floor(pin.clientWidth * dpr)) resize();
 
     if (!held && introT0 && introK < 1) {
@@ -1749,7 +1822,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     viewH = pin.clientHeight;
     if (!viewW || !viewH) return;
     trackLen = Math.max(journey.offsetHeight - viewH, 1);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(pixelRatio());
     renderer.setSize(viewW, viewH, false);
     camera.aspect = viewW / viewH;
     camera.updateProjectionMatrix();

@@ -108,8 +108,12 @@
         Adriano<span class="nav__brand-tail"> Jewelry</span>
       </a>
       <nav class="nav__actions" aria-label="Site">
+        <!-- The space is a non-breaking one on purpose. The button is an
+             inline-flex box, so "Book" and this span are two separate flex
+             items, and leading white space inside a flex item is stripped:
+             an ordinary space here renders as "BOOKAN APPOINTMENT". -->
         <button type="button" class="nav__btn nav__btn--book u-caps" id="nav-book">
-          Book<span class="nav__btn-tail"> an Appointment</span>
+          Book<span class="nav__btn-tail">&nbsp;an Appointment</span>
         </button>
         <a class="nav__btn u-caps" href="contact-us/">Contact Us</a>
       </nav>
@@ -301,7 +305,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.8</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.2.9</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the
