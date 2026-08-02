@@ -616,8 +616,19 @@ import { JEWELRY } from "./jewelry-manifest.js";
     { p: 0.503, y: STONE_Y - 1.0, yaw: 0.32, pit: 0.3, d: 5.2, fov: 30, sx: 0, fitW: 3.4 },
     { p: 0.543, y: STONE_Y - 0.35, yaw: 0.4, pit: 0.44, d: 4.2, fov: 31, sx: 0, fitW: 2.6 },
     { p: 0.574, y: STONE_Y, yaw: 0.46, pit: 0.5, d: 2.35, fov: 32, sx: 0, fitW: 1.6 },
-    { p: 0.622, y: STONE_Y, yaw: 0.56, pit: 0.62, d: 1.95, fov: 34, sx: 0, fitW: 1.3 },
-    { p: 0.66, y: STONE_Y + 0.05, yaw: 0.66, pit: 0.95, d: 1.4, fov: 40, sx: 0, fitW: 0 },
+    /* The last three arc up over the stone and come down onto its TABLE,
+     * face on. The film used to swell the stone forty-five times and fly the
+     * camera through the middle of it, and there is no way to make that look
+     * like anything: a brilliant is beautiful because it is fifty-eight small
+     * facets, and from inside at that scale each one is a grey wall the width
+     * of the screen. The tent's panels came back as flat card, the black
+     * between them as bars across the frame, and the fire as soap-bubble
+     * arcs. So the stone stays a two-carat stone and the CAMERA does the
+     * work: over the crown, down onto the face, and the last thing anybody
+     * sees before the flash is the one view a diamond is photographed in. */
+    { p: 0.616, y: STONE_Y, yaw: 0.56, pit: 0.72, d: 1.7, fov: 34, sx: 0, fitW: 1.05 },
+    { p: 0.64, y: STONE_Y + 0.06, yaw: 0.7, pit: 1.1, d: 1.05, fov: 38, sx: 0, fitW: 0.9 },
+    { p: 0.66, y: STONE_Y + 0.11, yaw: 0.8, pit: 1.42, d: 0.29, fov: 46, sx: 0, fitW: 0.5 },
     { p: 0.858, y: STONE_Y - 0.02, yaw: 0.0, pit: 1.36, d: 3.5, fov: 30, sx: 0, fitW: 0.9 },
     { p: 0.892, y: STONE_Y - 0.05, yaw: -0.26, pit: 0.64, d: 3.05, fov: 30, sx: 0, fitW: 1.05 },
     { p: 0.938, y: STONE_Y - 0.06, yaw: 0.04, pit: 0.16, d: 2.35, fov: 30, sx: 0, fitW: 1.15 },
@@ -780,8 +791,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "float hash(vec2 v) {",
         "  return fract(sin(dot(v, vec2(127.1, 311.7))) * 43758.5453);",
         "}",
+        /* The cell points are kept inside the middle 72% of their own cell.
+         * That is not a look decision, it is what buys the border search
+         * below the right to be 3x3 instead of 5x5: with points free to sit
+         * anywhere, a cell two over can still own the nearest border, and
+         * the exact-distance pass has to look that far. Reined in, it cannot,
+         * and the room costs 36 of these instead of 68 per fragment — which
+         * is most of the crystal room's bill, since each one is two sines.
+         * The cells stay thoroughly irregular; nothing lines up. */
         "vec2 hash2(vec2 v) {",
-        "  return fract(sin(vec2(dot(v, vec2(127.1, 311.7)), dot(v, vec2(269.5, 183.3)))) * 43758.5453);",
+        "  return fract(sin(vec2(dot(v, vec2(127.1, 311.7)), dot(v, vec2(269.5, 183.3)))) * 43758.5453) * 0.72 + 0.14;",
         "}",
         "mat2 rot(float a) {",
         "  float c = cos(a);",
@@ -807,8 +826,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "    if (d < md) { md = d; mr = r; mg = g; }",
         "  }",
         "  md = 8.0;",
-        "  for (int j = -2; j <= 2; j++)",
-        "  for (int i = -2; i <= 2; i++) {",
+        "  for (int j = -1; j <= 1; j++)",
+        "  for (int i = -1; i <= 1; i++) {",
         "    vec2 g = mg + vec2(float(i), float(j));",
         "    vec2 r = g + hash2(n + g) - f;",
         "    if (dot(mr - r, mr - r) > 0.00001) {",
@@ -1016,12 +1035,22 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * white dissolve was an admission that the two shots would not join; this
    * is the join.
    *
-   * Colour: the scene's own materials tone map into the target, and three
-   * renders into a target in the working (linear) space, so the gather
-   * happens in linear — the only place a blur is allowed to happen — and
-   * this pass does the sRGB encode itself on the way to the canvas. Half
-   * float for exactly that reason: eight bits of LINEAR light, in a room
-   * this dark, bands on sight. */
+   * COLOUR, which is where all the cost turned out to be. Three renders into
+   * a target in the working (linear) space, so the obvious target is half
+   * float: eight bits of LINEAR light in a room this dark bands on sight.
+   * But measured, that round trip cost more than everything else on the
+   * stage put together, and almost none of it was the taps — it was writing
+   * every fragment of the scene at sixteen bits a channel and reading the
+   * whole frame back.
+   *
+   * An UNSIGNED_BYTE target tagged sRGB gets three to ask WebGL2 for an
+   * SRGB8_ALPHA8 attachment, and the hardware then does both conversions for
+   * free: the materials still write linear, the framebuffer encodes on the
+   * way in, the sampler decodes on the way out. So the gather still happens
+   * in linear — the only place a blur is allowed to happen — the darks get
+   * sRGB's own precision instead of eight flat linear bits, and the whole
+   * pass moves half the bytes. This pass still does the final encode itself
+   * on the way to the canvas. */
   const TAPS = lowPower ? 8 : 16;
   const lens = (() => {
     const lScene = new THREE.Scene();
@@ -1106,13 +1135,23 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "      for (int i = 0; i < " + TAPS + "; i++) {",
         "        float fi = float(i);",
         "        float a = fi * 2.3999632;",
-        "        vec2 o = vec2(cos(a), sin(a)) * sqrt((fi + 0.5) / " + TAPS + ".0) * rad * uTexel;",
-        "        vec2 su = vUv + o;",
+        "        float dp = sqrt((fi + 0.5) / " + TAPS + ".0) * rad;",
+        "        vec2 su = vUv + vec2(cos(a), sin(a)) * dp * uTexel;",
         "        float zs = viewZ(su);",
-        // A neighbour is allowed to bleed inward only if it is behind this
-        // fragment or is itself defocused; a sharp foreground must never
-        // smear across the subject, which is the tell of a fake blur.
-        "        float w = zs > z - 0.02 ? 1.0 : smoothstep(0.0, 1.0, coc(zs) / max(rad, 0.001));",
+        /* Whether a neighbour reaches this fragment is decided by ITS circle
+         * of confusion, not by this fragment's.
+         *
+         * A neighbour behind is simply gathered. One in front only arrives if
+         * its own blur is wide enough to scatter this far — which is what
+         * stops a sharp foreground smearing across the subject, and, just as
+         * importantly, what lets a DEFOCUSED one spread outward the way real
+         * bokeh does. Weighing a front neighbour against this fragment's
+         * radius instead, as this did until v0.3.0, forbids the spread in
+         * both cases: the object's own edge darkens as it gathers the ground
+         * behind it while the ground receives nothing back, and a hard dark
+         * line gets drawn around every lit thing on the stage. That outline
+         * was the artefact, not the model. */
+        "        float w = zs < z - 0.02 ? clamp(coc(zs) - dp + 1.0, 0.0, 1.0) : 1.0;",
         "        sum += texture2D(uCol, su).rgb * w;",
         "        wsum += w;",
         "      }",
@@ -1139,13 +1178,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
         rt.dispose();
       }
       rt = new THREE.WebGLRenderTarget(w, h, {
-        type: THREE.HalfFloatType,
+        type: THREE.UnsignedByteType,
+        colorSpace: THREE.SRGBColorSpace,
         minFilter: THREE.LinearFilter,
         magFilter: THREE.LinearFilter,
         depthBuffer: true,
         stencilBuffer: false,
       });
-      rt.texture.colorSpace = THREE.LinearSRGBColorSpace;
       rt.texture.generateMipmaps = false;
       rt.texture.wrapS = THREE.ClampToEdgeWrapping;
       rt.texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -1268,15 +1307,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
   }
 
   buildGallery();
-
-  /* The showcase beat quotes the collection's count; stamp it from the
-   * manifest so the words can never drift from the room they describe. */
-  {
-    const countLine = document.getElementById("count-line");
-    if (countLine) {
-      countLine.textContent = JEWELRY.length + " pieces. One bench.";
-    }
-  }
 
   /* ------------------------------------------------------------ text beats */
 
@@ -1446,10 +1476,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
     ring.root.rotation.y = ringYaw;
     ring.root.rotation.z = 0.2 * ringOutK;
 
-    // The stone. Never anything but x = 0: it is the one piece that stays.
-    // In the coda it is back at its own size and the camera does the rest;
-    // the jump from 45x happens under the black the collapse leaves, so no
-    // frame ever shows it.
+    // The stone. Never anything but x = 0: it is the one piece that stays,
+    // and since v0.3.0 it is never anything but its own size either. The
+    // camera goes to it.
     const liftK = smooth(seg(p, B.stoneUp[0], B.stoneUp[1]));
     const enterK = seg(p, B.enter[0], B.enter[1]);
     const inCoda = p >= CODA[0];
@@ -1457,10 +1486,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // CODA does — so the stone's table arrives lit rather than climbing out
     // of a black frame the octagon has just left.
     const codaIn = smooth(seg(p, CODA[0] - 0.008, CODA[0] + 0.034));
-    const scale = inCoda ? 1 : 1 + 44 * easeIn3(enterK);
     const stoneY = ringY + GIRDLE + S_LIFT * liftK;
     stone.root.position.set(0, stoneY, 0);
-    stone.root.scale.setScalar(scale);
 
     // Its own turn: scrubbed by scroll for everyone, idling on the clock at
     // full lift for those who allow motion, and settling to the nearest
@@ -1504,6 +1531,12 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const reveal = clamp(Math.max(boxReveal, riseK), 0, 1);
     box.root.visible = !inCoda;
     ring.root.visible = !inCoda;
+    /* Two shadow maps is one more than most of this film needs. The key's is
+     * only ever read by surfaces inside the open box; once the box has gone
+     * there is nothing left on stage that receives a shadow at all, so the
+     * light stands down and its whole pass goes with it — for the two thirds
+     * of the film that follows. */
+    key.castShadow = p < B.boxOut[1] + 0.02;
 
     eyeV.copy(camera.position);
     const eyeOk = enterK < 0.12 || inCoda ? eyeV : null;
@@ -1532,10 +1565,19 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * to bokeh at exactly the moment the reader is meant to stop looking at
      * it. Aperture opens and closes around the stretch so the rest of the
      * film never pays for the pass. */
-    const aperF =
-      (lowPower ? 0.012 : 0.017) *
-      smooth(seg(p, B.focus[0], B.focus[0] + 0.052)) *
-      (1 - smooth(seg(p, B.focus[1] - 0.048, B.focus[1])));
+    /* No rack focus on a phone. Measured, the pass's fixed cost is not the
+     * taps at all — it is rendering the whole scene into a target and reading
+     * the whole frame back, and that is a quarter of the film's length spent
+     * paying it. An 8-bit sRGB target (see `lens`) took most of that cost
+     * off, but "most of the biggest thing on the stage" is still the biggest
+     * thing on the stage, and a dropped frame under a thumb is worse than a
+     * shallow lens is good. The press keeps its own pass; it is four
+     * hundredths of the track and it is the transition. */
+    const aperF = lowPower
+      ? 0
+      : 0.017 *
+        smooth(seg(p, B.focus[0], B.focus[0] + 0.052)) *
+        (1 - smooth(seg(p, B.focus[1] - 0.048, B.focus[1])));
     const pressK = easeIn3(seg(p, B.press[0], B.press[1]));
     const lensOn = !inCoda && (aperF > 0.0004 || pressK > 0.0005);
     let focusZ = 6;
@@ -1930,6 +1972,51 @@ import { JEWELRY } from "./jewelry-manifest.js";
   setLoad(0.86);
   resize();
   readScroll();
+
+  /* ?fps=<0..1>: draw that one frame of the film sixty times as fast as the
+   * machine will, and print the median cost of it.
+   *
+   * Every expense on this page is a fragment cost, and a fragment cost cannot
+   * be read off a source file — the only honest way to answer "it lags" is to
+   * measure the frame at the progress that lags. Two things make this a
+   * straight loop rather than a rAF one. rAF is vsynced, so on any desktop
+   * GPU everything under 16ms reads the same; and under the virtual clock
+   * headless Chrome needs in order to WAIT for a result, rAF deltas are
+   * virtual too and measure nothing at all. A synchronous loop with a
+   * gl.finish() after each draw is real work in real time, and it finishes
+   * before the load event, which is what --dump-dom waits for. */
+  if (params.has("fps")) {
+    const at = clamp(parseFloat(params.get("fps")) || 0, 0, 1);
+    if (at >= 0.44) armGallery();
+    const gl = renderer.getContext();
+    // A one-pixel readback, not gl.finish(): finish() is free to return once
+    // the commands are queued, and a software rasteriser happily reports a
+    // fullscreen shader as cheaper than one small mesh if you believe it.
+    // A read of the framebuffer cannot be answered until the frame is drawn.
+    const px = new Uint8Array(4);
+    const N = 60;
+    const dts = [];
+    for (let i = 0; i < N; i++) {
+      const t0 = performance.now();
+      renderer.shadowMap.needsUpdate = true;
+      // A hair of movement each pass, or half the scene short-circuits on
+      // "nothing changed" and the loop measures an idle page.
+      filmAt(at + (i & 1) * 0.00002, t0, 0.016);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      if (i > 5) dts.push(performance.now() - t0);
+    }
+    dts.sort((a, b) => a - b);
+    const ms = dts[dts.length >> 1] || 0;
+    const out =
+      "p=" + at + "  " + ms.toFixed(2) + " ms  " + (1000 / ms).toFixed(0) +
+      " fps  buf=" + canvas.width + "x" + canvas.height;
+    document.title = out;
+    const el = document.createElement("pre");
+    el.id = "fps-out";
+    el.textContent = out;
+    document.body.appendChild(el);
+    return;
+  }
   // A page restored mid-track opens on that frame rather than replaying
   // the whole film at it.
   pDrawn = pTarget;

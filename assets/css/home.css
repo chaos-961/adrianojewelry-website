@@ -660,6 +660,30 @@ html.js .journey {
   text-align: center;
 }
 
+/* Since v0.3.0 this word stands over the stone's own face, which by that
+   point in the dive is the brightest thing in the film — and pearl on white
+   is nothing at all. So it carries its own shadow: a soft dark clearing
+   beneath it, the mirror of the white one the ink beats stand in. Keyed to
+   --k like everything else, so on the darker frames at the head of the beat
+   it is barely present and nothing is dimmed that did not need to be. */
+.beat--enter::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: min(54rem, 98vw);
+  height: min(20rem, 46svh);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    closest-side,
+    rgba(0, 0, 0, 0.58),
+    rgba(0, 0, 0, 0.32) 52%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  opacity: calc(min(var(--k) / 0.2, 1) * (1 - clamp(0, (var(--k) - 0.68) / 0.28, 1)));
+}
+
 .beat__enter {
   margin: 0;
   font-family: var(--font-display);
@@ -667,7 +691,7 @@ html.js .journey {
   font-size: clamp(2.4rem, 8vw, 5rem);
   font-weight: 400;
   color: var(--pearl);
-  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.5), 0 2px 34px rgba(0, 0, 0, 0.72);
   opacity: calc(min(var(--k) / 0.25, 1) * (1 - clamp(0, (var(--k) - 0.68) / 0.28, 1)));
   transform: scale(calc(0.92 + var(--k) * 1.15));
   letter-spacing: calc(0.02em + var(--k) * 0.06em);
