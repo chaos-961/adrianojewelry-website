@@ -663,10 +663,13 @@ html.js .journey {
   width: min(64rem, 104vw);
   height: min(30rem, 74svh);
   transform: translate(-50%, -50%);
+  /* Stronger than it was, because what is behind it is stronger than it was:
+     the pieces used to drift past small and half of them blurred, and they
+     now arrive sharp and up to a third of the frame across. */
   background: radial-gradient(
     closest-side,
-    rgba(255, 255, 255, 0.92),
-    rgba(255, 255, 255, 0.6) 55%,
+    rgba(255, 255, 255, 0.97),
+    rgba(255, 255, 255, 0.76) 55%,
     rgba(255, 255, 255, 0) 100%
   );
   opacity: calc(min(var(--k) / 0.14, 1) * (1 - clamp(0, (var(--k) - 0.82) / 0.16, 1)));
@@ -762,40 +765,31 @@ html.js .journey {
   z-index: 3;
   overflow: hidden;
   visibility: hidden;
-  /* Pieces are born and retired at the frame's edges softly instead of
-     guillotined by the viewport: the mask is what makes the drift read as
-     passing through light rather than scrolling under a window. */
-  -webkit-mask-image: linear-gradient(
-    rgba(0, 0, 0, 0) 0%,
-    #000 16%,
-    #000 84%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: linear-gradient(
-    rgba(0, 0, 0, 0) 0%,
-    #000 16%,
-    #000 84%,
-    rgba(0, 0, 0, 0) 100%
-  );
+  /* No mask. The old drift needed one because pieces entered and left at the
+     top and bottom edges, where a hard cut would have read as a window
+     scrolling rather than as light passing. A procession leaves the frame the
+     way anything you move past leaves the frame, at the edge and at speed,
+     so there is nothing to soften; and a mask over a viewport-sized layer is
+     a whole extra composite pass to say so. */
 }
 
 .gallery.is-on {
   visibility: visible;
 }
 
-/* Only the band is promoted, because only the band moves. The items sit
-   still inside it and rasterise into its tiles; hinting all seventy-four of
-   them into layers of their own buys nothing and hands the compositor
-   seventy-four sets of bookkeeping per frame on the device least able to
-   afford it. */
-.gallery__band {
-  position: absolute;
-  inset: 0;
-  will-change: transform;
-}
-
+/* Each piece is its own layer now, because each piece moves independently:
+   the procession has no band to promote. That is a layer apiece, but never
+   more than about a dozen of them are visible at once and the rest are
+   `visibility: hidden`, which the compositor does not draw and does not
+   keep a tile for. Width is set once in pixels by home.js at the largest
+   the piece will ever be drawn; the scale in the transform only ever goes
+   DOWN from there, so nothing is a bitmap being enlarged. */
 .gallery__item {
   position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .gallery__item img {
@@ -873,39 +867,18 @@ html.js .journey {
   --amp: 0.55;
 }
 
-/* Depth of field across the three bands, far to near: the far band drifts
-   small, soft and a touch pale, the middle carries the room, and the near
-   band is crisp with the deepest shadow. Same greys throughout; only the
-   focus and the weight change. */
-.gallery__band:nth-child(1) {
-  opacity: 0.82;
-}
+/* One shadow for every piece, and no blur on any of them.
 
-.gallery__band:nth-child(1) .gallery__item img {
-  filter: blur(1.3px) drop-shadow(0 10px 18px rgba(26, 26, 26, 0.16));
-}
-
-/* On a touch device the far band drops its blur and carries its depth in
-   tone instead. A blur is the one filter here whose cost scales with the
-   area it covers, and on a phone the far band is already drawn at a quarter
-   of the source's own resolution, which is a downsample doing most of the
-   same job for nothing. */
-@media (pointer: coarse) {
-  .gallery__band:nth-child(1) {
-    opacity: 0.7;
-  }
-
-  .gallery__band:nth-child(1) .gallery__item img {
-    filter: drop-shadow(0 10px 18px rgba(26, 26, 26, 0.16));
-  }
-}
-
-.gallery__band:nth-child(2) .gallery__item img {
-  filter: drop-shadow(0 14px 26px rgba(26, 26, 26, 0.2));
-}
-
-.gallery__band:nth-child(3) .gallery__item img {
-  filter: drop-shadow(0 20px 36px rgba(26, 26, 26, 0.26));
+   The three bands used to carry a depth of field: the far one blurred and
+   paled, the near one crisp. That is the right idea for a background and the
+   wrong one for a showcase, because it guaranteed that a third of the work
+   on screen could not be looked at. Depth is now carried entirely by SIZE,
+   which is the honest cue and the free one, and every piece is sharp at
+   every moment it is on screen. The shadow is a fixed filter rather than a
+   per-frame one, so it rasterises into the piece's layer once and rides the
+   transform from then on. */
+.gallery__item img {
+  filter: drop-shadow(0 16px 30px rgba(26, 26, 26, 0.22));
 }
 
 /* ----------------------------------------------------------------- finale */

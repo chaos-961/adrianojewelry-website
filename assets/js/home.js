@@ -92,19 +92,34 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* What this page is allowed to spend.
    *
-   * A coarse pointer means a touch device, and a touch device is drawing
-   * into a screen with two or three times the pixels of a laptop, off a
-   * fraction of the power budget, on a battery. Everything gated on this is
-   * a straight trade of resolution nobody can resolve on a phone held at
-   * arm's length for frames everybody can feel under their thumb. Nothing
-   * here changes what the film IS — no beat is cut and no shot is
-   * simplified; it is the same film rendered for less.
+   * A coarse pointer means a touch device. Until v0.3.2 that fact alone
+   * bought a permanent set of penalties: resolution capped at 1.6 whatever
+   * the screen, the rack focus removed outright, the gallery's depth of
+   * field dropped. Every one of those was a GUESS about a machine nobody
+   * here owns, made before anything was being measured, and the guess was
+   * wrong in the expensive direction: a current phone runs this film at the
+   * refresh rate, and what it got for its trouble was a visibly soft picture
+   * on the densest screen in the house. Which is the reader's complaint,
+   * exactly, and it was self-inflicted.
    *
-   * `?lp=1` forces it on so the cheap path can be photographed, since
+   * So there is one dial now, `quality`, and the governor further down moves
+   * it by watching frames actually land. A touch device simply STARTS lower,
+   * because the opening seconds are the worst time to discover a device is
+   * slow, and climbs within about a second if it can hold the rate. A phone
+   * that can do it gets the whole film at full resolution; a phone that
+   * cannot loses resolution rather than losing the film's look.
+   *
+   * What stays gated on the pointer is only what no phone screen can show:
+   * half the shadow map (one soft shadow of a box on a cushion) and half the
+   * bokeh taps, with the aperture narrowed to match so the sample SPACING is
+   * unchanged and the cost comes off the smoothness rather than showing up
+   * as rings.
+   *
+   * `?lp=1` forces the touch path on so it can be photographed, since
    * headless Chrome reports a fine pointer whatever size its window is. */
   const lowPower =
     params.get("lp") === "1" || matchMedia("(pointer: coarse)").matches;
-  const DPR_CAP = lowPower ? 1.6 : 2;
+  const DPR_CAP = 2;
 
   /* THE GOVERNOR.
    *
@@ -120,7 +135,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * never more than once a second and a half, because the drawing buffer is
    * reallocated when it changes (and the lens's render target with it), and a
    * governor that hunts is worse than no governor at all. */
-  let quality = 1;
+  let quality = lowPower ? 0.8 : 1;
   const QUALITY_MIN = 0.55;
   const pixelRatio = () =>
     Math.max(0.75, Math.min(window.devicePixelRatio || 1, DPR_CAP) * quality);
@@ -949,7 +964,18 @@ import { JEWELRY } from "./jewelry-manifest.js";
         // the ink beats need behind them.
         "  float lum = 0.80;",
         "  lum += 0.10 * (1.0 - smoothstep(0.0, 1.4, rr));",
-        "  lum -= 0.11 * smoothstep(0.8, 1.9, rr);",
+        /* The walls are deeper than they were, and this is a legibility fix
+         * rather than a mood one. Most of what this store makes is white
+         * metal set with white stones, and a white piece photographed on a
+         * cut-out and laid on a near-white room has nothing to separate it
+         * from the ground: at the frame's edge, where the procession's
+         * biggest pieces are, half of them were dissolving into the wall. The
+         * falloff starts earlier and goes about twice as far now, so the room
+         * has a lit core and shaded walls, which is both what an interior
+         * actually looks like and the contrast the silver needs. The core is
+         * untouched, so the ink beats' measured floor is untouched with it,
+         * and their own white clearing sits inside it regardless. */
+        "  lum -= 0.26 * smoothstep(0.5, 1.75, rr);",
         "  vec3 tint = vec3(0.0);",
         "  float seams = 0.0;",
         // The near shell: big facet cells turning slowly with the scroll,
@@ -1375,73 +1401,94 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* ------------------------------------------------------------ the gallery */
 
-  /* Three bands of pieces, far to near, seeded once so every visit scatters
-   * the same way. The images get their src only when the reader is well on
-   * the way in, so the film's first paint never waits on 74 files. */
-  const BANDS = [
-    { speed: 0.62, scale: 0.72, span: 2.1 },
-    { speed: 1.0, scale: 1.0, span: 2.9 },
-    { speed: 1.5, scale: 1.32, span: 3.6 },
-  ];
-  const bandEls = [];
+  /* THE PROCESSION.
+   *
+   * Until v0.3.2 this was three bands of small pieces drifting upward at
+   * three speeds, and the reader's verdict was that nothing in it could be
+   * seen clearly. That was right, and it was structural rather than a matter
+   * of tuning: seventy-four pieces spread over three screens, all at roughly
+   * the same size, a third of them deliberately blurred, is a texture. A
+   * texture is a fine thing for a background and a poor way to show somebody
+   * the work a bench has spent years on.
+   *
+   * So the pieces are laid out in DEPTH instead of across a plane. Each one
+   * has a slot in the procession and a direction out from the centre; the
+   * reader's scroll is a camera moving down it. A piece appears small near
+   * the vanishing point, swells along its own radius as it approaches, comes
+   * to the front of the room at its full size and full sharpness, and sweeps
+   * out past the frame while the next is already resolving behind it. About
+   * a dozen are in flight at once and three or four of those are large, so
+   * there is always something being READ rather than merely passing.
+   *
+   * Two consequences worth knowing before touching it. The pieces are sized
+   * ONCE, in pixels, at the largest they will ever be drawn, and perspective
+   * is a transform scale that only ever goes DOWN from there: a layer
+   * rasterised small and then scaled up is exactly the blur this rework
+   * exists to remove. And only the pieces actually in flight are written to
+   * each frame; the rest are left alone entirely, so a frame of this costs a
+   * dozen transforms rather than seventy-four. */
+  const IN_FLIGHT = 12; // pieces between the vanishing point and the frame
+  const PAST = 0.16; // how far past the camera a piece keeps travelling
+  const items = [];
   let galleryArmed = false;
 
   function buildGallery() {
     if (!galleryEl) return;
     const rand = rng(20260801);
     const frag = document.createDocumentFragment();
-    const perBand = [[], [], []];
-    JEWELRY.forEach((piece, i) => perBand[i % 3].push(piece));
-    BANDS.forEach((band, bi) => {
+    const n = JEWELRY.length;
+    JEWELRY.forEach((piece, i) => {
       const el = document.createElement("div");
-      el.className = "gallery__band";
-      perBand[bi].forEach((piece, j) => {
-        const item = document.createElement("div");
-        item.className = "gallery__item";
-        const img = document.createElement("img");
-        img.alt = "";
-        img.decoding = "async";
-        img.dataset.src = "assets/img/jewelry/" + piece.f;
-        img.width = piece.w;
-        img.height = piece.h;
-        item.appendChild(img);
-        // Laid out in fractions of the band's own travel; pixels arrive in
-        // layoutGallery, which runs at boot and again on resize. Across the
-        // band, four lanes with jitter rather than a free scatter: vertical
-        // neighbours always land in different lanes, so the pieces read as
-        // a drift of singles instead of a collage of collisions.
-        const lane = (j + bi) % 4;
-        item.dataset.x = ((lane + 0.14 + rand() * 0.58) / 4).toFixed(4);
-        item.dataset.t = ((j + rand() * 0.85) / perBand[bi].length).toFixed(4);
-        item.dataset.w = (0.72 + rand() * 0.56).toFixed(3);
-        item.dataset.r = ((rand() * 10 - 5) * (0.6 + 0.4 * band.scale)).toFixed(2);
-        el.appendChild(item);
-      });
+      el.className = "gallery__item";
+      const img = document.createElement("img");
+      img.alt = "";
+      img.decoding = "async";
+      img.dataset.src = "assets/img/jewelry/" + piece.f;
+      img.width = piece.w;
+      img.height = piece.h;
+      el.appendChild(img);
       frag.appendChild(el);
-      bandEls.push(el);
+      /* Its place in the queue, its bearing out of the centre and how far out
+       * it flies. The bearing is the golden angle rather than a random draw:
+       * consecutive pieces then leave in maximally different directions, so
+       * no two neighbours in time are ever neighbours on screen, and the
+       * frame fills evenly without anybody having to check that it does. */
+      items.push({
+        el,
+        img,
+        slot: (i + 0.5) / n,
+        ang: i * 2.3999632 + rand() * 0.5,
+        // Nothing travels down the middle of the tunnel: the copy does.
+        rad: 0.68 + rand() * 0.6,
+        // A piece is only ever as big as its own longest side allows.
+        aspect: piece.w / piece.h,
+        tall: piece.h >= piece.w,
+        tilt: (rand() * 8 - 4).toFixed(1),
+        live: false,
+        w: 0,
+      });
     });
     galleryEl.appendChild(frag);
   }
 
+  /* The size a piece is rasterised at: the biggest it will be drawn, which is
+   * the moment it reaches the front of the room. Capped at the shipped file's
+   * own longest side so nothing is ever upscaled. */
   function layoutGallery() {
     const w = pin.clientWidth;
     const h = pin.clientHeight;
-    BANDS.forEach((band, bi) => {
-      const el = bandEls[bi];
-      if (!el) return;
-      const spanPx = band.span * h;
-      el.dataset.span = String(spanPx);
-      for (const item of el.children) {
-        const base = clamp(w * 0.14, 76, 200) * band.scale;
-        const wid = base * parseFloat(item.dataset.w);
-        item.style.width = wid.toFixed(0) + "px";
-        item.style.left =
-          (parseFloat(item.dataset.x) * (w - wid)).toFixed(0) + "px";
-        item.style.top =
-          (parseFloat(item.dataset.t) * spanPx).toFixed(0) + "px";
-        item.style.transform = "rotate(" + item.dataset.r + "deg)";
-      }
-    });
+    // Half the frame's width or getting on for half its height, whichever is
+    // the tighter, capped at the shipped file's own longest side. A phone
+    // gets a piece half the screen across, which is the whole point of the
+    // rework; a laptop gets the file at native resolution.
+    const base = clamp(Math.min(w * 0.5, h * 0.45), 150, 384);
+    for (const it of items) {
+      const wid = Math.round(it.tall ? base * it.aspect : base);
+      if (wid === it.w) continue;
+      it.w = wid;
+      it.h = wid / it.aspect;
+      it.el.style.width = wid + "px";
+    }
   }
 
   function armGallery() {
@@ -1764,19 +1811,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * to bokeh at exactly the moment the reader is meant to stop looking at
      * it. Aperture opens and closes around the stretch so the rest of the
      * film never pays for the pass. */
-    /* No rack focus on a phone. Measured, the pass's fixed cost is not the
-     * taps at all — it is rendering the whole scene into a target and reading
-     * the whole frame back, and that is a quarter of the film's length spent
-     * paying it. An 8-bit sRGB target (see `lens`) took most of that cost
-     * off, but "most of the biggest thing on the stage" is still the biggest
-     * thing on the stage, and a dropped frame under a thumb is worse than a
-     * shallow lens is good. The press keeps its own pass; it is four
-     * hundredths of the track and it is the transition. */
-    const aperF = lowPower
-      ? 0
-      : 0.017 *
-        smooth(seg(p, B.focus[0], B.focus[0] + 0.052)) *
-        (1 - smooth(seg(p, B.focus[1] - 0.048, B.focus[1])));
+    /* The rack focus runs everywhere now, phones included. It used to be cut
+     * on a touch device to save the pass's fixed cost, and the trade was a
+     * bad one: it is the most emotional move in the whole vocabulary, it is
+     * what tells the reader to stop looking at the ring and start looking at
+     * the stone, and dropping it is dropping a beat of the film rather than
+     * some resolution. If a device cannot afford it the governor takes the
+     * resolution instead, which is the cheaper thing to lose. */
+    const aperF =
+      0.017 *
+      smooth(seg(p, B.focus[0], B.focus[0] + 0.052)) *
+      (1 - smooth(seg(p, B.focus[1] - 0.048, B.focus[1])));
     const pressK = easeIn3(seg(p, B.press[0], B.press[1]));
     const lensOn = !inCoda && (aperF > 0.0004 || pressK > 0.0005);
     let focusZ = 6;
@@ -1856,16 +1901,11 @@ import { JEWELRY } from "./jewelry-manifest.js";
         const fade =
           (1 - smooth(seg(p, B.collapse[0], B.collapse[0] + 0.022))) * (1 - winK);
         galleryEl.style.opacity = fade.toFixed(3);
-        BANDS.forEach((band, bi) => {
-          const el = bandEls[bi];
-          if (!el) return;
-          const spanPx = parseFloat(el.dataset.span) || 0;
-          const y = viewH * 1.06 - ik * band.speed * (spanPx + viewH * 1.5);
-          el.style.transform = "translate3d(0," + y.toFixed(1) + "px,0)";
-        });
+        driveGallery(ik);
         driveBeams(p, aspect, fade);
       } else if (beamsLit) {
         driveBeams(p, aspect, 0);
+        if (galleryLive) driveGallery(-1);
       }
     }
 
@@ -1877,6 +1917,92 @@ import { JEWELRY } from "./jewelry-manifest.js";
     );
 
     return teasing;
+  }
+
+  /* One frame of the procession.
+   *
+   * `ik` is the camera's way down the queue, 0 to 1. Everything a piece does
+   * is a function of `u`, its own distance ahead of that camera: nothing here
+   * accumulates, so the whole thing scrubs backwards exactly as it plays
+   * forwards, which is the same rule the rest of the film obeys.
+   *
+   * Pass -1 to retire every piece at once, which is what the frames either
+   * side of the chapter want. */
+  let galleryLive = false;
+  function driveGallery(ik) {
+    const n = items.length;
+    // The window of the queue in flight, plus the stretch behind the camera a
+    // piece keeps travelling through on its way out of frame.
+    const win = IN_FLIGHT / n;
+    const cx = viewW * 0.5;
+    /* The tunnel's core has to sit where the WORDS are, and on a narrow frame
+     * the words are not in the middle. home.css stacks an ink beat at the top
+     * of a portrait screen instead of centring it, so a core held at 50% left
+     * the copy outside its own clearing with a ring across it. The tunnel
+     * drops by the same measure the type rose, on the same 9/10 line the
+     * camera and the beats already trade layouts at. */
+    const portraitK = clamp((0.9 - viewW / viewH) / 0.45, 0, 1);
+    const cy = viewH * (0.5 + 0.13 * portraitK);
+    /* How far out a piece at full size flies, PER AXIS. One radius taken off
+     * the frame's longest side works on a laptop and falls apart on a phone:
+     * a portrait frame's long side is its height, so the tunnel was built
+     * more than twice as wide as the screen and every piece left through the
+     * sides before it was worth looking at, leaving the middle empty. Sized
+     * to each axis in turn, the same tunnel fills a 16:9 frame and a 9:19.5
+     * one with the same handful of pieces. Slightly past the frame on both,
+     * so the nearest ones leave at an edge rather than piling up. */
+    const spreadX = viewW * 0.6;
+    const spreadY = viewH * 0.52;
+    let live = false;
+    for (let i = 0; i < n; i++) {
+      const it = items[i];
+      const u = ik < 0 ? 9 : it.slot - ik;
+      // Behind the camera by more than PAST windows, or not yet in flight.
+      const on = u < win && u > -PAST * win;
+      if (!on) {
+        if (it.live) {
+          it.live = false;
+          it.el.style.visibility = "hidden";
+        }
+        continue;
+      }
+      live = true;
+      if (!it.live) {
+        it.live = true;
+        it.el.style.visibility = "visible";
+      }
+      // d runs 1 at the vanishing point to 0 at the front of the room, and
+      // negative once the piece is past the reader.
+      const d = u / win;
+      /* Perspective. A piece's apparent size goes as 1/(1+kd), which is what
+       * a real lens does and what makes the approach ACCELERATE into the
+       * frame instead of creeping in linearly. Past the camera it is allowed
+       * a little over full size and no more: the raster is only as big as
+       * full size, and anything beyond that is enlarging a bitmap. */
+      const s = d >= 0 ? 1 / (1 + d * 3.4) : 1 + Math.min(-d, PAST) * 0.9;
+      /* THE CORE IS KEPT CLEAR, and this one term is what makes the chapter
+       * work. A true fly-through collapses everything to a vanishing point,
+       * and the vanishing point is the exact middle of the frame, which is
+       * where the copy stands: the first cut of this had "Every piece begins
+       * as a drawing" with a ring sitting on the word "drawing". Holding the
+       * radius at a third of its travel even at the far end turns the
+       * procession into a TUNNEL rather than a funnel. The pieces come down
+       * its walls, the words stand in its middle, and neither has to
+       * apologise to the other. */
+      const r = it.rad * (0.58 + 0.42 * s);
+      // Offset by half the piece's own box, so the scale (which pivots on
+      // that box's centre) grows it about the point it is aimed at.
+      const x = cx + Math.cos(it.ang) * r * spreadX - it.w * 0.5;
+      const y = cy + Math.sin(it.ang) * r * spreadY - it.h * 0.5;
+      // In from the far distance, and out as it sweeps past the reader.
+      const a =
+        (d > 0.82 ? 1 - (d - 0.82) / 0.18 : 1) * (d < 0 ? 1 + d / PAST : 1);
+      it.el.style.opacity = clamp(a, 0, 1).toFixed(3);
+      it.el.style.transform =
+        "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" +
+        s.toFixed(4) + ") rotate(" + it.tilt + "deg)";
+    }
+    galleryLive = live;
   }
 
   /* The room's two beams, handed to the page.
@@ -2336,9 +2462,14 @@ import { JEWELRY } from "./jewelry-manifest.js";
     }
     dts.sort((a, b) => a - b);
     const ms = dts[dts.length >> 1] || 0;
+    // Triangles and draw calls go in the line too, because "is it the
+    // geometry?" is the first thing anybody asks about a slow 3D page and it
+    // is answerable in one number rather than by argument.
     const out =
       "p=" + at + "  " + ms.toFixed(2) + " ms  " + (1000 / ms).toFixed(0) +
-      " fps  buf=" + canvas.width + "x" + canvas.height;
+      " fps  buf=" + canvas.width + "x" + canvas.height +
+      "  tris=" + renderer.info.render.triangles +
+      "  calls=" + renderer.info.render.calls;
     document.title = out;
     const el = document.createElement("pre");
     el.id = "fps-out";
