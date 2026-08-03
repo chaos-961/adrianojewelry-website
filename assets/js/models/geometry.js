@@ -1,4 +1,4 @@
-/* Adriano Jewelry — shared model geometry toolkit.
+/* Adriano Jewelry: shared model geometry toolkit.
  *
  * Two constructions cover every part the props here are made of, and this
  * file is those two and nothing else; each model under assets/js/models/
@@ -6,7 +6,7 @@
  *
  * sweep() is the case: a rounded rectangle outline swept vertically through
  * a 2D edge profile, plus flat caps cut from the same outline. The profile
- * is a list of { i, y } stations — i is the inset from the nominal wall (0
+ * is a list of { i, y } stations: i is the inset from the nominal wall (0
  * at the wall, positive pulls inward), y the height. The corner radius
  * tightens as the outline insets and is floored at rMin, so a deep chamfer
  * keeps a drawn corner instead of collapsing to a point. Normals are
@@ -196,7 +196,7 @@ const v3unit = (v) => {
 
 /** A wire: an elliptical section swept along a path through space.
  *
- * Each station is { p: [x, y, z], ru, rv } — ru the half-size across the
+ * Each station is { p: [x, y, z], ru, rv }: ru the half-size across the
  * section's first axis, rv across the second, rv defaulting to ru for round
  * wire. The section's axes are taken from the tangent and the `up` hint
  * rather than parallel-transported along the path, so a station is oriented
@@ -205,7 +205,7 @@ const v3unit = (v) => {
  *
  * Normals are analytic and carry the taper term (how fast the section is
  * closing per unit of path), which is what lets a radius run down to nothing
- * and read as a dome instead of a bevelled cylinder — how every claw here
+ * and read as a dome instead of a bevelled cylinder: how every claw here
  * ends. opts: { seg, closed, cap, up }.
  */
 export function tube(path, opts) {

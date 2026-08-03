@@ -1,15 +1,15 @@
-/* Adriano Jewelry — the ring box model.
+/* Adriano Jewelry: the ring box model.
  *
  * The store's black lidded LED ring box, complete in this one module: swept
  * shells for base and lid, velvet cushion with the ring slot cut between its
  * pads, the lamp in the lid with its spot, spill, lens bloom and a faint
- * drawn beam, and the Adriano marque — black marble under gold horses,
- * crown, diamond and wordmark — painted onto a canvas and inlaid flush in
+ * drawn beam, and the Adriano marque (black marble under gold horses,
+ * crown, diamond and wordmark) painted onto a canvas and inlaid flush in
  * the lid's plateau.
  *
  * The one thing it does not build itself is the ring standing in that slot.
  * That is its own prop in its own module, solitaire-ring.js, and this file
- * only seats it — the box is the case, and a case holds whatever the bench
+ * only seats it; the box is the case, and a case holds whatever the bench
  * puts in it.
  *
  * The stage (home.js) owns the renderer, camera, studio and ground; a model
@@ -37,7 +37,7 @@ import { sweep, quarterIn, capGeometry } from "./geometry.js";
 import { createSolitaireRing } from "./solitaire-ring.js";
 
 /* ------------------------------------------------------------------ marque
- * Painted once, synchronously — system serifs and canvas paths only, so the
+ * Painted once, synchronously: system serifs and canvas paths only, so the
  * first rendered frame already carries the finished artwork. */
 
 // Deterministic RNG (mulberry32). The marble must not re-vein per visit.
@@ -81,9 +81,9 @@ function goldPath(ctx, path, y0, y1) {
 }
 
 /* The rearing horse, facing right, assembled in a 100x140 box (y down) the
- * way a heraldic silhouette actually holds together: overlapping masses — a
+ * way a heraldic silhouette actually holds together: overlapping masses (a
  * capsule of a torso, an ellipse of a haunch, tapered strokes for neck,
- * legs, tail and mane — painted gold into an offscreen sprite and stamped
+ * legs, tail and mane) painted gold into an offscreen sprite and stamped
  * onto the marble once, so the drop shadow wraps the union rather than
  * every part shadowing its neighbours. */
 let horseSprite = null;
@@ -100,7 +100,7 @@ function buildHorseSprite(s) {
   x.lineCap = "round";
   x.lineJoin = "round";
 
-  // A smoothed thick polyline — every limb segment is one of these.
+  // A smoothed thick polyline: every limb segment is one of these.
   const stroke = (pts, w) => {
     x.lineWidth = w;
     x.beginPath();
@@ -130,7 +130,7 @@ function buildHorseSprite(s) {
     x.closePath();
     x.fill();
   };
-  // A hoof: a small wedge, toe slanting forward-down. Solid fill — under
+  // A hoof: a small wedge, toe slanting forward-down. Solid fill: under
   // the hoof's rotation the shared gradient would sample from the wrong
   // height and flash pale, and real hooves read darker than the coat.
   const hoof = (hx, hy, ang, len, hgt, tone) => {
@@ -160,7 +160,7 @@ function buildHorseSprite(s) {
   leaf(33, 117, 30.2, 126, 31.8, 134.5, 36.4, 124, 7);
   leaf(35, 107, 40, 116, 39.4, 128, 33.2, 115, 6);
 
-  // Hindquarters, torso, chest — the masses that make it read as muscle.
+  // Hindquarters, torso, chest: the masses that make it read as muscle.
   ell(46.5, 81, 10.4, 13, -0.14);
   stroke([[46.5, 73], [49.8, 63], [52.8, 56]], 21);
   ell(53.4, 55, 10.2, 9.4, 0.2);
@@ -455,8 +455,8 @@ export function drawMarque() {
   drawCrown(a, 1024, 452, 1.28);
   drawDiamond(a, 1024, 498, 0.94);
 
-  // Wordmark. System serifs only — Palatino where the platform has it, an
-  // honest serif where it does not — so nothing ever waits on a font.
+  // Wordmark. System serifs only (Palatino where the platform has it, an
+  // honest serif where it does not), so nothing ever waits on a font.
   const face =
     '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif';
   const word = (text, size, baseline, spacing) => {
@@ -526,8 +526,8 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
   /* How deep the lid is hollowed out, and so how high the ceiling stands over
    * the base's rim when the box is shut. This is the number the stone lives
    * under: it is what the seat below spends, and a box sold with a two-carat
-   * solitaire in it is hollowed for one. Everything in the lid — the lamp
-   * housing, its face, the lens, the light itself — hangs off this. */
+   * solitaire in it is hollowed for one. Everything in the lid (the lamp
+   * housing, its face, the lens, the light itself) hangs off this. */
   const REC_H = 0.62;
   const PAD_TOP = 1.94; // the cushion's crown, where the ring stands out of
   const OPEN_ANGLE = -1.72; // ~98.5 deg past closed
@@ -623,7 +623,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
     const padW = 4.62;
     const padD = 1.82;
     // The ring's seat. The solitaire's widest section is 2.36mm across and
-    // this gap is 2.4mm, so the band drops in and is gripped — the same fit
+    // this gap is 2.4mm, so the band drops in and is gripped, the same fit
     // the real cushion is die-cut for.
     const slit = 0.24;
     const profile = [];
@@ -651,8 +651,8 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
   /* The ring, stood in that slot. Its height is arithmetic rather than
    * taste, and it is pinned between two hard facts: the band hangs
    * metrics.drop below the finger's centre and cannot go through the velvet
-   * floor, and the piece stands metrics.rise above it — the table of the
-   * stone, since v0.2.5 — and cannot go up through the closed lid's ceiling.
+   * floor, and the piece stands metrics.rise above it (the table of the
+   * stone, since v0.2.5) and cannot go up through the closed lid's ceiling.
    * Take whichever seat is lower, so neither a resized ring nor a resized box
    * can put metal or stone through plastic. As drawn the ring rests in the
    * slot and the table clears the shut lid by 1.5mm. */
@@ -819,7 +819,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
 
   /* The lamp's reach beyond the box: a glow line breathing through the seam
    * when the lid only cracks, and a pool of spill on the floor around the
-   * box. Only light the lamp itself would actually throw — no drawn shafts
+   * box. Only light the lamp itself would actually throw: no drawn shafts
    * in the air (tried in v0.2.3, removed on request). Every opacity below
    * is driven from update() by how open and how lit the box is. */
   let seamGlow;
@@ -996,7 +996,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
 
     /** Bounding sphere for the camera: tight around the closed box, loose
      * around the standing lid, and then all the way in onto the stone once
-     * it is lifted out — a box is a product shot, a lifted stone is not. */
+     * it is lifted out. A box is a product shot, a lifted stone is not. */
     framing(state) {
       const open = state.open;
       const box = { cy: 2.0 + 1.6 * open, cr: 3.6 + 1.45 * open };

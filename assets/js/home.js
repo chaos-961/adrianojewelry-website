@@ -16,9 +16,9 @@
  * two joins that used to be dissolves. A dissolve is what you reach for when
  * two shots refuse to meet, and both of this film's did: it left the room
  * through a curtain of white and came back out of the stone through a
- * curtain of black. Now the table is crossed as an OPTICAL event — the frame
+ * curtain of black. Now the table is crossed as an OPTICAL event (the frame
  * squeezed and split by channel the way glass does to a picture, one hard
- * flash at contact — the first thing inside is Snell's window (the dark room
+ * flash at contact), the first thing inside is Snell's window (the dark room
  * folded into a bright disc overhead with the claws warped round its rim,
  * receding as the reader sinks), and the way out converges on the octagon of
  * the table itself, which the coda then opens on face-up before swinging
@@ -93,6 +93,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * separately, which is the only way to answer "what is this frame spending
    * it on" without a profiler: ?noground, ?nodome, ?nostone, ?nolens. */
   const DBG = params.has("fps") || params.has("dbg");
+  const NO_LENS = params.has("nolens");
   let dbgState = "";
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -355,7 +356,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * light instead of on a hole. */
     /* The ground does not END anywhere; it thins out. Fogging it to a colour
      * and letting its rim arrive is what used to draw a hard line across the
-     * frame — the floor reaching one brightness while the dome behind it (a
+     * frame: the floor reaching one brightness while the dome behind it (a
      * raw shader, unfogged) sat at another, worst in portrait where the
      * camera stands back and puts that join through the middle of the
      * picture. A radial fade in its own alpha means there is no brightness
@@ -411,7 +412,28 @@ import { JEWELRY } from "./jewelry-manifest.js";
           "}",
         ].join("\n"),
         fragmentShader: [
+          /* THIS SHADER IS FULL SCREEN AND IT IS THE FIRST THING DRAWN.
+           *
+           * The dome is a BackSide sphere, so at the opening frame, where the
+           * camera stands furthest back and the box is smallest, it covers
+           * very nearly every pixel on screen. That makes it the one place in
+           * the film where an extra transcendental per fragment is worth
+           * caring about at all. A first reading put the naive gelled version
+           * at 17.8ms to 25.9ms on an Intel UHD 620, but do not trust that
+           * number and do not repeat it: three alternating A/B pairs later
+           * put the dome's WHOLE cost at 1 to 2ms, under this machine's noise
+           * floor. The arithmetic below is kept because it is strictly less
+           * work than what it replaced, not because a profiler said so.
+           *
+           * The gels are kept and the arithmetic is paid for instead. The
+           * direction constants are pre-normalized here rather than
+           * normalized per pixel, and every pow with a small integer-ish
+           * exponent is a multiply chain. pow(x, 2.2) becomes x*x, which for
+           * a term this faint and this broad is a difference no eye can find
+           * and the profiler certainly can. */
           "varying vec3 vD;",
+          "const vec3 POOL_DIR = vec3(0.0, 0.13864, -0.99034);",
+          "const vec3 COUNTER_DIR = vec3(-0.77442, 0.51628, 0.36569);",
           "void main() {",
           "  vec3 d = normalize(vD);",
           // The ambient floor of the room. Neutral, and the only neutral
@@ -421,18 +443,18 @@ import { JEWELRY } from "./jewelry-manifest.js";
           // coldest thing in any room, and a cold horizon is what gives the
           // warm pool behind the subject something to be warm against. A
           // single grey value for both is why this room read as flat.
-          "  float haze = 0.0060 * exp(-pow((d.y - 0.06) * 4.2, 2.0));",
-          "  col += haze * vec3(0.80, 0.93, 1.14);",
+          "  float t = (d.y - 0.06) * 4.2;",
+          "  col += (0.0060 * exp(-t * t)) * vec3(0.80, 0.93, 1.14);",
           // The pool of lighter dark the story plays against. WARM, because
           // it is a tungsten wash off the back wall, which is what a bench
           // actually stands in.
-          "  float h = max(dot(d, normalize(vec3(0.0, 0.14, -1.0))), 0.0);",
-          "  col += 0.0112 * pow(h, 3.0) * vec3(1.20, 1.00, 0.82);",
+          "  float h = max(dot(d, POOL_DIR), 0.0);",
+          "  col += (0.0112 * h * h * h) * vec3(1.20, 1.00, 0.82);",
           // A broad cool counter off the upper left, so the room has two
           // directions in it rather than one. Faint on purpose: this is
           // depth, not a light, and nothing here may compete with the lamp.
-          "  float c = max(dot(d, normalize(vec3(-0.72, 0.48, 0.34))), 0.0);",
-          "  col += 0.0046 * pow(c, 2.2) * vec3(0.76, 0.89, 1.16);",
+          "  float c = max(dot(d, COUNTER_DIR), 0.0);",
+          "  col += (0.0046 * c * c) * vec3(0.76, 0.89, 1.16);",
           "  gl_FragColor = vec4(col, 1.0);",
           "  #include <tonemapping_fragment>",
           "  #include <colorspace_fragment>",
@@ -442,6 +464,23 @@ import { JEWELRY } from "./jewelry-manifest.js";
         ].join("\n"),
       })
     );
+    /* Drawn LAST among the opaque, not first. three's opaque comparator sorts
+     * on material.id before z, and this material is constructed long before
+     * any prop's, so with no renderOrder the FURTHEST surface in the room was
+     * the first thing rasterised every frame, with an empty depth buffer and
+     * nothing able to reject it. Every pixel the box, ring and stone then
+     * cover had been shaded twice. renderOrder 1 puts the dome after them, so
+     * depth rejection throws those fragments away instead.
+     *
+     * No millisecond figure is claimed, because none is available: the dome's
+     * entire cost measured at 1 to 2ms here, under this machine's own noise
+     * floor, and this recovers only the share of that the props cover. It is
+     * kept because it is strictly less work by construction. The picture
+     * cannot move: opaque materials render with blending off, the dome is
+     * behind every prop at every camera the fit can produce, and depthWrite
+     * was already false, so the depth texture the rack focus samples is
+     * untouched. */
+    dome.renderOrder = 1;
     if (!params.has("nodome")) scene.add(dome);
   }
 
@@ -584,7 +623,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * A brilliant under a lamp does not merely shine: it throws a wheel of
    * hard little spots and short arcs down onto whatever it is standing on,
    * and every macro film of a ring in a box has that image in it. This one
-   * had an empty cushion. So the stone gets its cast pattern — eight-fold,
+   * had an empty cushion. So the stone gets its cast pattern: eight-fold,
    * because the cut is, and painted rather than traced, since tracing a
    * caustic through fifty-eight facets per frame is a renderfarm's job and
    * a canvas gets the same picture for nothing.
@@ -700,7 +739,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     collapse: [0.806, 0.852], // the white folds back to the table's octagon
   };
 
-  /* Contact. The old join was a slow white dissolve; this is a hit — the
+  /* Contact. The old join was a slow white dissolve; this is a hit: the
    * bloom off a single frame of it, up hard and gone. The crystal room takes
    * the canvas at 0.66, under the top of the spike, so the eye is still
    * recovering when the switch happens and no frame shows the seam. */
@@ -781,7 +820,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
     { p: 0.66, y: STONE_Y + 0.04, yaw: 0.76, pit: 0.98, d: 1.4, fov: 32, sx: 0, fitW: 1.35 },
     { p: 0.858, y: STONE_Y - 0.02, yaw: 0.0, pit: 1.36, d: 3.5, fov: 30, sx: 0, fitW: 0.9 },
     { p: 0.892, y: STONE_Y - 0.05, yaw: -0.26, pit: 0.64, d: 3.05, fov: 30, sx: 0, fitW: 1.05 },
-    { p: 0.938, y: STONE_Y - 0.06, yaw: 0.04, pit: 0.16, d: 2.35, fov: 30, sx: 0, fitW: 1.15 },
+    /* sx 0.3, because at 0 the closing words were written across the stone.
+     * The coda beat opens at data-a 0.91 but this key still said centre, and
+     * the monotone slope at the 0.892 key is forced to zero, so the brilliant
+     * sat dead centre for the first half of the beat and did the whole carry
+     * in the last 6% of the track. Measured at ?p=0.938: at 1024x768 "Made
+     * once." began at x 678 with the lit crown reaching x 763, so the line
+     * ran straight over the brightest part of the stone, pearl on white. The
+     * frame now opens before the words arrive in it, which is what the film
+     * always said it did. */
+    { p: 0.938, y: STONE_Y - 0.06, yaw: 0.04, pit: 0.16, d: 2.35, fov: 30, sx: 0.3, fitW: 1.15 },
     { p: 1.0, y: STONE_Y - 0.05, yaw: 0.35, pit: 0.17, d: 2.6, fov: 30, sx: 0.55, fitW: 1.1 },
   ];
 
@@ -845,8 +893,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const tanV = Math.tan((fov * Math.PI) / 360);
     /* The named width is what a WIDE frame has to hold: the prop with room
      * beside it for the words. A portrait frame does not lay the words
-     * beside anything — it stacks them above, on the same line as sx going
-     * to zero — so it only has to hold the prop, and asking it to hold the
+     * beside anything (it stacks them above, on the same line as sx going
+     * to zero), so it only has to hold the prop, and asking it to hold the
      * wide composition's width as well is what used to send a phone's camera
      * two and a half times further back than the key intended, out into the
      * fog, for a shot of a ring box the size of a postage stamp. */
@@ -959,7 +1007,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * below the right to be 3x3 instead of 5x5: with points free to sit
          * anywhere, a cell two over can still own the nearest border, and
          * the exact-distance pass has to look that far. Reined in, it cannot,
-         * and the room costs 36 of these instead of 68 per fragment — which
+         * and the room costs 36 of these instead of 68 per fragment, which
          * is most of the crystal room's bill, since each one is two sines.
          * The cells stay thoroughly irregular; nothing lines up. */
         "vec2 hash2(vec2 p) {",
@@ -1005,7 +1053,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "void main() {",
         // Leaving, the facets rush past: the field zooms as it darkens. q0 is
         // the frame itself, unzoomed, which is what the table's octagon has
-        // to be measured in — it has to land at the size the stone's own
+        // to be measured in: it has to land at the size the stone's own
         // table will have in the first coda frame, and the rushing field
         // would otherwise carry it away from that by a factor of two.
         "  vec2 q0 = vec2(vQ.x * uA, vQ.y);",
@@ -1074,7 +1122,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         // every other one on earth. Three layers at three parallaxes, mostly
         // dark pinpoints with the odd feather catching the light. They are
         // the only thing in this room with a knowable size, which is the
-        // whole job — without them the place reads as graphics, and with them
+        // whole job: without them the place reads as graphics, and with them
         // it reads as the inside of something very small.
         "  float incl = 0.0;",
         "  float feather = 0.0;",
@@ -1092,8 +1140,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  vec3 col = vec3(lum) + tint - vec3((tint.r + tint.g + tint.b) / 3.0);",
         /* SNELL'S WINDOW, and it is the shot the film was missing.
          *
-         * The old cut arrived inside the stone with no orientation at all —
-         * white curtain, then abstract room — which is exactly why it read
+         * The old cut arrived inside the stone with no orientation at all
+         * (white curtain, then abstract room), which is exactly why it read
          * as a splice. Physics hands you the establishing shot for free:
          * past the critical angle a diamond is a mirror, so from in here the
          * ENTIRE outside world is squeezed into one bright disc overhead and
@@ -1169,7 +1217,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * window's clothes, and it shows. And the attenuation has to be
          * GEOMETRIC: a mix toward black can never be darker than its own
          * blend factor, so at four fifths of the way in it is stuck at a
-         * fifth of full brightness — which, at the exposure the inside of
+         * fifth of full brightness, which, at the exposure the inside of
          * the stone is graded to, is a light grey, not a mirror. An
          * exponent holds true black for as long as the window is up and
          * then lets the room in quickly, which is also what sinking away
@@ -1187,7 +1235,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "    col += vec3(0.13, 0.0, -0.13) * rim * uIn * 0.7;",
         "  }",
         /* The way out is the way in, run backwards. The room dims to its own
-         * seams and the lines of light outlive it — and then, instead of
+         * seams and the lines of light outlive it, and then, instead of
          * fading to nothing, they gather into the one shape this whole place
          * is inside: the octagon of the table. It shrinks to the size the
          * stone's own table will have in the first coda frame, holds, and
@@ -1246,13 +1294,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
    *
    * THE RACK FOCUS. Jewelry is photographed with a macro lens wide open,
    * where the plane of focus is a millimetre or two thick, and a focus PULL
-   * is the most emotional move in the whole vocabulary — it tells you what
+   * is the most emotional move in the whole vocabulary: it tells you what
    * to care about without moving the camera an inch. So as the box leaves,
    * it melts rather than slides; then focus drifts forward onto the near arc
    * of the band, and is pulled back onto the stone as the stone rises out of
    * the claws. Depth comes from a real depth texture and the circle of
    * confusion is the honest |z - f| / z, so what goes soft is what is
-   * actually at the wrong distance — the far side of the shank, the box on
+   * actually at the wrong distance: the far side of the shank, the box on
    * its way off, the ring once it has been carried away.
    *
    * THE PRESS. The last thousandths before the table are a piece of glass
@@ -1266,7 +1314,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * a target in the working (linear) space, so the obvious target is half
    * float: eight bits of LINEAR light in a room this dark bands on sight.
    * But measured, that round trip cost more than everything else on the
-   * stage put together, and almost none of it was the taps — it was writing
+   * stage put together, and almost none of it was the taps: it was writing
    * every fragment of the scene at sixteen bits a channel and reading the
    * whole frame back.
    *
@@ -1274,7 +1322,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * SRGB8_ALPHA8 attachment, and the hardware then does both conversions for
    * free: the materials still write linear, the framebuffer encodes on the
    * way in, the sampler decodes on the way out. So the gather still happens
-   * in linear — the only place a blur is allowed to happen — the darks get
+   * in linear (the only place a blur is allowed to happen), the darks get
    * sRGB's own precision instead of eight flat linear bits, and the whole
    * pass moves half the bytes. This pass still does the final encode itself
    * on the way to the canvas. */
@@ -1326,7 +1374,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         /* The circle of confusion, in pixels: how far off the plane of focus
          * this fragment is, relative to its own distance. It saturates at a
          * third of a stop rather than running away, and that is a sampling
-         * decision, not a photographic one — a fixed budget of taps spread
+         * decision, not a photographic one: a fixed budget of taps spread
          * over an unbounded radius stops being a blur and starts being a
          * ring of copies, which is the one artefact that gives a cheap depth
          * of field away. Nothing beyond the subject here is more than a
@@ -1355,7 +1403,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "      float wsum = 1.0;",
         /* Taps on a golden-angle spiral: an even disc at any radius, and no
          * ring artefacts, which a square kernel gives away instantly.
-         * Sixteen of them, or eight on a phone — where the aperture is
+         * Sixteen of them, or eight on a phone, where the aperture is
          * narrowed to match, so the SPACING between samples stays about the
          * same and the halved count costs sharpness of the bokeh rather than
          * introducing the rings a sparser disc would. */
@@ -1369,7 +1417,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * of confusion, not by this fragment's.
          *
          * A neighbour behind is simply gathered. One in front only arrives if
-         * its own blur is wide enough to scatter this far — which is what
+         * its own blur is wide enough to scatter this far, which is what
          * stops a sharp foreground smearing across the subject, and, just as
          * importantly, what lets a DEFOCUSED one spread outward the way real
          * bokeh does. Weighing a front neighbour against this fragment's
@@ -1444,7 +1492,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
         mat.uniforms.uFar.value = camera.far;
       },
       draw() {
-        if (params.has("nolens")) {
+        // Hoisted, not asked per frame: this is the hot loop.
+        if (NO_LENS) {
           renderer.render(scene, camera);
           return;
         }
@@ -1681,6 +1730,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const vigEl = document.getElementById("vig");
   let veilKLast = -1;
   let vigKLast = -1;
+  let rigSigLast = NaN;
   function setOpacity(el, last, v, keep) {
     if (Math.abs(v - last) < 0.002) return;
     keep(v);
@@ -1690,7 +1740,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   function filmAt(p, now, dt) {
     const aspect = viewW / viewH;
 
-    /* The box. Its turn ARRIVES rather than easing to a halt — it goes a
+    /* The box. Its turn ARRIVES rather than easing to a halt: it goes a
      * degree or two past square and rocks back, which is what a hand does
      * and what a slider never does. On the way out it leans into its own
      * travel, because a thing being carried tips toward where it is going;
@@ -1731,7 +1781,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const openNow = Math.max(open, teaseOpen);
 
     // The ring. It rises and settles rather than gliding to a stop, and it
-    // is carried off with a turn and a tip in it — the whole point of the
+    // is carried off with a turn and a tip in it. The whole point of the
     // ranges overlapping is that the box is already leaving while the ring
     // is still coming up, and the ring is already going while the stone is
     // settling above it. Sequential moves read as animation; overlapping
@@ -1756,8 +1806,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const liftK = smooth(seg(p, B.stoneUp[0], B.stoneUp[1]));
     const enterK = seg(p, B.enter[0], B.enter[1]);
     const inCoda = p >= CODA[0];
-    // The relight is already under way at the cut — the range opens before
-    // CODA does — so the stone's table arrives lit rather than climbing out
+    // The relight is already under way at the cut (the range opens before
+    // CODA does), so the stone's table arrives lit rather than climbing out
     // of a black frame the octagon has just left.
     const codaIn = smooth(seg(p, CODA[0] - 0.008, CODA[0] + 0.034));
     const stoneY = ringY + GIRDLE + S_LIFT * liftK;
@@ -1810,14 +1860,38 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const stoneLit = inCoda ? codaIn : Math.max(ringLit, liftK);
     const reveal = clamp(Math.max(boxReveal, riseK), 0, 1);
     box.root.visible = !inCoda;
-    ring.root.visible = !inCoda;
+    /* Shut in the box the ring is not dim, it is NOT THERE. The seat keeps
+     * 0.12 of headroom under the closed lid, and the ring's metal is built
+     * before any of the box's, so three's opaque sort submits it ahead of the
+     * lid that covers it and not one of those fragments is rejected: a fully
+     * shaded, envmapped, shadow-mapped piece of jewelry, drawn inside a closed
+     * box, for the whole first fifth of the film. Same gate and same number as
+     * the stone one line down. */
+    ring.root.visible = !inCoda && reveal > 0.001;
     /* Two shadow maps is one more than most of this film needs. The key's is
      * only ever read by surfaces inside the open box; once the box has gone
      * there is nothing left on stage that receives a shadow at all, so its
      * map stops being redrawn, for the two thirds of the film that follows.
      * The light goes on DECLARING itself a caster (see the note where it is
      * built); it is the raster that stands down, not the flag. */
-    const moved = renderer.shadowMap.needsUpdate;
+    /* A shadow map is a function of what CASTS, not of where the camera
+     * stands, and neither of these shadow cameras follows the eye. Three
+     * stretches of the opening chapter move the camera hard while the rig is
+     * frozen: before B.turn, between B.turn and B.open, and between B.open and
+     * B.ringUp. That was a fifth of the chapter spent re-rasterising a 1024
+     * depth pass, twice once the lamp is on, for texels that cannot have
+     * changed. So the flag is qualified by the POSE of the casters.
+     *
+     * openNow rather than open: the tease leans on the lid without touching
+     * the film's own number, and the lamp is a child of the lid, so a tease
+     * pulse genuinely does invalidate the map. outK is carried explicitly
+     * rather than left to ride inside boxYaw, so this cannot quietly break if
+     * B.turn and B.boxOut ever stop being disjoint. */
+    const rigSig =
+      boxYaw + openNow * 7.31 + outK * 5.17 +
+      ringY * 13.7 + ringOutK * 29.3 + ringYaw * 3.9;
+    const moved = renderer.shadowMap.needsUpdate && rigSig !== rigSigLast;
+    rigSigLast = rigSig;
     key.shadow.needsUpdate = moved && p < B.boxOut[1] + 0.02;
 
     /* THE GROUND GOES WITH THE BOX.
@@ -1871,7 +1945,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     }
 
     /* The lens. Focus rides the subject's own axis; the PULL is an offset
-     * along the view — forward onto the near arc of the band as the box
+     * along the view: forward onto the near arc of the band as the box
      * leaves, then drawn back onto the stone as the stone comes up out of
      * the claws. That is the whole rack focus, and it is why the ring goes
      * to bokeh at exactly the moment the reader is meant to stop looking at
@@ -1895,7 +1969,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       camera.updateMatrixWorld();
       camInv.copy(camera.matrixWorld).invert();
       // The plane of focus sits on the ring's head, and the pull carries it
-      // up onto the stone — deliberately a beat BEHIND the stone's own rise,
+      // up onto the stone, deliberately a beat BEHIND the stone's own rise,
       // so the brilliant drifts soft on its way out of the claws and comes
       // sharp as the focus catches it. Both are on the same axis, so the
       // separation is the height the stone has gained, read through a camera
@@ -1921,7 +1995,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       focusZ = Math.max(-focusV.z, 0.2);
     }
 
-    /* Contact, and the vignette handed across with it. Not a dissolve — a
+    /* Contact, and the vignette handed across with it. Not a dissolve. A
      * hit: dark right up to the table, one frame of bloom off the strike,
      * gone. The crystal room takes the canvas under the top of the spike, so
      * no frame ever shows the switch. The coda takes the vignette back,
@@ -2092,8 +2166,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * it and the words standing in it are DOM, and light that stops dead at
    * the edge of the canvas is what makes an overlay read as subtitles rather
    * than as type inside a place. So the same two beams are computed here
-   * with the same arithmetic — they have to be the SAME beams, or the eye
-   * catches the lie immediately — and published as position and angle for
+   * with the same arithmetic (they have to be the SAME beams, or the eye
+   * catches the lie immediately) and published as position and angle for
    * two elements that screen over the gallery. Screen, because on the room's
    * white it changes nothing at all and on a photographed piece it flares:
    * the light lands on the world without ever touching the contrast the ink
@@ -2250,7 +2324,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * The loading screen is a hairline of light on black. The tease, a few
    * seconds later, is a hairline of lamp light in the lid's seam. Those are
    * the same image and the page had never said so. So the bar does not fade
-   * out — it flies to where the seam actually is on screen, taking the
+   * out; it flies to where the seam actually is on screen, taking the
    * seam's own width and tilt with it, and the lid cracks on it as it lands.
    * The progress bar was the box all along.
    *
@@ -2406,7 +2480,14 @@ import { JEWELRY } from "./jewelry-manifest.js";
     if (!document.hidden) wake();
   });
   canvas.addEventListener("webglcontextlost", (e) => e.preventDefault());
-  canvas.addEventListener("webglcontextrestored", wake);
+  canvas.addEventListener("webglcontextrestored", () => {
+    // A restored context has empty shadow maps and no scroll to announce it,
+    // and `moved` is an AND, so clearing the pose guard alone cannot rebuild
+    // them. Both halves have to be raised.
+    rigSigLast = NaN;
+    renderer.shadowMap.needsUpdate = true;
+    wake();
+  });
   reduceMotion.addEventListener("change", () => {
     // Flipping it on cancels any tease in flight; flipping it off gives the
     // chain back its life (armTease self-terminates while it holds).
@@ -2510,7 +2591,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * machine will, and print the median cost of it.
    *
    * Every expense on this page is a fragment cost, and a fragment cost cannot
-   * be read off a source file — the only honest way to answer "it lags" is to
+   * be read off a source file; the only honest way to answer "it lags" is to
    * measure the frame at the progress that lags. Two things make this a
    * straight loop rather than a rAF one. rAF is vsynced, so on any desktop
    * GPU everything under 16ms reads the same; and under the virtual clock

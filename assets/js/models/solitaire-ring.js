@@ -1,16 +1,16 @@
-/* Adriano Jewelry — the four-claw solitaire.
+/* Adriano Jewelry: the four-claw solitaire.
  *
  * The ring in the reference photograph: a tapered white-gold shank that
  * thickens and widens as it climbs, four straight claws standing off the top
  * of it, and the brilliant they close over. The head was cut for that stone
  * before the stone existed (v0.2.4 shipped this setting deliberately empty),
- * so setting one is not a fitting job — every dimension of the claws was
+ * so setting one is not a fitting job; every dimension of the claws was
  * already solved from the diamond's own numbers, and brilliant-diamond.js
  * publishes those numbers for both of us to read.
  *
  * The stone lifts. It is held on a spring the stage drives, and at full lift
  * it stands clear of its claws and turns on its own axis, which is the only
- * way to look at a stone properly — the setting is what a photograph of a
+ * way to look at a stone properly: the setting is what a photograph of a
  * ring shows you, and the stone is what you actually came to see.
  *
  * Every part of the metal is one wire: an elliptical section swept along a
@@ -61,14 +61,14 @@ const FLARE = 0.78; // radians either side of the top the flare is spread over
  * Every dimension of the head is solved from the diamond rather than fitted
  * to it: girdle bearing on all four claws at once, culet clear of the shank
  * underneath, and the crown standing proud of the tips with the nails laid
- * over it. The stone's proportions are read straight out of the cut — this
+ * over it. The stone's proportions are read straight out of the cut; this
  * file must never restate them, or the two halves of the same joint would be
  * free to drift apart.
  *
  * The girdle plane is not a taste decision. A brilliant's pavilion runs 43%
  * of its diameter below the girdle, and that point cannot be inside the top
  * of the band, which is what fixes how tall this head has to stand. */
-const STONE_D = 0.82; // an 8.2mm round brilliant — about two carats
+const STONE_D = 0.82; // an 8.2mm round brilliant, about two carats
 const STONE_R = STONE_D / 2;
 const PAVILION = BRILLIANT.pavilion * STONE_R; // culet below the girdle
 const CROWN_H = BRILLIANT.crown * STONE_R; // girdle up to the table
@@ -77,7 +77,7 @@ const SHANK_TOP = RI + BT1;
 const GIRDLE_Y = SHANK_TOP + PAVILION + 0.042; // culet clears by 0.42mm
 
 /* How far out of its claws the stone comes when it is lifted. Enough that it
- * stands clear of the open lid as well as the setting — the box's own maths
+ * stands clear of the open lid as well as the setting; the box's own maths
  * checks that, and a camera closing on the stone has to have somewhere to
  * stand that the lid is not already in. */
 const LIFT = 2.1;
@@ -86,15 +86,15 @@ const LIFT = 2.1;
  * It is a straight post with a nail turned over at the top, which is the
  * whole of what a claw is:
  *
- *   the post — dead straight, from a root buried in the very top of the
+ *   the post: dead straight, from a root buried in the very top of the
  *   shank out to the girdle. All four are rooted in the same place, close
  *   enough together to cast as one junction, and the pair of them on any
  *   side is the V this ring is known by. How far each leans is solved
- *   rather than chosen: enough that its inner face — not its centreline,
- *   and reckoned across the lean — comes to rest exactly on the girdle
+ *   rather than chosen: enough that its inner face (not its centreline,
+ *   and reckoned across the lean) comes to rest exactly on the girdle
  *   circle at the girdle plane. That is the ledge a stone bears on.
  *
- *   the nail — the last millimetre, turned in over where the crown would
+ *   the nail: the last millimetre, turned in over where the crown would
  *   be and laid along it half way up to the table. Without it a claw is a
  *   spike and holds nothing; with it, the four of them close over a stone
  *   and the setting is a setting. It is empty here, so all four nails stand
@@ -111,8 +111,8 @@ const POST_STEPS = 20;
 const NAIL_STEPS = 10;
 
 /* Half-thickness up the claw: heavy where it leaves the shank, drawn fine
- * at the top, the way a claw is filed. The last of it flattens a little —
- * ru is the way round the girdle, rv straight out from the stone — because
+ * at the top, the way a claw is filed. The last of it flattens a little
+ * (ru is the way round the girdle, rv straight out from the stone) because
  * even an unset claw is dressed to a face before it ever meets one. */
 const TAPER = [
   [0.0, 0.075],
@@ -128,7 +128,7 @@ const FLAT_V = 0.89;
 const TIP_R = TAPER[TAPER.length - 1][1];
 
 /* The post's lean, solved so that its inner face lands on the girdle circle.
- * Four turns of the loop is three more than it needs — the lean and the face
+ * Four turns of the loop is three more than it needs; the lean and the face
  * it puts against the stone settle on each other immediately. The station
  * the girdle falls on is known up front, so the claw's thickness there is
  * too, which is what makes this solvable rather than fitted by eye. */
@@ -146,7 +146,7 @@ const KNEE_H = ROOT_H + Math.tan(LEAN) * (KNEE_Y - ROOT_Y);
 
 /* The claw's whole profile in (distance from the axis, height): the straight
  * post, then a quadratic turn whose handle carries the post's own direction
- * on for a moment before it comes over — a bend, not a corner. Built once
+ * on for a moment before it comes over. A bend, not a corner. Built once
  * and mirrored into four. */
 const CLAW = (() => {
   const pts = [];
@@ -214,12 +214,12 @@ function domeEnd(path, steps) {
  * A polished metal has no diffuse worth the name: all a viewer sees in it is
  * whatever is standing around it, reflected. The room this ring lives in is
  * a black box in a dark studio, and a mirror in a dark room is a black
- * mirror — which is why the trade never photographs jewelry in the room it
+ * mirror, which is why the trade never photographs jewelry in the room it
  * is sold in. It puts a lit tent around the piece.
  *
- * So the ring carries one: a sphere painted with the bands a real tent has —
- * a bright ceiling, the dark line where it meets the wall, a broad soft
- * side, and a floor that falls away — pre-filtered once into this model's
+ * So the ring carries one: a sphere painted with the bands a real tent has
+ * (a bright ceiling, the dark line where it meets the wall, a broad soft
+ * side, and a floor that falls away), pre-filtered once into this model's
  * own environment map. Every curve of the band then rakes those bands across
  * itself as it turns, which is the whole of what makes metal read as
  * polished silver rather than grey paint. It is the piece's light, not the
@@ -347,7 +347,7 @@ export function createSolitaireRing(opts) {
   }
 
   /* The stone, set. It goes exactly on the girdle plane the claws were leaned
-   * to meet — no offset, no easing it down until it looks right. If it ever
+   * to meet: no offset, no easing it down until it looks right. If it ever
    * stops sitting on all four bearings, that is a fact about the arithmetic
    * above and wants fixing there, not here. A bare ring builds none and
    * leaves the seating to whoever asked for it bare. */
@@ -365,7 +365,7 @@ export function createSolitaireRing(opts) {
     /** What a box needs to seat one: how far the shank hangs below the
      * finger's centre, how far the piece stands above it, and how wide a slot
      * the band has to pass through. The rise is the table of the stone, not
-     * the claw tips — the stone is the tallest thing here now. `stone` is the
+     * the claw tips; the stone is the tallest thing here now. `stone` is the
      * other half of it: where its girdle sits and how far it comes up when
      * it is lifted, so a box can work out what its lid has to clear. */
     metrics: {
@@ -395,7 +395,7 @@ export function createSolitaireRing(opts) {
 
     /** The ring's own shot, closing on the stone as it comes up out of it.
      * Centred between the bottom of the shank and the table of the stone,
-     * which is higher than the bare setting's centre was — a set ring is
+     * which is higher than the bare setting's centre was; a set ring is
      * taller than the head it was measured as. */
     framing(state) {
       const base = standing ? RI + BT0 : 0;

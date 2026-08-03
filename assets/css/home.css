@@ -1,4 +1,4 @@
-/* Adriano Jewelry - the landing journey.
+/* Adriano Jewelry: the landing journey.
    Loaded by index.html alone; site.css stays the shared shell for every page.
 
    The landing page is now one continuous scroll story run by home.js: a black
@@ -14,7 +14,7 @@
    stone and the photographed pieces are the only colour on the page.
 
    CONTRAST FLOOR, DARK GROUND (WCAG 2.1 relative luminance, measured):
-   on #050506 - --pearl #ececec 17.3:1, --silver #c9c9c9 12.3:1,
+   on #050506: --pearl #ececec 17.3:1, --silver #c9c9c9 12.3:1,
    --fog #9a9a9a 7.3:1, and --hairline (rgba(236,236,236,0.42) composited)
    3.55:1. Text needs 4.5:1 and UI hairlines 3:1, so every painted value
    clears with margin. The 0.42 alpha is not taste: at site.css's 0.34 a
@@ -115,7 +115,7 @@ html.js .loader {
 .loader.is-done .loader__mark,
 .loader.is-done .loader__sub {
   /* The entrance animations below are filled `both`, and a filling animation
-     outranks a plain declaration in the cascade — without dropping them here
+     outranks a plain declaration in the cascade; without dropping them here
      the name simply refuses to leave. */
   animation: none;
   opacity: 0;
@@ -258,6 +258,22 @@ html.js .nav {
   opacity: 0;
 }
 
+/* A hidden nav must not be a place focus can go. The bar is only translated
+   and faded, so its wordmark and both pills stayed in the tab order the whole
+   way down the track: a keyboard reader who had scrolled tabbed into a control
+   sitting off the top of the screen at zero opacity, and because the bar is
+   fixed there was nothing they could scroll to bring it back.
+
+   :focus-visible, not :focus-within. Clicking a button focuses it, and the
+   booking pill is deliberately inert, so :focus-within would pin the bar open
+   for the rest of the film after one ordinary click. :has() carries the
+   specificity of its argument, which makes this (0,2,0), level with
+   .nav.is-hidden, so it has to sit after it to win. */
+.nav:has(:focus-visible) {
+  transform: translateY(0);
+  opacity: 1;
+}
+
 .nav--ink {
   background: linear-gradient(rgba(244, 244, 244, 0.88), rgba(244, 244, 244, 0));
   --nav-fg: var(--graphite);
@@ -273,6 +289,14 @@ html.js .nav {
   font-size: clamp(1.15rem, 3.5vw, 1.45rem);
   font-weight: 400;
   letter-spacing: 0.02em;
+  /* 44px floor, the same tap target the rest of the site holds, carried on
+     the line box rather than by flexing this link. The tail span is preceded
+     by an ordinary space, and a flex box would make that span a separate flex
+     item and strip the space, rendering "AdrianoJewelry": the exact trap
+     index.html spells out on the booking button, which is why that one uses a
+     non-breaking space. Half-leading keeps the glyphs centred, so the wordmark
+     does not shift inside the bar. */
+  line-height: 44px;
   color: var(--nav-fg);
   text-decoration: none;
   white-space: nowrap;
@@ -295,7 +319,8 @@ html.js .nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  /* 44px, not 40: the floor every other control on the site already holds. */
+  min-height: 44px;
   padding: calc(0.42rem + var(--caps-drop)) clamp(0.8rem, 2.5vw, 1.25rem)
     calc(0.42rem - var(--caps-drop));
   border: 1px solid var(--nav-dim);
@@ -622,7 +647,7 @@ html.js .journey {
 }
 
 /* The eyebrow's own entrance: it condenses out of wider tracking as it
-   arrives, which no other element does - the one flourish of the system. */
+   arrives, which no other element does: the one flourish of the system. */
 .beat__eyebrow .bl__in {
   letter-spacing: calc(0.34em + (1 - var(--ee)) * 0.3em);
 }
@@ -718,7 +743,7 @@ html.js .journey {
 }
 
 /* Since v0.3.0 this word stands over the stone's own face, which by that
-   point in the dive is the brightest thing in the film — and pearl on white
+   point in the dive is the brightest thing in the film, and pearl on white
    is nothing at all. So it carries its own shadow: a soft dark clearing
    beneath it, the mirror of the white one the ink beats stand in. Keyed to
    --k like everything else, so on the darker frames at the head of the beat
@@ -805,7 +830,7 @@ html.js .journey {
 /* ------------------------------------------------------------------ beams */
 
 /* The crystal room sweeps two broad beams through itself, and until now
-   they stopped dead at the edge of the canvas — which is exactly what makes
+   they stopped dead at the edge of the canvas, which is exactly what makes
    an overlay read as subtitles rather than as type standing in a place.
    These are the SAME two beams: home.js runs the shader's own arithmetic and
    publishes each one's centre and angle, so they cross the pieces at the
@@ -848,7 +873,7 @@ html.js .journey {
 /* The amplitudes look high for a light effect and they are not. Screen is
    asymmetric on purpose: a piece whose highlights are already at white
    cannot be lifted at all, so almost all of this lands on the mid-tones and
-   the drop shadows — the gold, the coloured stones, the ground under a
+   the drop shadows: the gold, the coloured stones, the ground under a
    piece. Which is exactly what a light passing over a photographed object
    does, and the reason the beam reads as light rather than as a white
    rectangle sliding by. */
@@ -1084,7 +1109,22 @@ html.js .site-footer {
 
 /* ------------------------------------------------------------ small ends */
 
-@media (max-width: 380px) {
+/* 480, not 380, and the 100px is the whole point.
+
+   The full row is brand 133px + 12px gap + both pills 277px + 32px of
+   gutter, which needs 455px with the webfonts loaded and 459px in the swap
+   fallback. The tails used to come off at 380, so every phone between 381
+   and 454 was rendering a row that did not fit. And .nav is position: fixed,
+   which means the overflow produces NO scrollbar and does not move
+   scrollWidth: the Contact Us pill was simply clipped off the right edge in
+   silence, 53% of it gone at 390px, on an iPhone 12 through 15. It and the
+   wordmark are the only navigation this page has.
+
+   That band is most of the phones in use, which is exactly why this needed
+   measuring rather than eyeballing: 320 was fine (tails hidden, row 304px)
+   and so was desktop, so both ends of the range this file tests looked
+   correct while the middle was broken. */
+@media (max-width: 480px) {
   .nav__brand-tail,
   .nav__btn-tail {
     display: none;

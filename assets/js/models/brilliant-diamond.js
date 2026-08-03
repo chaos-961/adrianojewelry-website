@@ -1,4 +1,4 @@
-/* Adriano Jewelry — the round brilliant.
+/* Adriano Jewelry: the round brilliant.
  *
  * The stone the four-claw solitaire was cut for, and now the stone standing
  * in it. Fifty-eight facets in the arrangement a bench actually cuts: a table
@@ -7,8 +7,8 @@
  * pavilion mains and a culet under it. Nothing is approximated with a cone.
  *
  * Every one of those facets is *solved*, not placed. Two planes do the whole
- * cut — one crown plane taken from the table edge to the girdle, one pavilion
- * plane from the girdle to the culet — and every vertex that is meant to lie
+ * cut (one crown plane taken from the table edge to the girdle, one pavilion
+ * plane from the girdle to the culet), and every vertex that is meant to lie
  * on a facet is evaluated on that plane rather than guessed, so each facet
  * comes out dead flat and its neighbours meet on a real edge. That is the
  * only reason the thing reads as cut glass instead of a faceted ball: light
@@ -16,7 +16,7 @@
  * either side of it are exactly planes.
  *
  * The proportions in BRILLIANT are the ideal cut, and they are also the
- * numbers solitaire-ring.js already dimensioned its head around — it imports
+ * numbers solitaire-ring.js already dimensioned its head around; it imports
  * them from here so the stone and the setting can never drift apart. Held
  * against GIA's grading ranges the cut is Excellent: 55% table, 34.7° crown,
  * 40.6° pavilion, 61.8% total depth, thin girdle.
@@ -30,7 +30,7 @@
  *
  * WHY IT IS NOT A GLASS MATERIAL. A physically-transmissive material refracts
  * whatever is actually behind it, and what is behind this stone is the inside
- * of a black box in a dark room — so a "correct" diamond here would render
+ * of a black box in a dark room, so a "correct" diamond here would render
  * black. Real stones are not photographed in the room they are sold in; they
  * are photographed in a lit tent, and this one carries its own (the same
  * trick, and the same reason, as the ring's polished metal).
@@ -38,26 +38,26 @@
  * So the light in it is drawn in two passes over one geometry, which is how
  * the trade's own renderers do it:
  *
- *   the back pass  — the far facets, seen through the stone, each mirroring
- *                    the tent. This is the bright inner structure, the pattern
- *                    that swims as the stone turns.
- *   the front pass — added over it: the near facets' own reflection, weighted
- *                    by Fresnel (a diamond bounces 17% of the light straight
- *                    off its face before anything else happens, which is most
- *                    of why it is so bright), plus what refracts through,
- *                    sampled three times at three slightly different bends so
- *                    red, green and blue come apart. That split is dispersion,
- *                    and dispersion is what the trade calls fire.
+ *   the back pass:  the far facets, seen through the stone, each mirroring
+ *                   the tent. This is the bright inner structure, the pattern
+ *                   that swims as the stone turns.
+ *   the front pass: added over it: the near facets' own reflection, weighted
+ *                   by Fresnel (a diamond bounces 17% of the light straight
+ *                   off its face before anything else happens, which is most
+ *                   of why it is so bright), plus what refracts through,
+ *                   sampled three times at three slightly different bends so
+ *                   red, green and blue come apart. That split is dispersion,
+ *                   and dispersion is what the trade calls fire.
  *
  * The tent itself is painted here: hard-edged panels, because a soft gradient
- * reflects as a wash and the stone turns to chalk — it is the hard line
+ * reflects as a wash and the stone turns to chalk; it is the hard line
  * between a lit panel and the black beside it, raked across a facet, that the
  * eye reads as a flash. A handful of small pure-white specks in it are pushed
  * far past white in the shader, and those are the sparkles.
  *
  * Last, the flare: when a facet lines up to mirror one of the tent's lights
  * straight down the camera, a four-point star is drawn over the stone. That
- * is a lens artefact, not a property of diamond — but it is in every
+ * is a lens artefact, not a property of diamond. But it is in every
  * photograph of one, including the reference this was built from, and it is
  * the difference between a bright stone and a stone that catches your eye.
  */
@@ -65,14 +65,14 @@
 import * as THREE from "../vendor/three.module.min.js";
 
 /* The cut. Fractions of the girdle RADIUS, so a stone of any size is the
- * same stone. solitaire-ring.js imports this — do not restate these numbers
+ * same stone. solitaire-ring.js imports this; do not restate these numbers
  * anywhere else.
  *
  * crown and pavilion are measured from the middle of the girdle, which is
  * the plane a setting bears the stone on and therefore the only plane worth
  * measuring from. In the trade's own percentages (of the DIAMETER): table
  * 55%, crown height 16.2%, pavilion depth 43%, girdle 1.2%, total depth
- * 61.8% — an ideal round brilliant. */
+ * 61.8%, an ideal round brilliant. */
 export const BRILLIANT = {
   table: 0.55, // table octagon, centre to corner
   crown: 0.324, // girdle plane up to the table
@@ -100,15 +100,15 @@ const unit = (v) => {
 };
 
 /* The stone, at a girdle radius of 1. Returns the geometry and the list of
- * facet normals — the normals are wanted later for the flare, which has to
+ * facet normals; the normals are wanted later for the flare, which has to
  * ask every facet whether it is currently mirroring a light at the camera. */
 function buildBrilliant() {
   const P = BRILLIANT;
   const gh = P.girdle / 2;
 
-  /* The two planes the whole cut is read off. Each is written in u — the
+  /* The two planes the whole cut is read off. Each is written in u (the
    * distance from the axis measured along its OWN facet's azimuth, not the
-   * radius — which is what makes a facet a plane rather than a cone: a point
+   * radius), which is what makes a facet a plane rather than a cone: a point
    * 22.5 degrees round from the facet's centre is nearer the axis in u than
    * its radius suggests, and lands lower on the crown for exactly that
    * reason. Every star tip and every lower-half tip below is placed by
@@ -126,7 +126,7 @@ function buildBrilliant() {
     gTop.push(at(j, 1, gh));
     gBot.push(at(j, 1, -gh));
   }
-  // The table's eight corners, on the even azimuths — a bezel below each.
+  // The table's eight corners, on the even azimuths. A bezel below each.
   const T = [];
   for (let i = 0; i < 8; i++) T.push(at(2 * i, P.table, P.crown));
   // Star tips and lower-half tips, on the odd azimuths, each read off a plane.
@@ -147,7 +147,7 @@ function buildBrilliant() {
   const facets = [];
 
   /* One facet: fanned into triangles and given one flat normal, since flat is
-   * the whole point. The winding is not authored — it is decided by which way
+   * the whole point. The winding is not authored; it is decided by which way
    * the facet's own centroid faces, which for a convex solid is always out.
    * Half the facets here are mirrored copies of another, so hand-authoring
    * winding is just a list of chances to get one backwards. */
@@ -208,13 +208,13 @@ function buildBrilliant() {
  * tagged sRGB), so what is written here is what the shader reads.
  *
  * Panels are held at or under 0.78 and the specks alone are pure white,
- * because the shader pushes anything above 0.86 far past white — that split
+ * because the shader pushes anything above 0.86 far past white; that split
  * is what lets the panels stay photographic while the specks blow out into
  * sparkles. */
 /* The standing panels: centre u, half width, top v, bottom v, then the
  * panel's colour.
  *
- * Two things are being bought here. The first is EDGES — nine narrow panels
+ * Two things are being bought here. The first is EDGES: nine narrow panels
  * with black between them give a turning stone far more hard lines to rake
  * across itself than four broad ones, and every one of those lines is a
  * flash on the way past and a band of fire where the spectrum straddles it.
@@ -223,8 +223,8 @@ function buildBrilliant() {
  * bench actually lights a stone. Gel one side warm and the other cool and
  * the same facet throws a different colour depending on which way it is
  * turned, so the colour inside the stone changes as it moves instead of
- * sitting there. The ceiling — the panel the stone answers to most of the
- * time — is left a hair cool, so the body of it reads icy and the fire comes
+ * sitting there. The ceiling, the panel the stone answers to most of the
+ * time, is left a hair cool, so the body of it reads icy and the fire comes
  * up warm against that. Nothing here is more than a few percent off neutral;
  * a stone with an obvious colour cast is a stone with a problem. */
 const PANELS = [
@@ -247,7 +247,7 @@ const SPECKS = [
 ];
 
 /* The three lights the flare is allowed to catch: the ceiling straight
- * overhead, and the two widest panels — picked off the table above rather
+ * overhead, and the two widest panels, picked off the table above rather
  * than named, so adding a panel cannot leave this pointing at nothing. */
 const FLARE_DIRS = [[0, 1, 0]].concat(
   PANELS.slice()
@@ -285,7 +285,7 @@ function tentTexture() {
    *
    * How WIDE it is turns out to matter more than how bright. The light that
    * leaves a stone's table has come down through the crown, off the pavilion
-   * twice and back up — so the eye at 30 degrees above the table is reading
+   * twice and back up, so the eye at 30 degrees above the table is reading
    * the room roughly 55 degrees up on the far side. A tight overhead misses
    * that on every ordinary viewing angle and the table goes grey, which is
    * no way to light the one facet everybody looks at. Out to 42 degrees, the
@@ -295,7 +295,7 @@ function tentTexture() {
    * black in it is what gives the crown its contrast.
    *
    * This is the single biggest thing the crown reflects, and one unbroken
-   * panel comes back as one unbroken sheet — half the top of the stone goes
+   * panel comes back as one unbroken sheet; half the top of the stone goes
    * blank white, which is the look of cheap render glass. Broken into cells
    * with dark seams between them, the same facets catch a cell, then a seam,
    * then the next cell, and the crown reads as structure instead of paint.
@@ -303,7 +303,7 @@ function tentTexture() {
    *
    * Every cell is gelled a percent or two off its neighbours, and the ring
    * of cells dims going outward the way a real overhead falls off. So what
-   * comes back out of the stone is not one white — it is a dozen, and they
+   * comes back out of the stone is not one white; it is a dozen, and they
    * change places as it turns. */
   const RINGS = [0, 0.07, 0.135, 0.19, 0.235];
   const CELLS = 12;
@@ -370,7 +370,7 @@ function tentTexture() {
   g.fillRect(0, H * CEIL_V, W, H * 0.022);
 
   // The standing panels, with black between them. The gaps matter as much as
-  // the panels — a tent lit all the way round reflects as fog.
+  // the panels: a tent lit all the way round reflects as fog.
   for (const [u, hw, v0, v1, r, gr, b] of PANELS) {
     const grd = g.createLinearGradient(0, v0 * H, 0, v1 * H);
     grd.addColorStop(0, lv(r, gr, b));
@@ -392,7 +392,7 @@ function tentTexture() {
   g.fillStyle = floor;
   g.fillRect(0, H * 0.56, W, H * 0.44);
 
-  // The specks. Small, pure white, and the only thing here allowed to be —
+  // The specks. Small, pure white, and the only thing here allowed to be;
   // every hard sparkle the stone throws is one of these, seen in a facet.
   for (const [u, v, r] of SPECKS) {
     const x = u * W;
@@ -426,7 +426,7 @@ function tentTexture() {
   return tex;
 }
 
-/* The flare sprite: a bright core and four spikes. Drawn, not shaded — it is
+/* The flare sprite: a bright core and four spikes. Drawn, not shaded; it is
  * standing in for what a lens does to a light it cannot resolve. */
 function flareTexture() {
   const N = 128;
@@ -504,7 +504,7 @@ const TENT = [
   /* The pavilion, in one line.
    *
    * This is the whole reason a brilliant is cut the way it is. A ray that
-   * comes in through the crown does not pass out of the bottom — it strikes
+   * comes in through the crown does not pass out of the bottom; it strikes
    * one pavilion main at past the critical angle, bounces to the main
    * opposite, bounces again, and leaves back out of the top. Two mirrors
    * facing each other across the stone, and the net of the pair is to turn
@@ -514,7 +514,7 @@ const TENT = [
    * folded down: light is handed back to where it came from. Sample the tent
    * once with the vertical flipped and that is the effect, for the cost of a
    * minus sign. Without it, looking down at a stone reads the tent's dark
-   * floor and the face-up view — the one a ring is actually worn in — goes
+   * floor and the face-up view (the one a ring is actually worn in) goes
    * black, which is exactly backwards from how a diamond behaves. */
   "vec3 returned(vec3 d) { return vec3(d.x, -d.y, d.z); }",
 ].join("\n");
@@ -526,7 +526,7 @@ const FRAG_BACK = [
   "uniform float uBounce;",
   TENT,
   "void main() {",
-  // Seen from inside, a facet is a mirror — light that reaches the eye off a
+  // Seen from inside, a facet is a mirror; light that reaches the eye off a
   // far facet has bounced there, which is why a diamond has a pattern in it
   // rather than a view through it. Some of it has bounced twice.
   "  vec3 N = normalize(vN);",
@@ -546,13 +546,13 @@ const FRAG_BACK = [
  * refraction and its own colour, normalised so that a stone standing in a
  * flat white room comes out white.
  *
- * The usual shortcut is three bends, one per channel — and it is why most
+ * The usual shortcut is three bends, one per channel, and it is why most
  * rendered gems come out with whole facets of saturated primary: with only
  * three samples a facet either catches a light in that channel or it does
  * not, so it goes fully red or fully blue. Real fire does not work like
  * that. The bands overlap, so a facet that catches a light catches it in
  * nearly all of them and reads white, and the colour appears only where the
- * bands disagree — on the EDGE, where one has swung onto a light and the
+ * bands disagree: on the EDGE, where one has swung onto a light and the
  * next has not. Spectral colour belongs on edges.
  *
  * Each band takes the tent's own colour with it rather than just its
@@ -637,7 +637,7 @@ export function createBrilliantDiamond(opts) {
   const env = cube.texture;
 
   /* The exposure. Two passes of a bright tent add up fast, and a stone that
-   * clips everywhere is a white pebble — the pattern is the point, so the
+   * clips everywhere is a white pebble; the pattern is the point, so the
    * levels are set so that only a facet squarely catching the ceiling or a
    * speck is allowed to reach white, and everything else lands in the greys
    * the reference photograph is mostly made of. */
@@ -711,7 +711,7 @@ export function createBrilliantDiamond(opts) {
    * this facet's mirror line pointing at the camera?
    *
    * It runs per frame while the stone turns, so it is written to be dull and
-   * fast — normals in one flat array, the lights rotated into the stone's
+   * fast: normals in one flat array, the lights rotated into the stone's
    * own frame instead of seventy-four normals into the room's, facets on the
    * outside so a facet pointing away is dropped once rather than once per
    * light, and not a single allocation. Roughly two hundred multiply-adds,
@@ -781,7 +781,7 @@ export function createBrilliantDiamond(opts) {
       uGain.value = GAIN_DARK + (GAIN_LIT - GAIN_DARK) * lit;
       root.rotation.y = s.spin || 0;
 
-      /* Shut in a box, the stone is not dim — it is not there. Dropping it
+      /* Shut in a box, the stone is not dim; it is not there. Dropping it
        * out of the draw entirely costs the page nothing and saves two passes
        * over the most expensive fragments on the stage, in the state the
        * page spends most of its life in. */

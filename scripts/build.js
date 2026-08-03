@@ -9,7 +9,7 @@
  * at author time rather than injected by a script in the browser: the shipped
  * pages stay complete for crawlers, for a reader with JavaScript off, and for
  * the first paint. The cost is remembering to run this after editing a
- * partial — which is what --check is for.
+ * partial, which is what --check is for.
  *
  * Each page marks the regions it delegates:
  *
@@ -17,7 +17,7 @@
  *
  * Everything between the markers is replaced wholesale, so never hand-edit it.
  * A page opts in to the regions it wants, which is how one page can take a
- * different variant of the same slot — the contact page declares top-return
+ * different variant of the same slot: the contact page declares top-return
  * (a way back) where every other page declares top (a way to contact). What is
  * checked is that each page fills every slot in REQUIRED with one variant, so
  * a page cannot silently ship with no footer or no header.
@@ -25,7 +25,7 @@
  * URLs are extensionless: every page except the home page and 404 lives at
  * <slug>/index.html, so it is served at /<slug>/ with no .html anywhere. A
  * partial writes links as {{root}}<slug>/ and this fills {{root}} in with the
- * hops back up to the site root for the page being stamped — relative, so the
+ * hops back up to the site root for the page being stamped: relative, so the
  * same markup works on a custom domain and on a github.io project page, which
  * is served from /<repo>/ rather than /.
  */
@@ -47,7 +47,7 @@ const ORIGIN = "https://adrianojewelry.com";
 /* Pages that exist but must never be offered to a crawler as a destination. */
 const NOT_INDEXABLE = new Set(["404.html"]);
 
-/* Pages served for a miss at any path depth cannot use relative hrefs — a link
+/* Pages served for a miss at any path depth cannot use relative hrefs: a link
  * to "privacy-policy/" from /shop/gone/ resolves to /shop/gone/privacy-policy/.
  * These pages get root-absolute hrefs plus the data-root-link marker that their
  * inline script rewrites for a github.io project page. */
@@ -63,7 +63,7 @@ const REQUIRED = [
 
 /* Image slots that are waiting on a photograph nobody has taken yet.
  *
- * This business has no jewelry photography — the live site carries three
+ * This business has no jewelry photography: the live site carries three
  * images in total and not one of them is a piece of its own work. Rather than
  * ship a generated stand-in, every such slot renders as a labelled greybox
  * carrying the shot it needs. Counting them here is what stops them becoming
@@ -124,7 +124,7 @@ function bumpVersion(current) {
     }
     parts[i] = 0;
   }
-  // Every segment was 9 — 9.9.9 rolls to 10.0.0 rather than back to 0.0.0.
+  // Every segment was 9; 9.9.9 rolls to 10.0.0 rather than back to 0.0.0.
   return `10.0.0`;
 }
 
@@ -207,6 +207,28 @@ function stamp(page, source, partials, version) {
     warnings.push(`${page}: unresolved ${[...new Set(leftover)].join(", ")}`);
   }
 
+  /* The sitemap is generated from ORIGIN; the canonical and og:url are written
+   * by hand in each page's head. Nothing tied the two together, so moving
+   * ORIGIN moved the sitemap and left every canonical pointing at the old
+   * domain, and a page added with neither tag is offered to crawlers with
+   * nothing on the page itself to confirm the URL. Compared against
+   * selfHref(), the same function buildSitemap() uses, so the check and the
+   * sitemap cannot drift apart. Reported, not fatal, on the same rule as the
+   * slot checks above. */
+  if (!NOT_INDEXABLE.has(page)) {
+    const want = `${ORIGIN}/${selfHref(page)}`;
+    for (const [what, re] of [
+      ["canonical", /<link rel="canonical" href="([^"]*)"/],
+      ["og:url", /<meta property="og:url" content="([^"]*)"/],
+    ]) {
+      const got = (out.match(re) || [])[1];
+      if (got === undefined) warnings.push(`${page}: no ${what}`);
+      else if (got !== want) {
+        warnings.push(`${page}: ${what} is ${got}, expected ${want}`);
+      }
+    }
+  }
+
   return { out, warnings };
 }
 
@@ -247,8 +269,8 @@ function buildRobots() {
     `# Adriano Jewelry\n` +
     `User-agent: *\n` +
     `Allow: /\n\n` +
-    `# The 404 is served for any miss at any depth; it is not a destination.\n` +
-    `Disallow: /404.html\n\n` +
+    `# 404.html is deliberately NOT disallowed: it carries meta robots noindex,\n` +
+    `# and a crawler blocked from fetching it can never read that directive.\n\n` +
     `Sitemap: ${ORIGIN}/sitemap.xml\n`
   );
 }
@@ -345,7 +367,7 @@ function main() {
   }
 
   console.log(
-    `Stamped ${Object.keys(partials).length} partials at v${version} — ` +
+    `Stamped ${Object.keys(partials).length} partials at v${version}: ` +
       `${written} of ${pages.length} pages changed` +
       (generated ? `, ${generated} crawler file${generated === 1 ? "" : "s"} written` : "") +
       `.`

@@ -2,7 +2,7 @@
 User-agent: *
 Allow: /
 
-# The 404 is served for any miss at any depth; it is not a destination.
-Disallow: /404.html
+# 404.html is deliberately NOT disallowed: it carries meta robots noindex,
+# and a crawler blocked from fetching it can never read that directive.
 
 Sitemap: https://adrianojewelry.com/sitemap.xml

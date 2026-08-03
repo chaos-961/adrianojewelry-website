@@ -7,8 +7,9 @@
     <title>Page not found | Adriano Jewelry</title>
     <!-- A miss is not a destination. Pages serves this file for any unmatched
          path, so without this a crawler can index dozens of dead URLs under
-         one page's content. robots.txt disallows /404.html; this covers every
-         other path the file gets served for. -->
+         one page's content. robots.txt deliberately leaves this path
+         crawlable so this directive can actually be read, at every depth the
+         file gets served for. -->
     <meta name="robots" content="noindex, follow" />
     <meta name="theme-color" content="#f4f4f4" />
     <!-- Styles are inlined: GitHub Pages serves this file for a miss at any
@@ -41,7 +42,7 @@
       :root {
         /* Mirrors assets/css/site.css, which this page cannot link because it
            is served at any depth. Two flat steps of one grey: the paper the
-           page is set on, and the footer one stop DOWN from it — keep these in
+           page is set on, and the footer one stop DOWN from it. Keep these in
            step with --paper and --paper-sunk over there, and mirror the
            contrast arithmetic in that file's CONTRAST FLOOR note, which is
            where the ratios for this ramp are recorded. White, black and grey
@@ -61,12 +62,12 @@
         --caps-track: 0.15em;
         /* See site.css: cancels the descender space that pushes all-caps text
            high inside a flex-centred pill. Raised from 0.03em to the measured
-           0.08em in v0.1.6 — the old figure came from wrong Archivo metrics
+           0.08em in v0.1.6; the old figure came from wrong Archivo metrics
            and left every caps label sitting high. */
         --caps-drop: 0.08em;
         --font-body: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
         --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
-        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --font-mono: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
       *,
@@ -89,7 +90,7 @@
         color: var(--page-fg);
         font-family: var(--font-body);
         font-size: 16px;
-        /* 400, and no -webkit-font-smoothing — see the note on body in
+        /* 400, and no -webkit-font-smoothing: see the note on body in
            assets/css/site.css. Both are the optical correction for setting
            dark type on a light ground rather than the other way round. */
         font-weight: 400;
@@ -116,7 +117,7 @@
         flex-direction: column;
       }
 
-      /* Horizontal and vertical correction for tracked all-caps labels — see
+      /* Horizontal and vertical correction for tracked all-caps labels: see
          the .u-caps note in assets/css/site.css. */
       .u-caps {
         letter-spacing: var(--caps-track);
@@ -200,11 +201,11 @@
         color: var(--accent);
       }
 
-      /* Brushed-graphite sheen across the numerals — the same four-stop rake
+      /* Brushed-graphite sheen across the numerals: the same four-stop rake
          the dark palette used, run the other way up the ramp so the highlight
          is the light step and the body of the stroke is the dark one. Gated on
          support, because `color: transparent` without a working text clip
-         renders nothing at all — the flat accent above stays the fallback. */
+         renders nothing at all; the flat accent above stays the fallback. */
       @supports (-webkit-background-clip: text) or (background-clip: text) {
         .notfound__code {
           color: transparent;
@@ -438,7 +439,7 @@
       }
 
       /* Three columns, the outer two equal and flexible with only the left one
-         filled — the empty right column is what holds the copyright on the
+         filled: the empty right column is what holds the copyright on the
          footer's true centre line rather than centring it in the space the
          version leaves over. */
       .site-footer__meta {
@@ -489,7 +490,7 @@
       }
 
       /* Too narrow for the copyright to be centred on the page with the version
-         beside it — it drops to its own line and the version keeps the wall. */
+         beside it: it drops to its own line and the version keeps the wall. */
       @media (max-width: 30em) {
         .site-footer__meta {
           grid-template-columns: 1fr;
@@ -577,7 +578,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.3</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.4</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the
@@ -586,7 +587,7 @@
                complete, the check never drifts, and every visitor with scripting on
                sees the true year. -->
           <p class="site-footer__copy">
-            Copyright &copy; <span data-year>2026</span> Adriano Jewelry - All Rights
+            Copyright &copy; <span data-year>2026</span> Adriano Jewelry. All Rights
             Reserved.
           </p>
         </div>

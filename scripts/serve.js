@@ -82,6 +82,6 @@ http
       : send(res, 404, Buffer.from("Not found"), ".txt");
   })
   .listen(PORT, () => {
-    console.log(`Adriano Jewelry — http://localhost:${PORT}`);
+    console.log(`Adriano Jewelry: http://localhost:${PORT}`);
     console.log("Ctrl+C to stop.");
   });
