@@ -376,9 +376,15 @@ html.js .journey {
 
 /* A quiet photographic vignette over the dark-room chapters, driven by the
    film (--vig): it holds the corners down around the box and the stone and
-   lifts away entirely inside the white of the diamond. */
-.journey__pin::after {
-  content: "";
+   lifts away entirely inside the white of the diamond.
+
+   Both of these are viewport-sized gradients whose opacity the film rewrites
+   on EVERY frame of a scroll, and an opacity change is only free if the thing
+   changing has a layer of its own. Without the promotion each frame of the
+   film re-rasterises two full-screen gradients on the CPU alongside
+   everything the canvas is already doing. Two layers is a few megabytes; the
+   raster was a large part of a core for the length of the film. */
+.journey__vig {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -388,7 +394,8 @@ html.js .journey {
     transparent 55%,
     rgba(0, 0, 0, 0.42) 100%
   );
-  opacity: var(--vig, 1);
+  opacity: 1;
+  will-change: opacity;
 }
 
 .journey__veil {
@@ -400,6 +407,7 @@ html.js .journey {
   background: radial-gradient(120% 95% at 50% 46%, #ffffff 58%, #f2f2f2 100%);
   opacity: 0;
   pointer-events: none;
+  will-change: opacity;
 }
 
 /* WebGL off: the journey collapses to one quiet dark card carrying the
@@ -419,6 +427,7 @@ html.js .journey {
 }
 
 .journey.is-fallback .journey__canvas,
+.journey.is-fallback .journey__vig,
 .journey.is-fallback .journey__veil,
 .journey.is-fallback .gallery,
 .journey.is-fallback .beam,
@@ -443,7 +452,26 @@ html.js .journey {
 }
 
 /* The scroll cue. Appears only if the reader has not moved four seconds
-   after the room opens; the first scroll retires it. */
+   after the room opens; the first scroll retires it.
+
+   THE `hidden` HERE HAS TO BE HONOURED, and honouring it is not automatic.
+   The UA sheet says `[hidden] { display: none }`, but that is one plain
+   declaration among equals: the author `display: flex` below is later and
+   more specific, so it wins, and the element the markup marked hidden is laid
+   out anyway. Which would be a harmless invisibility (opacity 0) were it not
+   for the hairline's `infinite` animation. An animation that never ends
+   keeps the compositor awake for the LIFE OF THE PAGE, at the display's
+   refresh rate, whether or not anything it draws is visible. On a page whose
+   stacking context also holds a full-viewport WebGL canvas, that is the GPU
+   process recompositing the whole frame sixty times a second, forever, for a
+   cue most readers never see. Measured on this machine: two thirds of a core
+   and a busy GPU on a page that had drawn exactly one frame and gone to
+   sleep. So the attribute is restored here, and the animation below is scoped
+   to the state that actually wants it. */
+.journey__cue[hidden] {
+  display: none;
+}
+
 .journey__cue {
   position: absolute;
   z-index: 6;
@@ -479,8 +507,34 @@ html.js .journey {
   width: 1px;
   height: 2.2rem;
   background: linear-gradient(var(--hairline), transparent);
-  animation: cue-drop 2.2s var(--ease-soft) infinite;
   transform-origin: top center;
+}
+
+/* Only while the cue is actually up. An `infinite` animation is a standing
+   order to the compositor, so it belongs to the one state that wants it and
+   not to the stylesheet at large; the moment the cue is retired the page goes
+   quiet again. Reduced motion gets the hairline standing still.
+
+   `will-change` is not a hint here, it is the whole cost. A transform
+   animated on an element that shares its parent's layer repaints THAT LAYER,
+   and this hairline's layer is the pin, which carries a viewport-sized
+   radial gradient. So a one-pixel line pulsing in the corner was rasterising
+   a full-screen vignette sixty times a second: measured at 1.3 cores for a
+   1px by 2.2rem hairline. Given its own layer it costs one composited
+   transform instead, and it is asked for only while the animation runs. */
+@media (prefers-reduced-motion: no-preference) {
+  .journey__cue.is-shown:not(.is-gone) .journey__cue-line {
+    /* FIVE, not `infinite`. A running animation holds the whole compositor
+       open at the display's refresh rate for as long as it lasts, and that
+       bill is the same whether it drives a full-screen film or a hairline:
+       measured here at two thirds of a core, for ever, on a page that is
+       otherwise asleep. Five drops is about eleven seconds of asking, which
+       is longer than any reader needs to be told which way the page goes,
+       and after it the hairline simply stands there and the machine is
+       quiet again. A cue that pulses for ever is nagging anyway. */
+    animation: cue-drop 2.2s var(--ease-soft) 5;
+    will-change: transform, opacity;
+  }
 }
 
 @keyframes cue-drop {
@@ -803,18 +857,18 @@ html.js .journey {
    piece. Which is exactly what a light passing over a photographed object
    does, and the reason the beam reads as light rather than as a white
    rectangle sliding by. */
+/* --x, --y, --r and --beam are written by home.js onto these two elements
+   directly, rather than onto the pin for these to inherit. An inherited
+   custom property changed on an ancestor invalidates the computed style of
+   everything under it, and under the pin are the beats, both beams and all
+   seventy-four gallery pieces: a hundred-odd elements restyled every frame
+   of the drift to slide two gradients. Written here they cost two. */
 .beam--0 {
-  --x: var(--b0x, 50%);
-  --y: var(--b0y, 50%);
-  --r: var(--b0r, 0deg);
   --h: 44vmin;
   --amp: 0.85;
 }
 
 .beam--1 {
-  --x: var(--b1x, 50%);
-  --y: var(--b1y, 50%);
-  --r: var(--b1r, 0deg);
   --h: 62vmin;
   --amp: 0.55;
 }

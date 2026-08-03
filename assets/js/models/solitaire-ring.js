@@ -225,7 +225,7 @@ function domeEnd(path, steps) {
  * polished silver rather than grey paint. It is the piece's light, not the
  * room's, so it comes with the piece wherever the piece is put.
  */
-function lightTent(renderer) {
+function lightTent(renderer, shared) {
   const c = document.createElement("canvas");
   c.width = 8;
   c.height = 512;
@@ -258,9 +258,19 @@ function lightTent(renderer) {
   // Above one, because a tent is brighter than the paper it stands on.
   shell.material.color.setScalar(2.2);
   tent.add(shell);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const env = pmrem.fromScene(tent, 0.015).texture;
-  pmrem.dispose();
+  /* A PMREM generator compiles its own blur, equirect and cubemap shaders the
+   * first time it is asked for anything, and a second instance compiles a
+   * second set: measured on this machine at 885ms EACH, which was three
+   * quarters of the page's whole boot spent building the same three programs
+   * twice. So a caller that already has one hands it over, and only a model
+   * standing on its own makes another.
+   *
+   * 64, not the default 256, for the same reason as the stage's studio: this
+   * tent is an eight-pixel-wide gradient stretched round a sphere. There is
+   * no detail in it to lose, and PMREM's next job is to blur it anyway. */
+  const pmrem = shared || new THREE.PMREMGenerator(renderer);
+  const env = pmrem.fromScene(tent, 0.015, 0.1, 100, { size: 64 }).texture;
+  if (!shared) pmrem.dispose();
   return env;
 }
 
@@ -278,7 +288,7 @@ export function createSolitaireRing(opts) {
     metalness: 1,
     roughness: 0.075,
   });
-  if (o.renderer) metal.envMap = lightTent(o.renderer);
+  if (o.renderer) metal.envMap = lightTent(o.renderer, o.pmrem);
 
   /* How much of that tent is switched on. A piece standing in the open is
    * always under the studio; a piece lying in a box is under whatever the

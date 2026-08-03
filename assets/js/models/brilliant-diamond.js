@@ -328,6 +328,40 @@ function tentTexture() {
       );
     }
   }
+  /* THE OBSERVER, and it is the thing this tent was missing.
+   *
+   * Face-up, the pavilion hands the eye back the room DIRECTLY ABOVE the
+   * stone, so with an unbroken lit ceiling up there the one view everybody
+   * looks at a diamond in came back as a flat sheet of light grey. Which is
+   * exactly what it should have come back as: the tent had no photographer in
+   * it. Every real macro of a stone is shot through a hole in the light, and
+   * the black of the lens, folded down by the pavilion and broken into
+   * wedges by the mains, IS the pattern the trade calls the arrows. Contrast
+   * face-up is not something you add to a diamond; it is the dark that the
+   * cut arranges. Without something dark overhead there is nothing to
+   * arrange, and no amount of exposure will invent it.
+   *
+   * Nine degrees or so, which is a real lens at a real working distance, with
+   * a soft rim so it reads as an aperture rather than a sticker. Small on
+   * purpose: it must take the middle of the table and leave the coffered ring
+   * around it to do the burning. */
+  {
+    const HEAD_V = 0.05;
+    const cap = g.createRadialGradient(0, 0, 0, 0, 0, H * (HEAD_V + 0.028));
+    cap.addColorStop(0, "rgba(0,0,0,0.97)");
+    cap.addColorStop(HEAD_V / (HEAD_V + 0.028), "rgba(0,0,0,0.95)");
+    cap.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = cap;
+    // The pole is the whole top edge of a lat-long sheet, so the obstruction
+    // is a band across it, faded by distance down from that edge.
+    const band = g.createLinearGradient(0, 0, 0, H * (HEAD_V + 0.028));
+    band.addColorStop(0, "rgba(0,0,0,0.97)");
+    band.addColorStop(HEAD_V / (HEAD_V + 0.028), "rgba(0,0,0,0.92)");
+    band.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = band;
+    g.fillRect(0, 0, W, H * (HEAD_V + 0.028));
+  }
+
   const CEIL_V = RINGS[RINGS.length - 1];
   const fade = g.createLinearGradient(0, H * CEIL_V, 0, H * (CEIL_V + 0.022));
   fade.addColorStop(0, lv(0.2, 0.21, 0.23));
@@ -372,11 +406,16 @@ function tentTexture() {
   }
 
   const tex = new THREE.CanvasTexture(c);
-  /* The shader reads this by direction, not by a mesh's uv: straight up is
-   * the first row of the canvas. Three flips textures on upload by default,
-   * for the uv convention meshes use — which would hang this tent upside
-   * down and put the ceiling under the stone. */
-  tex.flipY = false;
+  /* flipY STAYS AT THREE'S DEFAULT, and it matters which way round.
+   *
+   * This canvas is no longer read by the stone's shader; it is read once by
+   * three's own equirectangular-to-cube conversion, whose v runs
+   * asin(y)/PI + 0.5, the opposite way up from the acos(y)/PI this file
+   * used while it sampled the sheet itself. Two flips that cancel: three
+   * turns the image over on upload, its converter turns the coordinate over,
+   * and the first row of the canvas comes out as straight up, which is where
+   * the ceiling is painted. Set flipY false here, as the hand-rolled mapping
+   * needed, and the tent hangs upside down with its ceiling under the stone. */
   // No mipmaps on purpose: the sparkles must stay needle sharp, and without
   // a mip chain the equirect's wrap seam cannot smear either.
   tex.minFilter = THREE.LinearFilter;
@@ -442,13 +481,23 @@ const VERT = [
  * is left photographic, everything above it is a speck and is thrown far past
  * white, where the tone mapper turns it into a hard clipped star. */
 const TENT = [
-  "uniform sampler2D uEnv;",
+  /* A CUBE, not an equirectangular sheet, and the reason is arithmetic rather
+   * than taste. Reading a lat-long map by direction costs an atan and an
+   * acos, and this shader reads the tent EIGHT times for every fragment of
+   * the stone: once for the reflection off the near facet, once more off the
+   * far one, and five times over for the spectral bands that make the fire.
+   * Sixteen transcendentals per pixel, on the pass that covers most of the
+   * frame through the whole approach, so that a texture unit could be handed
+   * a pair of numbers it was going to convert back into a direction anyway.
+   * A cube map is addressed BY direction: the hardware does the face
+   * selection in fixed function, for nothing. The tent is still painted as a
+   * lat-long canvas, because that is the sane way to paint one; it is
+   * converted once at build time and never sampled that way again. */
+  "uniform samplerCube uEnv;",
   "uniform float uGain;",
   "uniform float uHot;",
   "vec3 tent(vec3 d) {",
-  "  vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5,",
-  "                 acos(clamp(d.y, -1.0, 1.0)) * 0.31830989);",
-  "  vec3 c = texture2D(uEnv, uv).rgb;",
+  "  vec3 c = textureCube(uEnv, d).rgb;",
   "  float m = max(max(c.r, c.g), c.b);",
   "  return c * uGain * (1.0 + uHot * smoothstep(0.86, 1.0, m));",
   "}",
@@ -569,7 +618,23 @@ export function createBrilliantDiamond(opts) {
 
   const built = buildBrilliant();
   built.geometry.scale(radius, radius, radius);
-  const env = tentTexture();
+
+  /* The tent, painted flat and then turned into a cube once, here, so that
+   * every one of the eight lookups per fragment downstream is a plain
+   * hardware cube fetch. 512 a face against a 1024x512 sheet: the faces
+   * oversample the sheet's own detail everywhere except at the poles, which
+   * is the right way round for this tent, since the coffered ceiling is
+   * exactly what the crown reads. The sheet is thrown away afterwards; it has
+   * no further reader. */
+  const sheet = tentTexture();
+  const cube = new THREE.WebGLCubeRenderTarget(512, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    generateMipmaps: false,
+  });
+  cube.fromEquirectangularTexture(o.renderer, sheet);
+  sheet.dispose();
+  const env = cube.texture;
 
   /* The exposure. Two passes of a bright tent add up fast, and a stone that
    * clips everywhere is a white pebble — the pattern is the point, so the

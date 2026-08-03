@@ -105,7 +105,25 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const lowPower =
     params.get("lp") === "1" || matchMedia("(pointer: coarse)").matches;
   const DPR_CAP = lowPower ? 1.6 : 2;
-  const pixelRatio = () => Math.min(window.devicePixelRatio || 1, DPR_CAP);
+
+  /* THE GOVERNOR.
+   *
+   * Every other economy on this page is a guess about a machine nobody here
+   * owns. This one is not a guess: it watches the frames actually landing and
+   * spends the only currency that buys frames back at a predictable rate,
+   * which is pixels. Nothing about the film changes (no beat is cut, no
+   * shader simplified, no prop dropped); it is drawn into a smaller buffer and
+   * scaled up, and on a machine that was dropping frames a slightly softer
+   * picture at the refresh rate beats a sharp one that stutters, every time.
+   *
+   * `quality` is that multiplier. It only ever moves on a sustained signal and
+   * never more than once a second and a half, because the drawing buffer is
+   * reallocated when it changes (and the lens's render target with it), and a
+   * governor that hunts is worse than no governor at all. */
+  let quality = 1;
+  const QUALITY_MIN = 0.55;
+  const pixelRatio = () =>
+    Math.max(0.75, Math.min(window.devicePixelRatio || 1, DPR_CAP) * quality);
 
   const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
   const seg = (p, a, b) => clamp((p - a) / (b - a), 0, 1);
@@ -213,7 +231,15 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    /* Multisampling is bought per sample per pixel, and what it buys is edge
+     * quality the display may already be providing for free. On a screen
+     * dense enough that one CSS pixel is two device pixels the downsample is
+     * itself an antialias, and MSAA on top of it measured at a sixth of the
+     * frame for a difference that needs a loupe. So it is spent only where it
+     * shows: a one-to-one display. It cannot be changed later, since the flag
+     * belongs to the context, which is the other reason the governor below
+     * works in resolution instead. */
+    antialias: (window.devicePixelRatio || 1) < 1.5,
     alpha: true,
     powerPreference: "high-performance",
     stencil: false,
@@ -233,6 +259,15 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const camera = new THREE.PerspectiveCamera(30, 1, 0.08, 80);
 
   setLoad(0.3);
+
+  /* ONE prefilter generator for the whole page, and it is worth a line of
+   * plumbing. Each instance builds and compiles its own blur, equirect and
+   * cubemap programs on first use, measured at 885ms here, and this page
+   * wants two environments prefiltered: the room's studio, and the lit tent
+   * the ring carries with it. Two generators compiled the same three programs
+   * twice and cost three quarters of the entire boot. This one is handed to
+   * the ring below and disposed once both have taken what they need. */
+  const pmrem = new THREE.PMREMGenerator(renderer);
 
   /* An HDRI's job done by five emissive cards and a floor, run through
    * PMREM: a big soft key high left, a tall strip right for the long
@@ -262,14 +297,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
     floor.material.color.setScalar(0.85);
     floor.rotation.x = -Math.PI / 2;
     studio.add(floor);
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(studio, 0.04).texture;
-    pmrem.dispose();
+    /* 64, not the default 256. This environment is five soft cards and a
+     * floor. There is no detail in it above a few pixels, and PMREM's whole
+     * job is to blur it further for roughness. At the default it was the
+     * single most expensive thing in the boot, 858ms of a frozen main thread
+     * before the loader had drawn a second frame; the render is quartered
+     * twice over at 64 and there is nothing in the result an eye could tell
+     * apart, because there was nothing there to lose. */
+    scene.environment = pmrem.fromScene(studio, 0.04, 0.1, 100, { size: 64 }).texture;
   }
 
   /* The room. Dark, and no cast shadow on the ground: every glow and pool
    * belongs to the box's own lamp and lives in the model. The fog lets the
    * floor's far edge disappear instead of drawing a horizon. */
+  let ground;
   scene.background = new THREE.Color(0x060607);
   /* Lifted off the room's own black toward the dome's horizon, so the band
    * where the ground is both fogging and fading has nothing to step across.
@@ -304,7 +345,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       g.fillRect(0, 0, 128, 128);
     }
     const fadeTex = new THREE.CanvasTexture(fade);
-    const floor = new THREE.Mesh(
+    ground = new THREE.Mesh(
       new THREE.CircleGeometry(90, 64),
       new THREE.MeshStandardMaterial({
         color: 0x0b0b0c,
@@ -315,8 +356,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
         transparent: true,
       })
     );
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
   }
 
   /* The walls. A dome of barely lifted greys instead of one flat black: a
@@ -361,11 +402,30 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   const key = new THREE.DirectionalLight(0xffffff, 3.0);
   key.position.set(-5.5, 8.5, -1.5);
+  /* CASTSHADOW IS SET ONCE HERE AND NEVER TOUCHED AGAIN, and that is the most
+   * important line in this file.
+   *
+   * How many shadow-casting lights a scene has is part of three's program
+   * cache key: change it and every material on the stage is a cache miss, and
+   * every cache miss is a compile and a link, synchronously, inside the frame
+   * that caused it. This film used to turn the key's shadow off once the box
+   * had gone and turn the lamp's on as the lid opened, which reads as an
+   * economy and measured, on this machine, as a 1.2 SECOND frame and a 3.0
+   * SECOND frame: the two places the reader reported the page hanging. The
+   * lamp's stall was long enough to swallow the whole lid-opening beat, which
+   * is why the light appeared to arrive late, with the ring, instead of with
+   * the lid: the frames that would have shown it were never drawn.
+   *
+   * The saving was real, though, and it survives: what actually costs
+   * anything is RE-RENDERING the map, not declaring the light able to cast.
+   * So the flag stands still and the per-light `shadow.autoUpdate` below
+   * decides, frame by frame, whether the map is redrawn: same texels saved,
+   * no program touched. */
   key.castShadow = true;
-  /* The shadow map is re-rendered on every frame the props move against the
-   * lights, which is every frame of a scroll. Halving it on a phone is a
-   * quarter of the shadow rasterisation for a softness nobody can see at
-   * this size: the only caster is a box on a cushion. */
+  key.shadow.autoUpdate = false;
+  /* Halving it on a phone is a quarter of the shadow rasterisation for a
+   * softness nobody can see at this size: the only caster is a box on a
+   * cushion. */
   key.shadow.mapSize.set(lowPower ? 1024 : 2048, lowPower ? 1024 : 2048);
   key.shadow.camera.left = key.shadow.camera.bottom = -7;
   key.shadow.camera.right = key.shadow.camera.top = 7;
@@ -394,8 +454,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
   if (prop === "ring" || prop === "diamond") {
     const model =
       prop === "ring"
-        ? createSolitaireRing({ renderer, standing: true })
+        ? createSolitaireRing({ renderer, pmrem, standing: true })
         : createBrilliantDiamond({ renderer, standing: true });
+    pmrem.dispose();
     scene.add(model.root);
     journey.style.height = "100svh";
     const yawS = ((parseFloat(params.get("turn")) || -24) * Math.PI) / 180;
@@ -440,7 +501,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * another with it. The ring is built bare (its head still cut for the
    * stone), the stone is built to the diameter the ring publishes, and the
    * box is handed the ring for its seat arithmetic without taking it. */
-  const ring = createSolitaireRing({ renderer, bare: true });
+  const ring = createSolitaireRing({ renderer, pmrem, bare: true });
   const stone = createBrilliantDiamond({
     renderer,
     diameter: ring.metrics.stone.diameter,
@@ -456,6 +517,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
   scene.add(box.root);
   scene.add(ring.root);
   scene.add(stone.root);
+  // Both environments are prefiltered by now; the generator's own programs
+  // and scratch targets are of no further use to the page.
+  pmrem.dispose();
+
 
   /* The stone's light, landing.
    *
@@ -616,19 +681,35 @@ import { JEWELRY } from "./jewelry-manifest.js";
     { p: 0.503, y: STONE_Y - 1.0, yaw: 0.32, pit: 0.3, d: 5.2, fov: 30, sx: 0, fitW: 3.4 },
     { p: 0.543, y: STONE_Y - 0.35, yaw: 0.4, pit: 0.44, d: 4.2, fov: 31, sx: 0, fitW: 2.6 },
     { p: 0.574, y: STONE_Y, yaw: 0.46, pit: 0.5, d: 2.35, fov: 32, sx: 0, fitW: 1.6 },
-    /* The last three arc up over the stone and come down onto its TABLE,
-     * face on. The film used to swell the stone forty-five times and fly the
-     * camera through the middle of it, and there is no way to make that look
-     * like anything: a brilliant is beautiful because it is fifty-eight small
-     * facets, and from inside at that scale each one is a grey wall the width
-     * of the screen. The tent's panels came back as flat card, the black
-     * between them as bars across the frame, and the fire as soap-bubble
-     * arcs. So the stone stays a two-carat stone and the CAMERA does the
-     * work: over the crown, down onto the face, and the last thing anybody
-     * sees before the flash is the one view a diamond is photographed in. */
-    { p: 0.616, y: STONE_Y, yaw: 0.56, pit: 0.72, d: 1.7, fov: 34, sx: 0, fitW: 1.05 },
-    { p: 0.64, y: STONE_Y + 0.06, yaw: 0.7, pit: 1.1, d: 1.05, fov: 38, sx: 0, fitW: 0.9 },
-    { p: 0.66, y: STONE_Y + 0.11, yaw: 0.8, pit: 1.42, d: 0.29, fov: 46, sx: 0, fitW: 0.5 },
+    /* THE APPROACH, and the rule it now obeys: the stone is never allowed to
+     * outgrow its own frame.
+     *
+     * The girdle is 0.82 across. The last key here used to name a fitW of
+     * 0.50, and that is not a close-up of a diamond, it is a crop INTO one, and
+     * what fills the screen at that range is two or three facets, which is to
+     * say two or three flat grey planes with a rainbow down the join. Every
+     * version of this shot has failed the same way and for the same reason:
+     * a brilliant is beautiful for having fifty-eight SMALL facets catching
+     * different things at once, and there is no magnification at which that
+     * survives, because the thing being magnified is the multiplicity.
+     *
+     * So the frame holds the whole stone right up to the cut (1.35 of world
+     * across the last frame, which puts the girdle at about three fifths of
+     * the width and just fills the height), and the approach is a fall onto
+     * the crown from a high three-quarter rather than a plunge down the
+     * table's axis. Fifty-six degrees is the angle a stone is shot at when
+     * the picture has to show that it is CUT: the table foreshortens, the
+     * bezels and stars stay distinct, the arrows read across the middle, and
+     * the girdle keeps a rim of fire all the way round.
+     *
+     * What crosses the threshold, then, is not the camera: it is the light.
+     * The stone turns, a facet swings onto a lamp, the flare it throws blooms
+     * out of the frame, and the flash lands inside it. That is also the only
+     * version of this cut that is TRUE: you cannot get inside a diamond by
+     * approaching it, only by following what it does to light. */
+    { p: 0.616, y: STONE_Y, yaw: 0.56, pit: 0.6, d: 2.1, fov: 31, sx: 0, fitW: 1.85 },
+    { p: 0.64, y: STONE_Y + 0.02, yaw: 0.66, pit: 0.78, d: 1.7, fov: 31, sx: 0, fitW: 1.55 },
+    { p: 0.66, y: STONE_Y + 0.04, yaw: 0.76, pit: 0.98, d: 1.4, fov: 32, sx: 0, fitW: 1.35 },
     { p: 0.858, y: STONE_Y - 0.02, yaw: 0.0, pit: 1.36, d: 3.5, fov: 30, sx: 0, fitW: 0.9 },
     { p: 0.892, y: STONE_Y - 0.05, yaw: -0.26, pit: 0.64, d: 3.05, fov: 30, sx: 0, fitW: 1.05 },
     { p: 0.938, y: STONE_Y - 0.06, yaw: 0.04, pit: 0.16, d: 2.35, fov: 30, sx: 0, fitW: 1.15 },
@@ -788,8 +869,21 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "uniform float uIn;",
         "uniform float uTab;",
         "uniform float uTabA;",
-        "float hash(vec2 v) {",
-        "  return fract(sin(dot(v, vec2(127.1, 311.7))) * 43758.5453);",
+        /* NOT fract(sin(dot(...))). That is the hash everybody writes and it
+         * is a transcendental per component, which is nothing at all until
+         * you notice where it is being called from: the Voronoi below needs
+         * eighteen cell points per shell and there are two shells, plus three
+         * layers of inclusions, which came to about EIGHTY sines for every
+         * pixel of a full-screen pass. This is Hoskins' hash: a few
+         * multiplies and fracts, better distributed than the sine one, and
+         * free of the precision cliff that makes sin-hashes band on some
+         * mobile GPUs. The room looks like the same room; the pattern's
+         * particular arrangement of cells is different, because a different
+         * hash is a different draw of the same deck. */
+        "float hash(vec2 p) {",
+        "  vec3 q = fract(vec3(p.xyx) * 0.1031);",
+        "  q += dot(q, q.yzx + 33.33);",
+        "  return fract((q.x + q.y) * q.z);",
         "}",
         /* The cell points are kept inside the middle 72% of their own cell.
          * That is not a look decision, it is what buys the border search
@@ -799,8 +893,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * and the room costs 36 of these instead of 68 per fragment — which
          * is most of the crystal room's bill, since each one is two sines.
          * The cells stay thoroughly irregular; nothing lines up. */
-        "vec2 hash2(vec2 v) {",
-        "  return fract(sin(vec2(dot(v, vec2(127.1, 311.7)), dot(v, vec2(269.5, 183.3)))) * 43758.5453) * 0.72 + 0.14;",
+        "vec2 hash2(vec2 p) {",
+        "  vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));",
+        "  q += dot(q, q.yzx + 33.33);",
+        "  return fract((q.xx + q.yz) * q.zy) * 0.72 + 0.14;",
         "}",
         "mat2 rot(float a) {",
         "  float c = cos(a);",
@@ -931,30 +1027,62 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * table" over "a light coming on". */
         "  if (uIn > 0.001) {",
         "    float t = 1.0 - uIn;",
-        "    vec2 wc = q - vec2(0.0, 0.08 + 0.14 * t);",
-        "    float wr = length(wc);",
+        "    vec2 wc = q - vec2(0.0, 0.06 + 0.16 * t);",
         "    float wa = atan(wc.y, wc.x);",
-        // A refracted rim, never a drawn circle.
-        "    float edge = 0.70 - 0.46 * t",
-        "      + 0.026 * sin(wa * 3.0 + uK * 0.05)",
-        "      + 0.015 * sin(wa * 7.0 - 1.7)",
-        "      + 0.009 * sin(wa * 11.0 + 2.3);",
-        // Four narrow fingers biting into the rim. Wide ones do not read as
-        // claws at all: they take a quadrant each and the window comes out
-        // as a plus sign.
+        /* AN OCTAGON, because it is the table. The window used to be a circle
+         * with a few sine wobbles on its radius and four soft dents in it,
+         * and at any size below half the frame that is not a window at all,
+         * it is a white blob. Shape is what makes an image legible, and the
+         * shape this one wants is the one the reader has just come through
+         * and will see again on the way out: eight sides, turning slowly.
+         * The film's whole geometry rhymes on that octagon now. */
+        "    vec2 og = rot(0.3927 + uK * 0.013) * wc;",
+        "    float od = max(max(abs(og.x), abs(og.y)),",
+        "                   (abs(og.x) + abs(og.y)) * 0.7071068);",
+        // Four claws, hard-edged, biting in OVER the rim from outside. Soft
+        // ones read as dents in a blob; these have to read as metal.
         "    float claw = 0.0;",
         "    for (int i = 0; i < 4; i++) {",
         "      float ca = float(i) * 1.5707963 + 0.55;",
         "      float dd = abs(mod(wa - ca + 3.14159265, 6.2831853) - 3.14159265);",
-        "      claw = max(claw, 1.0 - smoothstep(0.0, 0.2, dd));",
+        "      claw = max(claw, 1.0 - smoothstep(0.035, 0.13, dd));",
         "    }",
         // A portrait frame is narrower than it is tall, and a window sized to
         // the height runs straight off both sides of it, taking the claws
         // with it. Sized to whichever half-extent is smaller, the shot is the
         // same shot on a phone as on a monitor.
-        "    edge *= (1.0 - 0.17 * claw) * min(1.0, uA / 0.95);",
-        "    float win = 1.0 - smoothstep(edge - 0.05, edge + 0.015, wr);",
-        "    float rim = 1.0 - smoothstep(0.0, 0.03, abs(wr - edge));",
+        /* IT STARTS BIGGER THAN THE FRAME. That is the whole difference
+         * between a window and a blob. At the instant of arrival the reader
+         * is directly under the table, so the table is not a shape in the
+         * picture: it IS the picture, and its eight edges come into frame
+         * from the corners as they sink away from it. Every version that
+         * opened on a shape small enough to see all of read as an object
+         * floating in a room, which is exactly backwards: the reader is
+         * inside, looking up and out. */
+        /* AND IT NEVER SHRINKS SMALLER THAN THE FRAME. 1.9 down to 1.25 is
+         * the whole travel: enough that the table is felt to be receding,
+         * never so much that it becomes an object with air around it. Every
+         * blob this shot has produced came from the same place: a shape
+         * allowed to pass through the size at which the eye stops reading it
+         * as "the surface I am under" and starts reading it as "a thing over
+         * there". Held above frame size, that stage does not exist; the
+         * shroud lifts off the corners and the room simply takes over from
+         * a table still overhead. */
+        "    float edge = mix(1.25, 1.9, uIn) * (1.0 - 0.13 * claw)",
+        "               * min(1.0, uA / 0.95);",
+        "    float win = 1.0 - smoothstep(edge - 0.02, edge + 0.006, od);",
+        "    float rim = 1.0 - smoothstep(0.0, 0.028, abs(od - edge));",
+        /* WHAT IS IN THE WINDOW. The old one was filled with a flat wash,
+         * which is why it read as a hole cut in paper rather than as a view.
+         * Through the table, from in here, the whole outside world is
+         * squeezed into this disc, and the outside world at this moment in
+         * the film is one dark room with one lamp in it and four claws round
+         * the rim. So that is what is painted: a hot core falling away, the
+         * room's dim body around it, and the claws taking bites out of the
+         * bright near the edge where they actually sit. */
+        "    float rw = od / max(edge, 0.001);",
+        "    vec3 world = vec3(0.44, 0.45, 0.49) * exp(-rw * rw * 2.2) + vec3(0.06);",
+        "    world *= 1.0 - 0.85 * claw * smoothstep(0.5, 1.0, rw);",
         /* The shroud darkens what is OUTSIDE the window and nothing else,
          * and it lifts as the reader sinks. Two things had to be right here.
          * Darkening both sides by the same amount is a dissolve wearing a
@@ -967,10 +1095,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * then lets the room in quickly, which is also what sinking away
          * from a surface actually looks like. */
         "    col *= exp(-6.5 * uIn * (1.0 - win));",
-        "    col += vec3(win * uIn * 0.16 + rim * uIn * 0.42);",
+        // REPLACED, not added. Added, the room's own near-white and the
+        // window's light stacked and the whole thing blew out to paper,
+        // which is precisely how the last one came to look like a blob. What
+        // is inside the window is not the room lit a bit more; it is a
+        // different place, seen through a hole.
+        "    col = mix(col, world, win * uIn);",
+        "    col += vec3(rim * uIn * 0.5);",
         // The rim is an edge, and colour belongs on edges: the same trick
         // the stone's fire and the room's seams are made of.
-        "    col += vec3(0.11, 0.0, -0.11) * rim * uIn * 0.6;",
+        "    col += vec3(0.13, 0.0, -0.13) * rim * uIn * 0.7;",
         "  }",
         /* The way out is the way in, run backwards. The room dims to its own
          * seams and the lines of light outlive it — and then, instead of
@@ -992,11 +1126,24 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "    vec2 og = rot(0.3927 + uK * 0.006) * q0;",
         "    float od = max(max(abs(og.x), abs(og.y)), (abs(og.x) + abs(og.y)) * 0.7071068);",
         "    float orad = mix(1.15, 0.222, uTab);",
-        "    float ow = mix(0.05, 0.009, uTab);",
-        // Five, because by now the film's exposure has been pulled all the
-        // way down to its floor to reach black, and a line written at 1.0
-        // comes out of that grade as a grey pencil mark.
-        "    col += vec3((1.0 - smoothstep(0.0, ow, abs(od - orad))) * uTabA * 5.0);",
+        /* A FACET, not a wireframe. This used to be one hard line written at
+         * five times full, which, clipped by the tone mapper, came out as a
+         * flat white polygon outline on black: clip art, and the reader said
+         * so. A table is a SURFACE. So it is filled with the last of the
+         * room's own light, brightest at its middle the way a flat facet
+         * under a broad source is, and its edge is a soft rim carrying the
+         * dispersion every other edge in this film carries. The reader is
+         * meant to recognise the stone's table arriving, not a shape being
+         * drawn for them. */
+        "    float ow = mix(0.06, 0.016, uTab);",
+        "    float face = 1.0 - smoothstep(orad - ow, orad + ow * 0.25, od);",
+        "    float rim = 1.0 - smoothstep(0.0, ow, abs(od - orad));",
+        "    vec3 tab = vec3(0.34 + 0.30 * (1.0 - od / max(orad, 0.001)));",
+        // The multipliers are large because by now the film's exposure has
+        // been pulled all the way down to its floor to reach black, and
+        // anything written at 1.0 comes out of that grade as a pencil mark.
+        "    col += (tab * face * 1.5 + vec3(rim) * 2.4) * uTabA;",
+        "    col += vec3(0.12, 0.0, -0.12) * rim * uTabA * 1.6;",
         "  }",
         "  gl_FragColor = vec4(col, 1.0);",
         "  #include <tonemapping_fragment>",
@@ -1404,7 +1551,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
   }
   function retireCue() {
     clearTimeout(cueTimer);
-    if (!cue.hidden) cue.classList.add("is-gone");
+    if (cue.hidden) return;
+    cue.classList.add("is-gone");
+    // And then out of the document's way entirely. Fading it to nothing still
+    // leaves an element the compositor has to consider on every frame of the
+    // rest of the film; the attribute takes it out of the layout altogether,
+    // which is the state it was in before it was ever needed.
+    setTimeout(() => {
+      cue.hidden = true;
+      cue.classList.remove("is-shown", "is-gone");
+    }, 420);
   }
 
   /* --------------------------------------------------------------- the film */
@@ -1412,6 +1568,19 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const eyeV = new THREE.Vector3();
   const focusV = new THREE.Vector3();
   const camInv = new THREE.Matrix4();
+
+  /* Every style write below is guarded on an actual change. A frame of this
+   * film writes a dozen of them, and a write that sets a property to the
+   * value it already holds still costs the invalidation, the string, and the
+   * garbage, for nothing. Three decimals is finer than a screen can show. */
+  const vigEl = document.getElementById("vig");
+  let veilKLast = -1;
+  let vigKLast = -1;
+  function setOpacity(el, last, v, keep) {
+    if (Math.abs(v - last) < 0.002) return;
+    keep(v);
+    el.style.opacity = v.toFixed(3);
+  }
 
   function filmAt(p, now, dt) {
     const aspect = viewW / viewH;
@@ -1518,7 +1687,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
       0.2,
       inCoda
         ? lerp(0.22, 1.12, codaIn)
-        : 1.12 + 1.0 * easeIn3(enterK) - 1.9 * collapseK
+        : // A HALF stop into the stone, not a full one. The swell is here so
+          // the flash has somewhere to land, but exposure is also the first
+          // thing that kills contrast, and contrast is the entire subject of
+          // this shot now that the tent has an observer in it: pushed a full
+          // stop the arrows washed out and the stone went back to being the
+          // grey plate this pass set out to fix.
+          1.12 + 0.5 * easeIn3(enterK) - 1.9 * collapseK
     );
 
     // Lighting and reveal, exactly the numbers the box would have used. In
@@ -1533,14 +1708,38 @@ import { JEWELRY } from "./jewelry-manifest.js";
     ring.root.visible = !inCoda;
     /* Two shadow maps is one more than most of this film needs. The key's is
      * only ever read by surfaces inside the open box; once the box has gone
-     * there is nothing left on stage that receives a shadow at all, so the
-     * light stands down and its whole pass goes with it — for the two thirds
-     * of the film that follows. */
-    key.castShadow = p < B.boxOut[1] + 0.02;
+     * there is nothing left on stage that receives a shadow at all, so its
+     * map stops being redrawn, for the two thirds of the film that follows.
+     * The light goes on DECLARING itself a caster (see the note where it is
+     * built); it is the raster that stands down, not the flag. */
+    const moved = renderer.shadowMap.needsUpdate;
+    key.shadow.needsUpdate = moved && p < B.boxOut[1] + 0.02;
+
+    /* THE GROUND GOES WITH THE BOX.
+     *
+     * Once the ring has been carried off there is nothing left standing on
+     * the floor. The stone is five units above it and lit by a tent it
+     * carries itself. What the floor went on doing was filling the bottom of
+     * every remaining shot with itself, seen almost edge-on from a camera
+     * that by then is very close and very low over it, which is the angle at
+     * which a rough surface under an environment map is at its BRIGHTEST. So
+     * the last third of the film played out against a sheet of mid grey, and
+     * a diamond photographed against mid grey has no contrast to show: the
+     * arrows, the flashes and the fire all need black behind the stone to be
+     * anything at all. Faded out, the stone hangs in the dark it belongs in.
+     *
+     * It is also the single cheapest frame in the film to stop drawing:
+     * measured at a fifth of the cost of a frame, for a full-screen
+     * transparent pass with an environment lookup on every fragment. */
+    const groundK = 1 - smooth(seg(p, B.ringOut[0], B.solo[1]));
+    if (ground) {
+      ground.visible = !inCoda && groundK > 0.01;
+      if (ground.visible) ground.material.opacity = groundK;
+    }
 
     eyeV.copy(camera.position);
     const eyeOk = enterK < 0.12 || inCoda ? eyeV : null;
-    box.update({ open: openNow, lit, eye: eyeV });
+    box.update({ open: openNow, lit, eye: eyeV, moved });
     ring.update({ lit: ringLit });
     stone.update({ lit: stoneLit, spin: stoneSpin, reveal, eye: eyeOk });
 
@@ -1604,12 +1803,12 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * by then is only the stone and its light. */
     const veilK =
       easeIn3(seg(p, FLASH[0], FLASH[1])) * (1 - smooth(seg(p, FLASH[1], FLASH[2])));
-    veil.style.opacity = veilK.toFixed(3);
+    setOpacity(veil, veilKLast, veilK, (v) => (veilKLast = v));
     const vigK = Math.max(
       1 - smooth(seg(p, B.enter[0], B.press[1])),
       inCoda ? 0.85 * codaIn : 0
     );
-    pin.style.setProperty("--vig", vigK.toFixed(3));
+    if (vigEl) setOpacity(vigEl, vigKLast, vigK, (v) => (vigKLast = v));
 
     // Which world the canvas shows. Past the collapse the crystal renders
     // itself black, and the coda takes the canvas back for the stone.
@@ -1693,16 +1892,21 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * the light lands on the world without ever touching the contrast the ink
    * beats are measured against. */
   let beamsLit = false;
+  const beamEls = [
+    document.querySelector(".beam--0"),
+    document.querySelector(".beam--1"),
+  ];
   function driveBeams(p, aspect, level) {
     const lit = level > 0.001;
     if (lit !== beamsLit) {
       beamsLit = lit;
       pin.classList.toggle("is-beamed", lit);
     }
-    pin.style.setProperty("--beam", lit ? level.toFixed(3) : "0");
     if (!lit) return;
     const uK = p * 34;
     for (let i = 0; i < 2; i++) {
+      const el = beamEls[i];
+      if (!el) continue;
       const ang = 0.9 + i * 2.2 + uK * (0.05 + 0.03 * i) * (i ? -1 : 1);
       const off = Math.sin(uK * 0.22 + i * 2.7) * 0.4;
       // The shader works in a frame whose y runs -1 to 1 and whose x is
@@ -1712,9 +1916,11 @@ import { JEWELRY } from "./jewelry-manifest.js";
       // Along the band the aspect cancels between the two conversions, so
       // the screen angle is the plain perpendicular of the beam's normal.
       const rot = (Math.atan2(-Math.cos(ang), -Math.sin(ang)) * 180) / Math.PI;
-      pin.style.setProperty("--b" + i + "x", x.toFixed(1) + "px");
-      pin.style.setProperty("--b" + i + "y", y.toFixed(1) + "px");
-      pin.style.setProperty("--b" + i + "r", rot.toFixed(2) + "deg");
+      // On the element, not on the pin: see the note beside .beam--0.
+      el.style.setProperty("--beam", level.toFixed(3));
+      el.style.setProperty("--x", x.toFixed(1) + "px");
+      el.style.setProperty("--y", y.toFixed(1) + "px");
+      el.style.setProperty("--r", rot.toFixed(2) + "deg");
     }
   }
 
@@ -1722,6 +1928,42 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   let queued = false;
   let lastFrame = 0;
+  let healTick = 0;
+
+  /* The governor's bookkeeping. Only frames the film asked to be drawn back
+   * to back are evidence: a frame that follows a sleep carries a delta of
+   * whatever the reader was doing in between and says nothing about cost. */
+  let qSeen = 0;
+  let qSlow = 0;
+  let qFast = 0;
+  let qHold = 0;
+  const qForced = params.has("q");
+  if (qForced) quality = clamp(parseFloat(params.get("q")) || 1, 0.4, 1);
+
+  function govern(t, dt, continuous) {
+    if (qForced) return;
+    if (!continuous) {
+      qSeen = qSlow = qFast = 0;
+      return;
+    }
+    qSeen++;
+    if (dt > 0.024) qSlow++; // worse than about 42 a second
+    else if (dt < 0.019) qFast++; // holding the refresh rate
+    if (qSeen < 45 || t < qHold) return;
+    const slow = qSlow / qSeen;
+    const fast = qFast / qSeen;
+    qSeen = qSlow = qFast = 0;
+    let next = quality;
+    // Down decisively on a third of frames missing, up cautiously and only
+    // from near-unanimous evidence, so the picture cannot oscillate.
+    if (slow > 0.33) next = Math.max(QUALITY_MIN, quality - 0.15);
+    else if (fast > 0.9 && quality < 1) next = Math.min(1, quality + 0.1);
+    if (next === quality) return;
+    quality = next;
+    qHold = t + 1500;
+    renderer.setPixelRatio(pixelRatio());
+    renderer.setSize(viewW, viewH, false);
+  }
 
   function wake() {
     if (queued) return;
@@ -1734,9 +1976,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const dt = Math.min((t - lastFrame) / 1000 || 0.016, 0.05);
     lastFrame = t;
 
-    // Self-heal the buffer: some embedded viewers resize without an event.
-    const dpr = pixelRatio();
-    if (canvas.width !== Math.floor(pin.clientWidth * dpr)) resize();
+    /* Self-heal the buffer: some embedded viewers resize without ever firing
+     * an event. Reading clientWidth is not free: it is a question the
+     * browser can only answer by flushing layout, and asking it in the first
+     * line of every frame of a scroll interleaves a forced synchronous layout
+     * with the film for the whole of its length. Twice a second is plenty for
+     * a fallback whose whole purpose is to catch a resize nobody announced;
+     * the ResizeObserver catches every one that anybody did. */
+    if ((healTick = (healTick + 1) & 31) === 0) {
+      if (canvas.width !== Math.floor(pin.clientWidth * pixelRatio())) resize();
+    }
 
     if (!held && introT0 && introK < 1) {
       // The hero's entrance is a clock, so reduced motion skips it whole.
@@ -1778,7 +2027,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
       pDrawn < 1;
     const settling = pDrawn !== pTarget;
     const introLive = !held && introT0 && introK < 1;
-    if (settling || teasing || soloLive || codaLive || introLive) wake();
+    const live = settling || teasing || soloLive || codaLive || introLive;
+    govern(t, dt, live);
+    if (live) wake();
   }
 
   /* ------------------------------------------------------------- the boot */
@@ -1957,21 +2208,96 @@ import { JEWELRY } from "./jewelry-manifest.js";
     wake();
   });
 
-  /* Warm the pipeline before the first visible frame: the stone's two
-   * shader passes, the crystal room and the lens would otherwise compile
-   * mid-story, and a compile is a visible hitch on the one scroll it
-   * interrupts. The lens's render target is still left to be allocated on
-   * the first frame that actually asks for it — the compile is the hitch,
-   * the allocation is not, and a reader who never scrolls that far should
-   * not be carrying a full-frame float buffer for nothing. */
-  stone.update({ lit: 1, spin: 0, reveal: 1, eye: null });
-  renderer.compile(scene, camera);
-  renderer.compile(inside.scene, inside.cam);
-  renderer.compile(lens.scene, lens.cam);
-
-  setLoad(0.86);
+  setLoad(0.82);
   resize();
   readScroll();
+
+  /* ------------------------------------------------------------ warming up */
+
+  /* Every program the film will ever need, compiled here, under the loader.
+   *
+   * This used to be three `renderer.compile()` calls, and they were not
+   * enough, not nearly. A compile is not triggered by a material, it is
+   * triggered by a material IN A CONFIGURATION, and this film changes the
+   * configuration underneath its materials several times on the way through:
+   * a second light starts casting, a light stops, the whole scene is
+   * suddenly being drawn into a render target with its own colour space
+   * rather than to the canvas. Each of those is a fresh cache key for every
+   * material on the stage, and three answers a cache miss the only way it
+   * can: by compiling and linking, synchronously, inside the frame that
+   * asked. Measured on this machine, before this: 2973ms at the lid,
+   * 1170ms at the ring, 422ms where the rack focus opens. The reader feels
+   * those as the page seizing, and they land on the three most-watched
+   * moments in the film, because that is where the lighting changes.
+   *
+   * Compiling by prediction is a losing game: you cannot enumerate cache
+   * keys from the outside. So the film warms itself: it PLAYS, once, at a
+   * spread of progresses chosen to hit every distinct lighting and target
+   * configuration, and whatever that compiles is by construction exactly
+   * what the reader's scroll will need. Nothing is guessed.
+   *
+   * It runs a couple of stops per animation frame rather than in one block,
+   * so the loader's own hairline keeps moving while it happens and the page
+   * stays answerable; and the bar's last stretch is the honest progress of
+   * it, which is what a loading bar is supposed to be. */
+  const WARM = [
+    0, // the closed box, the dome, the floor
+    0.19, // the lamp: a second shadow-caster joins the scene
+    0.27, // the ring lit and rising
+    0.31, // the rack focus opens: the scene into a render target
+    0.42, // the key's map stands down, the box is gone
+    0.5, // the stone out of the claws, still under the lens
+    0.58, // the stone alone, no post pass at all
+    0.6555, // the press: the target again, different uniforms
+    0.7, // the crystal room
+    0.83, // the room folding, the gallery lit
+    0.9, // the coda: the stone relit against black
+  ];
+  let warmI = 0;
+
+  /* The stops above only compile what happens to be on screen at a stop, and
+   * some of this stage's smallest pieces are on screen for a handful of
+   * frames at an angle no list would think to name: the glow that breathes
+   * through the lid seam exists only while the lid is between cracked and
+   * properly open, and the stone's flare fires only when a facet happens to
+   * line up with a light down the lens, which is not a progress at all. So
+   * everything the scene owns is forced visible for one compile and put
+   * back. The configuration is fixed by now, so this is exhaustive by
+   * construction rather than by a list somebody has to maintain. */
+  function warmHidden() {
+    const was = [];
+    scene.traverse((o) => {
+      was.push(o.visible);
+      o.visible = true;
+    });
+    renderer.compile(scene, camera);
+    let i = 0;
+    scene.traverse((o) => {
+      o.visible = was[i++];
+    });
+  }
+
+  function warmChunk(n) {
+    if (warmI === 0) warmHidden();
+    const t = performance.now();
+    for (let i = 0; i < n && warmI < WARM.length; i++, warmI++) {
+      renderer.shadowMap.needsUpdate = true;
+      filmAt(WARM[warmI], t, 0.016);
+    }
+    setLoad(0.82 + 0.18 * (warmI / WARM.length));
+    return warmI >= WARM.length;
+  }
+
+  function warmStep() {
+    if (!warmChunk(2)) {
+      requestAnimationFrame(warmStep);
+      return;
+    }
+    // Back to the frame the reader actually asked for, and hand over.
+    renderer.shadowMap.needsUpdate = true;
+    pDrawn = pTarget;
+    wake();
+  }
 
   /* ?fps=<0..1>: draw that one frame of the film sixty times as fast as the
    * machine will, and print the median cost of it.
@@ -1988,6 +2314,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
   if (params.has("fps")) {
     const at = clamp(parseFloat(params.get("fps")) || 0, 0, 1);
     if (at >= 0.44) armGallery();
+    // The harness measures a warm film, not a cold one: a compile landing in
+    // the loop would be reported as the cost of drawing, which it is not.
+    warmChunk(WARM.length);
     const gl = renderer.getContext();
     // A one-pixel readback, not gl.finish(): finish() is free to return once
     // the commands are queued, and a software rasteriser happily reports a
@@ -2017,8 +2346,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
     document.body.appendChild(el);
     return;
   }
-  // A page restored mid-track opens on that frame rather than replaying
-  // the whole film at it.
+  // A page restored mid-track opens on that frame rather than replaying the
+  // whole film at it. The warm runs first and hands over when it is done,
+  // which is also what keeps the loader up until the film can actually be
+  // scrolled without seizing.
   pDrawn = pTarget;
-  wake();
+  warmStep();
 })();

@@ -772,7 +772,15 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
   const led = new THREE.SpotLight(0xf7fbff, 0, 12, 0.45, 0.7, 1.3);
   led.position.set(0, REC_H - 0.26, 1.45);
   led.target = ledTarget;
+  /* Declared once and left alone. Whether a light casts is part of three's
+   * program cache key, so flipping it as the lamp comes up is a full
+   * recompile of every material on the stage inside one frame, measured at
+   * three seconds, which is long enough to eat the entire lid-opening beat
+   * and make the lamp look as though it only arrives with the ring. The
+   * per-light `shadow.autoUpdate` below saves the same raster without the
+   * program ever changing. */
   led.castShadow = dbg.ledshadow !== "0";
+  led.shadow.autoUpdate = false;
   led.shadow.mapSize.set(1024, 1024);
   led.shadow.camera.near = 0.1;
   led.shadow.camera.far = 10;
@@ -949,8 +957,12 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
       const openFade = THREE.MathUtils.smoothstep(open, 0.45, 0.85);
       led.intensity = 900 * lit * (parseFloat(dbg.ledx) || 1);
       // An unlit lamp must not bill for a shadow pass: three renders a
-      // light's map regardless of intensity, so the caster flag follows it.
-      led.castShadow = dbg.ledshadow !== "0" && lit > 0.004;
+      // light's map regardless of intensity. Redrawing it is what the map
+      // costs, so that is what stands down: on the frames the lamp is dark,
+      // and on the frames nothing has moved since the last one. A stale map
+      // under an intensity of zero contributes exactly nothing.
+      led.shadow.needsUpdate =
+        state.moved !== false && lit > 0.004 && dbg.ledshadow !== "0";
       ledSpill.intensity = 2.6 * lit;
       lens.emissiveIntensity = 5 * lit;
       glowSprite.material.opacity =

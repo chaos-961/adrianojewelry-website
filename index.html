@@ -135,6 +135,15 @@
             role="img"
             aria-label="A black Adriano Jewelry ring box in a dark room. As the page scrolls it turns to face you, opens under its own lamp, and gives up its four-claw solitaire; the two-carat brilliant lifts from the setting, fills the screen, and carries you inside the stone to a white gallery of finished pieces. On the way out the brilliant returns for a last turn in the dark before the page hands over to the finale."
           ></canvas>
+          <!-- The vignette is an element rather than a pseudo of the pin, and
+               that is a performance decision, not a markup preference. It is
+               driven every frame of the film, and a pseudo-element can only be
+               driven through a custom property on its originating element,
+               which the pin's whole subtree then inherits, so every frame
+               invalidated the computed style of the beats, the two beams and
+               all seventy-four gallery pieces to move one gradient. As its own
+               element it takes a plain opacity, which touches nothing else. -->
+          <div class="journey__vig" id="vig" aria-hidden="true"></div>
           <div class="journey__veil" id="veil" aria-hidden="true"></div>
           <div class="gallery" id="gallery" aria-hidden="true"></div>
 
@@ -306,7 +315,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.0</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.1</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the
