@@ -4,7 +4,13 @@
     <meta charset="utf-8" />
     <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve on iOS. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Page not found — Adriano Jewelry</title>
+    <title>Page not found | Adriano Jewelry</title>
+    <!-- A miss is not a destination. Pages serves this file for any unmatched
+         path, so without this a crawler can index dozens of dead URLs under
+         one page's content. robots.txt disallows /404.html; this covers every
+         other path the file gets served for. -->
+    <meta name="robots" content="noindex, follow" />
+    <meta name="theme-color" content="#f4f4f4" />
     <!-- Styles are inlined: GitHub Pages serves this file for a miss at any
          path depth, so a relative stylesheet link would not resolve.
          Keep the ground, the silver and the footer in sync with
@@ -571,7 +577,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.2</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.3</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

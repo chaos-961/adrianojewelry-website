@@ -39,6 +39,14 @@ const ROOT = path.resolve(__dirname, "..");
 const PARTIALS = path.join(ROOT, "partials");
 const VERSION_FILE = path.join(ROOT, "VERSION");
 
+/* The canonical origin, and the only place it is written down. The sitemap and
+ * robots.txt are both generated from it, so moving the site to a new domain is
+ * one edit here plus the canonical/og tags in the pages themselves. */
+const ORIGIN = "https://adrianojewelry.com";
+
+/* Pages that exist but must never be offered to a crawler as a destination. */
+const NOT_INDEXABLE = new Set(["404.html"]);
+
 /* Pages served for a miss at any path depth cannot use relative hrefs — a link
  * to "privacy-policy/" from /shop/gone/ resolves to /shop/gone/privacy-policy/.
  * These pages get root-absolute hrefs plus the data-root-link marker that their
@@ -202,6 +210,49 @@ function stamp(page, source, partials, version) {
   return { out, warnings };
 }
 
+/* --- sitemap and robots --------------------------------------------------
+ *
+ * Both are generated rather than hand-kept, because a sitemap that lists a
+ * page the site no longer has is worse than no sitemap at all, and that is
+ * exactly what a hand-kept one becomes.
+ *
+ * NO <lastmod>. The obvious source for it is the file's mtime, and it is a
+ * trap: git does not preserve mtimes, so every CI checkout stamps every file
+ * with the checkout time, the generated sitemap would differ from the
+ * committed one on every run, and `--check` would fail the deploy forever.
+ * lastmod is optional in the protocol and a wrong one is worse than none. */
+function buildSitemap(pages) {
+  // Root first, then the rest in page order: a crawler reads top-down, and the
+  // home page leading is the one bit of ordering that carries any meaning.
+  const urls = pages
+    .filter((p) => !NOT_INDEXABLE.has(p))
+    .map((p) => `${ORIGIN}/${selfHref(p)}`)
+    .sort((a, b) => (a === `${ORIGIN}/` ? -1 : b === `${ORIGIN}/` ? 1 : a.localeCompare(b)));
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls
+      .map(
+        (u) =>
+          `  <url>\n    <loc>${u}</loc>\n` +
+          `    <priority>${u === `${ORIGIN}/` ? "1.0" : "0.6"}</priority>\n  </url>\n`
+      )
+      .join("") +
+    "</urlset>\n"
+  );
+}
+
+function buildRobots() {
+  return (
+    `# Adriano Jewelry\n` +
+    `User-agent: *\n` +
+    `Allow: /\n\n` +
+    `# The 404 is served for any miss at any depth; it is not a destination.\n` +
+    `Disallow: /404.html\n\n` +
+    `Sitemap: ${ORIGIN}/sitemap.xml\n`
+  );
+}
+
 /* --- run ----------------------------------------------------------------- */
 
 function main() {
@@ -228,6 +279,7 @@ function main() {
   const stale = [];
   const pending = [];
   let written = 0;
+  let generated = 0;
 
   for (const page of pages) {
     const file = path.join(ROOT, page);
@@ -242,6 +294,22 @@ function main() {
     else {
       fs.writeFileSync(file, out);
       written++;
+    }
+  }
+
+  /* The two crawler files ride the same staleness rule as the pages: if the
+   * set of pages changed and nobody rebuilt, --check fails the deploy. */
+  for (const [name, body] of [
+    ["sitemap.xml", buildSitemap(pages)],
+    ["robots.txt", buildRobots()],
+  ]) {
+    const file = path.join(ROOT, name);
+    const current = fs.existsSync(file) ? read(file) : null;
+    if (current === body) continue;
+    if (check) stale.push(name);
+    else {
+      fs.writeFileSync(file, body);
+      generated++;
     }
   }
 
@@ -278,7 +346,9 @@ function main() {
 
   console.log(
     `Stamped ${Object.keys(partials).length} partials at v${version} — ` +
-      `${written} of ${pages.length} pages changed.`
+      `${written} of ${pages.length} pages changed` +
+      (generated ? `, ${generated} crawler file${generated === 1 ? "" : "s"} written` : "") +
+      `.`
   );
 }
 

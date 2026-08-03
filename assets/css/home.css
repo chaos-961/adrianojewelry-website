@@ -756,9 +756,10 @@ html.js .journey {
 
 /* ---------------------------------------------------------------- gallery */
 
-/* Inside the stone: the pieces, scattered in three depths. home.js builds
-   the items from the manifest, seeds their positions, and translates the
-   three bands; nothing in here is laid out by hand. */
+/* Inside the stone: the pieces, in a procession down a tunnel. home.js builds
+   the items from the manifest, sizes each one in pixels at the largest it
+   will ever be drawn, and writes a transform per frame to only the dozen
+   actually in flight; nothing in here is laid out by hand. */
 .gallery {
   position: absolute;
   inset: 0;
@@ -945,6 +946,28 @@ html.js .finale {
   margin-top: clamp(1.75rem, 5svh, 2.6rem);
 }
 
+/* Quieter than the two pills above it: this is the third option, not a
+   competing one. The number itself takes the pearl so the tap target reads
+   as a link at a glance, and the non-breaking hyphens in the markup stop a
+   narrow phone splitting a phone number across two lines. */
+.finale__call {
+  margin: clamp(1rem, 3svh, 1.5rem) 0 0;
+  font-size: clamp(0.82rem, 2.4vw, 0.9rem);
+  line-height: 1.6;
+  color: var(--fog);
+}
+
+.finale__call a {
+  color: var(--pearl);
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 0.22em;
+}
+
+.finale__call a:hover,
+.finale__call a:focus-visible {
+  text-decoration-color: currentColor;
+}
+
 .finale__btn {
   appearance: none;
   display: inline-flex;
@@ -995,7 +1018,8 @@ html.js .finale {
 .finale__eyebrow,
 .finale__title,
 .finale__sub,
-.finale__actions {
+.finale__actions,
+.finale__call {
   opacity: 0;
   transform: translateY(22px);
   transition: opacity 900ms var(--ease-out), transform 900ms var(--ease-out);
@@ -1017,10 +1041,15 @@ html.js .finale {
   transition-delay: 290ms;
 }
 
+.finale.is-in .finale__call {
+  transition-delay: 380ms;
+}
+
 .finale.is-in .finale__eyebrow,
 .finale.is-in .finale__title,
 .finale.is-in .finale__sub,
-.finale.is-in .finale__actions {
+.finale.is-in .finale__actions,
+.finale.is-in .finale__call {
   opacity: 1;
   transform: translateY(0);
 }

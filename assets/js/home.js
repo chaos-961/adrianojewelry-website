@@ -88,6 +88,12 @@ import { JEWELRY } from "./jewelry-manifest.js";
   if (!journey || !pin || !canvas || !veil || !loaderEl || !nav) return;
 
   const params = new URLSearchParams(location.search);
+  /* QA knobs for the render path, alongside ?p= / ?prop= / ?q= below. Each
+   * stands one layer down so its cost and its contribution can be read
+   * separately, which is the only way to answer "what is this frame spending
+   * it on" without a profiler: ?noground, ?nodome, ?nostone, ?nolens. */
+  const DBG = params.has("fps") || params.has("dbg");
+  let dbgState = "";
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
   /* What this page is allowed to spend.
@@ -290,21 +296,31 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * a void, paper underfoot. */
   {
     const studio = new THREE.Scene();
-    const card = (wc, hc, x, y, z, level) => {
+    /* Every card carries a gel now. They were all `setScalar`, which is to
+     * say all six were pure grey, and a polished surface can only reflect
+     * what is actually in the room: grey cards in, grey metal out, at every
+     * angle, forever. That is the real reason the picture read as flat, and
+     * no amount of exposure could have fixed it, because the colour was
+     * never in the source. The key is warm and the strip and fills are cool,
+     * so a curved shank picks up a warm side and a cool rim and the eye gets
+     * the roundness for free. The floor stays neutral: it is paper
+     * underfoot, it is under everything, and a tint there would sit on all
+     * six sides of every piece at once. */
+    const card = (wc, hc, x, y, z, level, gel) => {
       const m = new THREE.Mesh(
         new THREE.PlaneGeometry(wc, hc),
         new THREE.MeshBasicMaterial()
       );
-      m.material.color.setScalar(level);
+      m.material.color.setHex(gel === undefined ? 0xffffff : gel).multiplyScalar(level);
       m.position.set(x, y, z);
       m.lookAt(0, 0.6, 0);
       studio.add(m);
     };
-    card(10, 7, -4, 8, 5, 3.4); // key
-    card(1.7, 8, 7.2, 3.5, -1.6, 5.2); // right strip
-    card(5, 4, -7, 2.4, 1.6, 1.5); // left fill
-    card(7, 2.4, 0, 1.1, 8, 1.3); // front fill
-    card(6, 4, 0, 4, -8, 0.7); // back
+    card(10, 7, -4, 8, 5, 3.4, 0xfff0dc); // key, warm
+    card(1.7, 8, 7.2, 3.5, -1.6, 5.2, 0xe4eeff); // right strip, cool rim
+    card(5, 4, -7, 2.4, 1.6, 1.5, 0xe8f1ff); // left fill, cool
+    card(7, 2.4, 0, 1.1, 8, 1.3, 0xfff6ec); // front fill, barely warm
+    card(6, 4, 0, 4, -8, 0.7, 0xdde8ff); // back, cool
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(12, 40),
       new THREE.MeshBasicMaterial()
@@ -331,7 +347,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * where the ground is both fogging and fading has nothing to step across.
    * The floor's alpha does the real work; this only keeps the two halves of
    * the transition on speaking terms. */
-  scene.fog = new THREE.Fog(0x101011, 15, 42);
+  scene.fog = new THREE.Fog(0x0f1014, 15, 42);
   if ("environmentIntensity" in scene) scene.environmentIntensity = 0.65;
   {
     /* The floor takes a little of the studio back: a satin sheen rather
@@ -372,7 +388,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
       })
     );
     ground.rotation.x = -Math.PI / 2;
-    scene.add(ground);
+    if (params.has("noground")) ground = null;
+    else scene.add(ground);
   }
 
   /* The walls. A dome of barely lifted greys instead of one flat black: a
@@ -397,13 +414,26 @@ import { JEWELRY } from "./jewelry-manifest.js";
           "varying vec3 vD;",
           "void main() {",
           "  vec3 d = normalize(vD);",
-          "  float lum = 0.0008;",
-          // The haze where the floor meets the walls.
-          "  lum += 0.0060 * exp(-pow((d.y - 0.06) * 4.2, 2.0));",
-          // The pool of lighter dark the story plays against.
+          // The ambient floor of the room. Neutral, and the only neutral
+          // thing left in here.
+          "  vec3 col = vec3(0.0008);",
+          // The haze where the floor meets the walls. COOL: far air is the
+          // coldest thing in any room, and a cold horizon is what gives the
+          // warm pool behind the subject something to be warm against. A
+          // single grey value for both is why this room read as flat.
+          "  float haze = 0.0060 * exp(-pow((d.y - 0.06) * 4.2, 2.0));",
+          "  col += haze * vec3(0.80, 0.93, 1.14);",
+          // The pool of lighter dark the story plays against. WARM, because
+          // it is a tungsten wash off the back wall, which is what a bench
+          // actually stands in.
           "  float h = max(dot(d, normalize(vec3(0.0, 0.14, -1.0))), 0.0);",
-          "  lum += 0.0085 * pow(h, 3.0);",
-          "  gl_FragColor = vec4(vec3(lum), 1.0);",
+          "  col += 0.0112 * pow(h, 3.0) * vec3(1.20, 1.00, 0.82);",
+          // A broad cool counter off the upper left, so the room has two
+          // directions in it rather than one. Faint on purpose: this is
+          // depth, not a light, and nothing here may compete with the lamp.
+          "  float c = max(dot(d, normalize(vec3(-0.72, 0.48, 0.34))), 0.0);",
+          "  col += 0.0046 * pow(c, 2.2) * vec3(0.76, 0.89, 1.16);",
+          "  gl_FragColor = vec4(col, 1.0);",
           "  #include <tonemapping_fragment>",
           "  #include <colorspace_fragment>",
           "  float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);",
@@ -412,10 +442,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
         ].join("\n"),
       })
     );
-    scene.add(dome);
+    if (!params.has("nodome")) scene.add(dome);
   }
 
-  const key = new THREE.DirectionalLight(0xffffff, 3.0);
+  /* Gelled warm against the cool fill below. A single white key and a nearly
+   * white fill is why the metal read as grey: white gold has nothing to
+   * separate its lit side from its shaded side except brightness, and
+   * brightness alone is what a photograph of jewelry never relies on. Two
+   * gels give every curve on the shank a warm edge and a cool one, which is
+   * the whole reason a bench owns more than one lamp. Kept mild: the stones
+   * are colourless and a strong cast on those would be a lie. */
+  const key = new THREE.DirectionalLight(0xfff2e2, 3.0);
   key.position.set(-5.5, 8.5, -1.5);
   /* CASTSHADOW IS SET ONCE HERE AND NEVER TOUCHED AGAIN, and that is the most
    * important line in this file.
@@ -438,10 +475,15 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * no program touched. */
   key.castShadow = true;
   key.shadow.autoUpdate = false;
-  /* Halving it on a phone is a quarter of the shadow rasterisation for a
-   * softness nobody can see at this size: the only caster is a box on a
-   * cushion. */
-  key.shadow.mapSize.set(lowPower ? 1024 : 2048, lowPower ? 1024 : 2048);
+  /* 1024 everywhere, not just on a phone. The argument that retired 2048 on
+   * touch devices was never actually about the screen: the shadow camera
+   * spans 14 units and the only caster in it is a box on a cushion, so 1024
+   * still puts 73 texels on every unit of a soft PCF shadow with no hard
+   * edge anywhere in it to give the resolution away. What it costs is real
+   * and lands on the worst frames in the film, because the map is redrawn
+   * exactly while the lid and the ring are moving, which is where the frame
+   * budget was already gone. Measured on an Intel UHD 620 at 1366x768. */
+  key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.left = key.shadow.camera.bottom = -7;
   key.shadow.camera.right = key.shadow.camera.top = 7;
   key.shadow.camera.near = 1;
@@ -450,7 +492,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   key.shadow.normalBias = 0.02;
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0xf2f4f8, 0.32);
+  const fill = new THREE.DirectionalLight(0xdfe9ff, 0.34);
   fill.position.set(5.5, 3, 2);
   scene.add(fill);
 
@@ -531,7 +573,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   });
   scene.add(box.root);
   scene.add(ring.root);
-  scene.add(stone.root);
+  if (!params.has("nostone")) scene.add(stone.root);
   // Both environments are prefiltered by now; the generator's own programs
   // and scratch targets are of no further use to the page.
   pmrem.dispose();
@@ -690,9 +732,21 @@ import { JEWELRY } from "./jewelry-manifest.js";
     { p: 0.088, y: 2.2, yaw: 0.3, pit: 0.26, d: 14.2, fov: 30, sx: -1.0, fitW: 8.2 },
     { p: 0.146, y: 2.25, yaw: 0.02, pit: 0.22, d: 11.6, fov: 30, sx: 0, fitW: 8.2 },
     { p: 0.238, y: SEAT + GIRDLE + 0.5, yaw: -0.06, pit: 0.38, d: 8.2, fov: 30, sx: 0, fitW: 7.6 },
-    { p: 0.331, y: RING_Y_UP + 0.28, yaw: 0.1, pit: 0.2, d: 6.2, fov: 30, sx: 0, fitW: 3.6 },
-    { p: 0.388, y: RING_Y_UP + 0.32, yaw: 0.16, pit: 0.2, d: 5.8, fov: 30, sx: 0, fitW: 3.4 },
-    { p: 0.463, y: STONE_Y - 0.95, yaw: 0.24, pit: 0.28, d: 5.4, fov: 30, sx: 0, fitW: 3.5 },
+    /* PITCH IS NOT COMPOSITION HERE, IT IS WHETHER THE STONE IS LIT.
+     *
+     * These three keys used to sit at pit 0.20 to 0.28, which is 11 to 16
+     * degrees above a lookAt that is itself BELOW the girdle. That puts the
+     * lens under the stone, and a pavilion seen from underneath is dark by
+     * design: its entire job is to turn light over and send it back out of
+     * the crown, away from a camera down there. So the hero shot of the ring
+     * had a black gem in it, while the metal beside it was fully lit, which
+     * is what made the lighting look broken when it never was. The in-box
+     * key above sits at 0.38 and the stone reads brilliant at exactly that
+     * angle. A solitaire is photographed from a little ABOVE the girdle,
+     * always, and these now are. */
+    { p: 0.331, y: RING_Y_UP + 0.28, yaw: 0.1, pit: 0.36, d: 6.2, fov: 30, sx: 0, fitW: 3.6 },
+    { p: 0.388, y: RING_Y_UP + 0.32, yaw: 0.16, pit: 0.38, d: 5.8, fov: 30, sx: 0, fitW: 3.4 },
+    { p: 0.463, y: STONE_Y - 0.95, yaw: 0.24, pit: 0.4, d: 5.4, fov: 30, sx: 0, fitW: 3.5 },
     { p: 0.503, y: STONE_Y - 1.0, yaw: 0.32, pit: 0.3, d: 5.2, fov: 30, sx: 0, fitW: 3.4 },
     { p: 0.543, y: STONE_Y - 0.35, yaw: 0.4, pit: 0.44, d: 4.2, fov: 31, sx: 0, fitW: 2.6 },
     { p: 0.574, y: STONE_Y, yaw: 0.46, pit: 0.5, d: 2.35, fov: 32, sx: 0, fitW: 1.6 },
@@ -1390,6 +1444,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
         mat.uniforms.uFar.value = camera.far;
       },
       draw() {
+        if (params.has("nolens")) {
+          renderer.render(scene, camera);
+          return;
+        }
         renderer.getDrawingBufferSize(size);
         renderer.setRenderTarget(target(size.x, size.y));
         renderer.render(scene, camera);
@@ -1789,6 +1847,14 @@ import { JEWELRY } from "./jewelry-manifest.js";
     box.update({ open: openNow, lit, eye: eyeV, moved });
     ring.update({ lit: ringLit });
     stone.update({ lit: stoneLit, spin: stoneSpin, reveal, eye: eyeOk });
+    // Debug only. Guarded because this is the hot loop and building a string
+    // every frame to be read by nobody is exactly the sort of cost this file
+    // spends its comments warning about.
+    if (DBG) dbgState =
+      "lit=" + lit.toFixed(3) + " ringLit=" + ringLit.toFixed(3) +
+      " stoneLit=" + stoneLit.toFixed(3) + " riseK=" + riseK.toFixed(3) +
+      " liftK=" + liftK.toFixed(3) + " reveal=" + reveal.toFixed(3) +
+      " expo=" + renderer.toneMappingExposure.toFixed(3);
 
     // The stone's cast light on the velvet: brightest with the lamp and the
     // piece still down in the cushion, spreading and dimming as the ring is
@@ -1835,7 +1901,22 @@ import { JEWELRY } from "./jewelry-manifest.js";
       // separation is the height the stone has gained, read through a camera
       // that is looking down at it; that is small, and it is exactly the
       // depth a macro lens has to work with on a real ring.
-      const pullK = smooth(seg(p, B.stoneUp[0] + 0.026, B.stoneUp[1] + 0.012));
+      /* THE PULL HAS TO LAND INSIDE THE STONE'S OWN BEAT. It used to run to
+       * B.stoneUp[1] + 0.012, i.e. p 0.414 to 0.472, which meant focus was
+       * still only 70% of the way onto the brilliant at p 0.45 with the
+       * aperture wide open. A defocused diamond is not a soft diamond, it is
+       * a DEAD one: every bit of what makes it worth looking at is
+       * high-frequency, the arrows, the flashes, the fire, and a blur is
+       * exactly the operation that removes high frequencies. So the stone
+       * spent most of the beat headed "Lifted clear of its claws, so you can
+       * see what they hold" as a grey lump, which is what read as broken
+       * lighting when the lighting was never touched.
+       *
+       * It still drifts soft on the way out of the claws, because that beat
+       * is right and it is what hands the reader from the metal to the
+       * stone. It just finishes the journey, by 0.438, and is sharp for the
+       * rest of the shot. */
+      const pullK = smooth(seg(p, B.stoneUp[0] + 0.008, B.stoneUp[0] + 0.05));
       focusV.set(0, lerp(ringY + GIRDLE, stoneY, pullK), 0).applyMatrix4(camInv);
       focusZ = Math.max(-focusV.z, 0.2);
     }
@@ -2469,7 +2550,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       "p=" + at + "  " + ms.toFixed(2) + " ms  " + (1000 / ms).toFixed(0) +
       " fps  buf=" + canvas.width + "x" + canvas.height +
       "  tris=" + renderer.info.render.triangles +
-      "  calls=" + renderer.info.render.calls;
+      "  calls=" + renderer.info.render.calls + "\n" + dbgState;
     document.title = out;
     const el = document.createElement("pre");
     el.id = "fps-out";

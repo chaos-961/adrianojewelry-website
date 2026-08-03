@@ -1,0 +1,8 @@
+# Adriano Jewelry
+User-agent: *
+Allow: /
+
+# The 404 is served for any miss at any depth; it is not a destination.
+Disallow: /404.html
+
+Sitemap: https://adrianojewelry.com/sitemap.xml
