@@ -97,7 +97,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   /* QA knobs for the render path, alongside ?p= / ?prop= / ?q= below. Each
    * stands one layer down so its cost and its contribution can be read
    * separately, which is the only way to answer "what is this frame spending
-   * it on" without a profiler: ?noground, ?nostone, ?nolens, ?novelvet. */
+   * it on" without a profiler: ?nostone, ?nolens, ?novelvet. */
   const DBG = params.has("fps") || params.has("dbg");
   const NO_LENS = params.has("nolens");
   /* How much silk the film is allowed, read from site.css rather than restated
@@ -353,95 +353,44 @@ import { JEWELRY } from "./jewelry-manifest.js";
     scene.environment = pmrem.fromScene(studio, 0.04, 0.1, 100, { size: 64 }).texture;
   }
 
-  /* The room. Dark, and no cast shadow on the ground: every glow and pool
-   * belongs to the box's own lamp and lives in the model. The fog lets the
-   * floor's far edge disappear instead of drawing a horizon.
+  /* The room. Dark, and no cast shadow anywhere in it: every glow and pool
+   * belongs to the box's own lamp and lives in the model.
    *
    * NO scene.background, and that is the whole of what makes the silk behind
    * this page visible (v0.3.7). The renderer was already built with alpha and
    * a clear alpha of zero; a background Color was overwriting it with an
    * opaque near-black every frame, so the canvas was a solid rectangle over
    * the site's ground and the film played in a room of its own. Cleared to
-   * nothing instead, every pixel the props and the floor do not cover is the
-   * page underneath, which is the black silk, dimmed by home.js to whatever
-   * the beat wants. The lens pass carries the alpha through with it; see the
-   * note there, because a blur that gathers colour and drops coverage is the
-   * one way this goes wrong. */
-  let ground;
-  /* Lifted a little off the room's own black, so the band where the ground is
-   * both fogging and fading has nothing to step across. It used to be graded
-   * toward the dome's horizon; there is no dome now, and the value still
-   * holds, because what the floor's rim fades into is the silk, which is a
-   * near-black of about the same weight. The floor's alpha does the real
-   * work; this only keeps the two halves of the transition on speaking
-   * terms. */
-  scene.fog = new THREE.Fog(0x0f1014, 15, 42);
+   * nothing instead, every pixel the props do not cover is the page
+   * underneath, which is the black silk, dimmed by home.js to whatever the
+   * beat wants. The lens pass carries the alpha through with it; see the note
+   * there, because a blur that gathers colour and drops coverage is the one
+   * way this goes wrong.
+   *
+   * AND NO FLOOR, AND NO FOG, which is the other half of the same idea. There
+   * was a 90-unit satin disc under the props carrying a radial fade in its own
+   * alpha, and a fog graded to sit four units beyond whatever the camera was
+   * looking at. The second only ever existed to serve the first: the fog's
+   * whole job was to let the floor's far edge disappear rather than draw a
+   * horizon, and with no floor there is nothing in this scene far enough away
+   * to fog.
+   *
+   * THE FLOOR WENT BECAUSE IT WAS STANDING IN FRONT OF THE PICTURE. Seen from
+   * a camera that is close and low, a rough surface under an environment map
+   * is at its BRIGHTEST, so it filled most of the frame with a smooth mid grey
+   * and left the silk as a strip along the top; the reader pointed at exactly
+   * that and asked what the panel was. Starting its alpha fade earlier was
+   * tried first and only moved the join further down the frame. The honest fix
+   * is the one a bench would recognise: a ring box photographed on a sweep of
+   * silk does not stand on a second surface, it stands on the silk.
+   *
+   * Nothing was lost with it. It never carried receiveShadow, so it was
+   * catching nothing; three does no bounce lighting, so it was returning
+   * nothing to the props either; and the box's own cushion, seat and shadowed
+   * interior all live in ring-box.js. It was a picture of a floor, and the
+   * picture behind it is now a real one. ?noground goes with it, since there
+   * is no longer a layer to stand down. */
   if ("environmentIntensity" in scene) scene.environmentIntensity = 0.65;
-  {
-    /* The floor takes a little of the studio back: a satin sheen rather
-     * than dead matte, so the props stand on something that answers their
-     * light instead of on a hole. */
-    /* The ground does not END anywhere; it thins out. Fogging it to a colour
-     * and letting its rim arrive is what used to draw a hard line across the
-     * frame: the floor reaching one brightness while the wall behind it sat
-     * at another, worst in portrait where the camera stands back and puts
-     * that join through the middle of the picture. A radial fade in its own
-     * alpha means there is no brightness to match: the ground simply becomes
-     * the room, at any distance the film ever stands off to, with nothing to
-     * tune. That is what lets the wall be a page layer rather than a mesh.
-     *
-     * CircleGeometry lays its uv out from the centre, so the map's own
-     * radius is the floor's.
-     *
-     * THE STOPS ARE WHERE THEY ARE BECAUSE OF FORESHORTENING, and they moved
-     * in v0.3.7 when the wall behind them stopped being a painted gradient
-     * and started being a texture. This floor is 90 units across and is seen
-     * almost edge-on from about twelve; everything past thirty units is
-     * squeezed into a few dozen pixels just under the horizon. A fade that
-     * ran from 0.52 to 1.0 of the radius therefore did all of its work inside
-     * that squeezed band, which is invisible against a smooth wall and a hard
-     * horizontal edge against a woven one: silk above, sudden flat gradient
-     * below, worst in portrait, where the camera stands furthest back and
-     * puts the join through the middle of the picture.
-     *
-     * So the fade starts at a tenth of the radius, nine units, which is
-     * already behind anything the film ever puts on the floor, and takes an
-     * eased tail out to seven tenths. In world terms that is a much longer
-     * ramp; in SCREEN terms it is the band that used to be a line, and the
-     * weave now comes through the ground gradually instead of arriving all at
-     * once. It also finishes before the fog does (near 15, far 42), so the
-     * floor is gone by the time it would have flattened to one fog colour. */
-    const fade = document.createElement("canvas");
-    fade.width = fade.height = 128;
-    {
-      const g = fade.getContext("2d");
-      const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-      grd.addColorStop(0, "#ffffff");
-      grd.addColorStop(0.1, "#ffffff");
-      grd.addColorStop(0.2, "#e4e4e4");
-      grd.addColorStop(0.32, "#b0b0b0");
-      grd.addColorStop(0.45, "#6c6c6c");
-      grd.addColorStop(0.58, "#2e2e2e");
-      grd.addColorStop(0.7, "#000000");
-      g.fillStyle = grd;
-      g.fillRect(0, 0, 128, 128);
-    }
-    const fadeTex = new THREE.CanvasTexture(fade);
-    ground = new THREE.Mesh(
-      new THREE.CircleGeometry(90, 64),
-      new THREE.MeshStandardMaterial({
-        color: 0x0b0b0c,
-        roughness: 0.62,
-        metalness: 0,
-        envMapIntensity: 0.5,
-        alphaMap: fadeTex,
-        transparent: true,
-      })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    if (params.has("noground")) ground = null;
-    else scene.add(ground);
-  }
 
   /* THE WALLS ARE THE PAGE'S OWN SILK NOW, and the dome that used to draw
    * them is gone (v0.3.7).
@@ -602,91 +551,24 @@ import { JEWELRY } from "./jewelry-manifest.js";
   pmrem.dispose();
 
 
-  /* The stone's light, landing.
+  /* THE STONE'S CAST LIGHT IS GONE (v0.3.7).
+
+   * What it was: an eight-fold wheel of hard little spots and short arcs
+   * painted to a canvas, laid flat on the box's cushion as a child of the
+   * box, turning with the stone that threw it and spreading and dimming as
+   * the piece was lifted away. The argument for it was a good one, that a
+   * brilliant under a lamp throws exactly that pattern and every macro film
+   * of a ring in a box has the image in it.
    *
-   * A brilliant under a lamp does not merely shine: it throws a wheel of
-   * hard little spots and short arcs down onto whatever it is standing on,
-   * and every macro film of a ring in a box has that image in it. This one
-   * had an empty cushion. So the stone gets its cast pattern: eight-fold,
-   * because the cut is, and painted rather than traced, since tracing a
-   * caustic through fifty-eight facets per frame is a renderfarm's job and
-   * a canvas gets the same picture for nothing.
-   *
-   * It rides as a child of the box, because the light is landing on the
-   * box's own velvet and goes wherever that goes. The middle is left dark on
-   * purpose: that is where the ring slot is, and a pool of light poured over
-   * the band standing in it would read as fog rather than as scatter. */
-  const caustic = (() => {
-    const N = 256;
-    const c = document.createElement("canvas");
-    c.width = c.height = N;
-    const g = c.getContext("2d");
-    const mid = N / 2;
-    g.fillStyle = "#000000";
-    g.fillRect(0, 0, N, N);
-    g.globalCompositeOperation = "lighter";
-    // The pool the spots sit in: faint, and hollow in the middle.
-    const pool = g.createRadialGradient(mid, mid, mid * 0.1, mid, mid, mid);
-    pool.addColorStop(0, "rgba(255,255,255,0.02)");
-    pool.addColorStop(0.42, "rgba(255,255,255,0.07)");
-    pool.addColorStop(0.78, "rgba(255,255,255,0.035)");
-    pool.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = pool;
-    g.fillRect(0, 0, N, N);
-    const rand = rng(0x5eed17);
-    const dot = (x, y, s, lvl) => {
-      const grd = g.createRadialGradient(x, y, 0, x, y, s);
-      grd.addColorStop(0, "rgba(255,255,255," + lvl.toFixed(3) + ")");
-      grd.addColorStop(0.4, "rgba(255,255,255," + (lvl * 0.34).toFixed(3) + ")");
-      grd.addColorStop(1, "rgba(255,255,255,0)");
-      g.fillStyle = grd;
-      g.fillRect(x - s, y - s, s * 2, s * 2);
-    };
-    for (let arm = 0; arm < 8; arm++) {
-      g.save();
-      g.translate(mid, mid);
-      g.rotate((arm * Math.PI) / 4);
-      for (let i = 0; i < 8; i++) {
-        const r = (0.3 + rand() * 0.6) * mid;
-        const a = (rand() - 0.5) * 0.66;
-        dot(Math.cos(a) * r, Math.sin(a) * r, 1.5 + rand() * 5, 0.3 + rand() * 0.6);
-      }
-      // Two short arcs per arm: a facet edge smears its light along a curve
-      // rather than dropping it on a point, and the curve is what stops the
-      // whole thing reading as a star field.
-      for (let i = 0; i < 2; i++) {
-        const r = (0.42 + rand() * 0.44) * mid;
-        const a0 = (rand() - 0.5) * 0.5;
-        const sweepA = 0.1 + rand() * 0.16;
-        const lvl = 0.16 + rand() * 0.24;
-        for (let s = 0; s <= 9; s++) {
-          const a = a0 + (sweepA * (s / 9 - 0.5)) * 2;
-          dot(Math.cos(a) * r, Math.sin(a) * r, 2.4, lvl);
-        }
-      }
-      g.restore();
-    }
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(1, 1),
-      new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        opacity: 0,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        fog: false,
-      })
-    );
-    // Laid flat, so its own z-rotation becomes a turn about the room's
-    // vertical and the pattern can follow the stone that throws it.
-    m.rotation.x = -Math.PI / 2;
-    m.position.y = box.metrics.cushionY + 0.012;
-    m.visible = false;
-    box.root.add(m);
-    return m;
-  })();
+   * The argument against it is what a reader actually saw, which is a
+   * scatter of dots sitting on top of the inside of the box, and they asked
+   * for it to go. That is the honest report: painted rather than traced, it
+   * could follow the stone's turn but never the stone's ACTUAL facets, so it
+   * read as a texture laid on the velvet rather than as light thrown onto it,
+   * and at the size the box is on screen there was never enough of it to be
+   * read as caustics in the first place. The lamp in the lid does the work
+   * this was decorating. If it ever comes back it has to be traced, and that
+   * is a renderfarm's job rather than this page's. */
 
   const SEAT = box.metrics.seatY;
   const GIRDLE = ring.metrics.stone.girdleY;
@@ -889,17 +771,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
       const dNeed = (fitW / 2 + Math.abs(sx)) / (tanV * aspect);
       d = Math.max(d, dNeed);
     }
-    /* The fog is graded to the SHOT, not to the room. Its job is to let the
-     * floor's far edge disappear rather than draw a horizon, and a fixed
-     * range does that only at the distance it was set for: at the distance a
-     * narrow viewport backs off to, the same numbers put the subject itself
-     * three quarters of the way into the haze. Held four units beyond
-     * whatever the camera is looking at, it can never touch the subject and
-     * still always swallows the ground behind it. */
-    if (scene.fog) {
-      scene.fog.near = Math.max(15, d + 4);
-      scene.fog.far = scene.fog.near + 27;
-    }
     // Portrait: the subject sits low so the words own the top of the frame.
     // The coda pairs its words BESIDE the stone instead of over it, so it
     // trades layouts at a squarer aspect than the rest of the film; the
@@ -1035,25 +906,39 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  vec2 q0 = vec2(vQ.x * uA, vQ.y);",
         "  vec2 q = q0 * (1.0 + uOut * 0.85);",
         "  float rr = length(q);",
-        // The room's own light: brightest ahead of the reader, falling away
-        // toward the corners so the frame has depth instead of one white.
-        // Everything here sums to 0.52 at its darkest, which lands at #ea
-        // after the film's inside exposure, still clear of the #e6 floor
-        // the ink beats need behind them.
-        "  float lum = 0.80;",
-        "  lum += 0.10 * (1.0 - smoothstep(0.0, 1.4, rr));",
-        /* The walls are deeper than they were, and this is a legibility fix
-         * rather than a mood one. Most of what this store makes is white
-         * metal set with white stones, and a white piece photographed on a
-         * cut-out and laid on a near-white room has nothing to separate it
-         * from the ground: at the frame's edge, where the procession's
-         * biggest pieces are, half of them were dissolving into the wall. The
-         * falloff starts earlier and goes about twice as far now, so the room
-         * has a lit core and shaded walls, which is both what an interior
-         * actually looks like and the contrast the silver needs. The core is
-         * untouched, so the ink beats' measured floor is untouched with it,
-         * and their own white clearing sits inside it regardless. */
-        "  lum -= 0.26 * smoothstep(0.5, 1.75, rr);",
+        /* THE ROOM IS WHITE, and every amplitude below is a fraction of a
+         * stop rather than a shade of grey. It used to sit at 0.80 with a
+         * quarter-stop of falloff into the corners and a seventh of a stop of
+         * variation per facet cell, which summed to 0.52 at its darkest and
+         * landed around #ea; the reader circled a frame of it and said the
+         * background was weird and should be white, and they were right about
+         * what they were looking at. What reads as "inside a diamond" is the
+         * SEAMS, the fire on them, the beams and the glints, not the fill
+         * between them, and the fill was carrying enough shade to read as a
+         * grey mosaic instead of as light.
+         *
+         * So the base goes above 1.0 and everything else is scaled down
+         * around it. Nothing is removed: the two shells still turn against
+         * each other, every cell still takes its own shade and its own ramp
+         * of light, the seams still carry dispersion, and the inclusions are
+         * still the only thing in here with a knowable size. They are simply
+         * played at the level a white room can hold, which is where they
+         * belong, since the tone mapper compresses hard up here and a
+         * difference of a twentieth at 1.02 survives it as exactly the
+         * whisper this wants. */
+        "  float lum = 1.02;",
+        "  lum += 0.05 * (1.0 - smoothstep(0.0, 1.4, rr));",
+        /* A breath of falloff at the walls, where there used to be a quarter
+         * of a stop. The deep version was a legibility fix and the problem it
+         * fixed is real: most of what this store makes is white metal set
+         * with white stones, and a white piece on a cut-out laid on a white
+         * room has nothing to separate it from the ground. But at 0.26 the
+         * fix WAS the thing the reader objected to, a grey vignette standing
+         * in front of the picture. Held to a tenth it still gives the frame a
+         * lit core and a quieter edge; the separation the pieces actually
+         * need comes from their own contact shadows and from the seams they
+         * cross, not from painting the room darker than they are. */
+        "  lum -= 0.10 * smoothstep(0.55, 2.0, rr);",
         "  vec3 tint = vec3(0.0);",
         // The near shell: big facet cells turning slowly with the scroll,
         // each one a flat shade with one soft ramp of light across it.
@@ -1061,11 +946,11 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  vec2 qa = rot(0.35 + uK * 0.045) * q * 1.5 + vec2(uK * 0.085, uK * 0.022);",
         "  vec3 va = facets(qa, idA);",
         "  vec2 dirA = normalize(hash2(idA + 17.0) - 0.5);",
-        "  lum += (hash(idA) - 0.5) * 0.14 + dot(va.yz, dirA) * 0.06;",
+        "  lum += (hash(idA) - 0.5) * 0.05 + dot(va.yz, dirA) * 0.028;",
         "  float eA = 1.0 - smoothstep(0.0, 0.03, va.x);",
         "  float eAr = 1.0 - smoothstep(0.0, 0.03, va.x - 0.012);",
         "  float eAb = 1.0 - smoothstep(0.0, 0.03, va.x + 0.010);",
-        "  lum += eA * 0.09;",
+        "  lum += eA * 0.05;",
         // Red pulled to one side of every edge and blue to the other: the
         // stone's own fire trick at a whisper, and only ever on an edge.
         "  tint += (vec3(eAr, eA, eAb) - vec3(eA)) * 0.10;",
@@ -1074,9 +959,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  vec2 idB;",
         "  vec2 qb = rot(-0.62 - uK * 0.03) * q * 0.8 + vec2(-uK * 0.05, uK * 0.04);",
         "  vec3 vb = facets(qb, idB);",
-        "  lum += (hash(idB + 3.7) - 0.5) * 0.05;",
+        "  lum += (hash(idB + 3.7) - 0.5) * 0.022;",
         "  float eB = 1.0 - smoothstep(0.0, 0.06, vb.x);",
-        "  lum += eB * 0.04;",
+        "  lum += eB * 0.022;",
         // Two broad beams of light crossing the room as it turns.
         "  for (int i = 0; i < 2; i++) {",
         "    float fi = float(i);",
@@ -1108,7 +993,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "    incl += s * (0.5 - fi * 0.12);",
         "    feather += s * step(0.62, hash(ic + 91.0)) * (0.4 - fi * 0.1);",
         "  }",
-        "  lum -= incl * 0.26;",
+        "  lum -= incl * 0.16;",
         "  lum += feather * 0.6;",
         "  vec3 col = vec3(lum) + tint - vec3((tint.r + tint.g + tint.b) / 3.0);",
         /* THE WAY IN IS THE FLASH, and nothing else. Snell's window used to
@@ -1129,7 +1014,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * ends of the stone, so the room now simply goes down to black and
          * the coda cuts up out of it. Squared rather than linear because
          * light falls off that way, and a linear ramp on a room this bright
-         * reads as a wipe. */
+         * reads as a wipe.
+         *
+         * uOut IS BACK-LOADED, which matters more than the curve here. Driven
+         * by a smoothstep it spends the middle of the collapse window near a
+         * half, and half of a white room, under an exposure that is coming
+         * down at the same time, is a grey room: hold the scroll anywhere in
+         * there and what is on screen is a mid-grey wall with facets in it,
+         * which is the exact frame the reader circled. A cubic ease-in holds
+         * the white for most of the window and then falls off it hard, so the
+         * chapter ends in a cut rather than in a long grey. */
         "  col *= (1.0 - uOut) * (1.0 - uOut);",
         "  gl_FragColor = vec4(col, 1.0);",
         "  #include <tonemapping_fragment>",
@@ -1466,9 +1360,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const h = pin.clientHeight;
     // Half the frame's width or getting on for half its height, whichever is
     // the tighter, capped at the shipped file's own longest side. A phone
-    // gets a piece half the screen across, which is the whole point of the
-    // rework; a laptop gets the file at native resolution.
-    const base = clamp(Math.min(w * 0.5, h * 0.45), 150, 384);
+    // gets a piece nearly half the screen across, which is the whole point of
+    // the rework; a laptop gets the file at native resolution.
+    //
+    // The 0.9 is the reader's, asked for as "the same size as they are now
+    // and like 10% smaller": at the old figure the biggest pieces crowded the
+    // copy standing in the tunnel's core, and a tenth off is enough air to
+    // read both. It multiplies the measured size rather than the caps, so the
+    // ceiling is still the shipped file's own 384px longest side and nothing
+    // is ever upscaled.
+    const base = clamp(Math.min(w * 0.5, h * 0.45) * 0.9, 135, 384);
     for (const it of items) {
       const wid = Math.round(it.tall ? base * it.aspect : base);
       if (wid === it.w) continue;
@@ -1478,13 +1379,50 @@ import { JEWELRY } from "./jewelry-manifest.js";
     }
   }
 
-  function armGallery() {
-    if (galleryArmed) return;
-    galleryArmed = true;
-    for (const img of galleryEl.querySelectorAll("img[data-src]")) {
+  /* ARMED IN TWO WAVES, IN THE ORDER THE READER MEETS THEM.
+   *
+   * One call used to set all seventy-four srcs at once, which asks the
+   * connection for 1.5MB in a single burst somewhere around p 0.44, right in
+   * the middle of the ring chapter, and hands the decoder seventy-four images
+   * to unpack while the film is drawing. The pieces themselves are already as
+   * small as they are ever going to be (384px longest side, WebP at quality
+   * 64 with a lossy alpha, a median of 20KB), so there are no bytes left to
+   * take out; what was left was WHEN.
+   *
+   * The procession is a queue, and its order is known at build time, so the
+   * first wave is only the pieces that arrive first. Sixteen of them, which
+   * is a little more than the twelve ever in flight at once, fetched early
+   * and marked high priority so they are decoded before the room opens. The
+   * rest follow one frame later at low priority, behind anything the film
+   * still needs. Nothing waits on either: a piece with no pixels yet is an
+   * empty box travelling the same path, and by the time it reaches the front
+   * of the room it has them.
+   *
+   * fetchPriority is set as a property rather than an attribute so a browser
+   * that does not know it simply ignores an unknown property instead of
+   * carrying a dead attribute in the DOM. */
+  const FIRST_WAVE = 16;
+
+  function armFrom(from, to, priority) {
+    for (let i = from; i < to && i < items.length; i++) {
+      const img = items[i].img;
+      if (!img.dataset.src) continue;
+      img.fetchPriority = priority;
       img.src = img.dataset.src;
       img.removeAttribute("data-src");
     }
+  }
+
+  function armGallery() {
+    if (galleryArmed) return;
+    galleryArmed = true;
+    armFrom(0, FIRST_WAVE, "high");
+    /* The tail goes out on the next frame rather than in this one. Setting
+     * seventy-four srcs is seventy-four synchronous DOM writes plus the
+     * fetches they start, and the frame that calls this is a frame of the
+     * film; handing the browser the first sixteen and then yielding keeps
+     * that cost off it. */
+    requestAnimationFrame(() => armFrom(FIRST_WAVE, items.length, "low"));
   }
 
   buildGallery();
@@ -1651,11 +1589,26 @@ import { JEWELRY } from "./jewelry-manifest.js";
       }
     }
 
-    // The lamp follows the lid; its glow leaves with the box. Clamped,
-    // because the sprung hinge is allowed to overshoot its stop and a lamp
-    // brighter than lit has no meaning downstream.
+    /* THE LAMP IS ALWAYS ON, and it leaves with the box.
+     *
+     * It used to be a function of the lid: `open * (fade as the box goes)`,
+     * so the light climbed out of nothing as the lid stood up and there was
+     * no lamp at all for the first fifth of the film. The reader noticed it
+     * arriving late, somewhere around the ring's rise, and asked for it to be
+     * on the whole time. They are right on both counts. A jeweller's box with
+     * a lamp in the lid is a box whose lamp is ON when it is handed to you;
+     * that is the whole trick of it, and the shut box has a seam for the
+     * light to come out of, which is the one thing in the opening chapter
+     * that says there is something inside.
+     *
+     * So it holds at full from the first frame and only ever comes down as
+     * the box is carried off stage left. `boxReveal` below still gates what
+     * the light is allowed to REACH, since the ring is behind a shut lid
+     * whether or not the lamp is burning; nothing downstream had to change.
+     * Still clamped, because the sprung hinge is allowed to overshoot its
+     * stop and a lamp brighter than lit has no meaning. */
     const lit = clamp(
-      Math.max(open * (1 - seg(p, B.boxOut[1] - 0.02, B.boxOut[1] + 0.03)), teaseLit),
+      Math.max(1 - seg(p, B.boxOut[1] - 0.02, B.boxOut[1] + 0.03), teaseLit),
       0,
       1
     );
@@ -1718,7 +1671,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // would sit at grey instead of reaching black; the coda then breathes
     // it back up from that black as the stone relights.
     cameraAt(p, aspect);
-    const collapseK = smooth(seg(p, B.collapse[0], B.collapse[1]));
+    // Back-loaded, in step with the shader's own uOut: the exposure and the
+    // room have to come down together or one of them draws the grey stage
+    // the other is avoiding.
+    const collapseK = easeIn3(seg(p, B.collapse[0], B.collapse[1]));
     renderer.toneMappingExposure = Math.max(
       0.2,
       inCoda
@@ -1775,27 +1731,15 @@ import { JEWELRY } from "./jewelry-manifest.js";
     rigSigLast = rigSig;
     key.shadow.needsUpdate = moved && p < B.boxOut[1] + 0.02;
 
-    /* THE GROUND GOES WITH THE BOX.
-     *
-     * Once the ring has been carried off there is nothing left standing on
-     * the floor. The stone is five units above it and lit by a tent it
-     * carries itself. What the floor went on doing was filling the bottom of
-     * every remaining shot with itself, seen almost edge-on from a camera
-     * that by then is very close and very low over it, which is the angle at
-     * which a rough surface under an environment map is at its BRIGHTEST. So
-     * the last third of the film played out against a sheet of mid grey, and
-     * a diamond photographed against mid grey has no contrast to show: the
-     * arrows, the flashes and the fire all need black behind the stone to be
-     * anything at all. Faded out, the stone hangs in the dark it belongs in.
-     *
-     * It is also the single cheapest frame in the film to stop drawing:
-     * measured at a fifth of the cost of a frame, for a full-screen
-     * transparent pass with an environment lookup on every fragment. */
-    const groundK = 1 - smooth(seg(p, B.ringOut[0], B.solo[1]));
-    if (ground) {
-      ground.visible = !inCoda && groundK > 0.01;
-      if (ground.visible) ground.material.opacity = groundK;
-    }
+    /* THE GROUND USED TO BE FADED OUT HERE, from the ring's exit to the
+     * solo, and the reasoning is worth keeping even though the code is not.
+     * Once the ring has been carried off there is nothing standing on a floor,
+     * and what a floor goes on doing is filling the bottom of every remaining
+     * shot with a sheet of mid grey; a diamond photographed against mid grey
+     * has no contrast to show, because the arrows, the flashes and the fire
+     * all need black behind the stone to be anything at all. As of v0.3.7 that
+     * is true of the whole film rather than its last third, so the floor is
+     * gone outright and there is nothing here to fade. */
 
     eyeV.copy(camera.position);
     const eyeOk = enterK < 0.12 || inCoda ? eyeV : null;
@@ -1810,20 +1754,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
       " stoneLit=" + stoneLit.toFixed(3) + " riseK=" + riseK.toFixed(3) +
       " liftK=" + liftK.toFixed(3) + " reveal=" + reveal.toFixed(3) +
       " expo=" + renderer.toneMappingExposure.toFixed(3);
-
-    // The stone's cast light on the velvet: brightest with the lamp and the
-    // piece still down in the cushion, spreading and dimming as the ring is
-    // lifted away from it (which is what a cast pattern does), gone with the
-    // box. It turns with the stone that throws it, so the wheel of it and
-    // the piece above it are never out of step.
-    const castK = lit * boxReveal * (1 - 0.62 * riseK) * (1 - outK);
-    caustic.visible = !inCoda && castK > 0.012;
-    if (caustic.visible) {
-      caustic.material.opacity = 0.9 * castK;
-      const spread = 2.5 * (1 + 1.15 * riseK);
-      caustic.scale.set(spread, spread, 1);
-      caustic.rotation.z = stoneSpin - boxYaw;
-    }
 
     /* The lens. Focus rides the subject's own axis; the PULL is an offset
      * along the view: forward onto the near arc of the band as the box
@@ -1920,7 +1850,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const winK = isInside ? 1 - smooth(seg(p, B.window[0], B.window[1])) : 0;
     if (isInside) {
       inside.mat.uniforms.uK.value = p * 34;
-      inside.mat.uniforms.uOut.value = smooth(seg(p, B.collapse[0], B.collapse[1]));
+      inside.mat.uniforms.uOut.value = easeIn3(seg(p, B.collapse[0], B.collapse[1]));
       inside.mat.uniforms.uA.value = aspect;
       renderer.render(inside.scene, inside.cam);
     } else if (lensOn) {
@@ -2031,13 +1961,35 @@ import { JEWELRY } from "./jewelry-manifest.js";
        * its walls, the words stand in its middle, and neither has to
        * apologise to the other. */
       const r = it.rad * (0.58 + 0.42 * s);
+      /* AND EVERY PIECE RISES INTO ITS PLACE. Without this term a piece is
+       * simply nearer each frame than it was the frame before: it grows on
+       * the spot along its own bearing, which at the far end of the tunnel is
+       * barely any travel at all, and what the eye reads is a thing switching
+       * on rather than a thing arriving. The reader put it exactly right,
+       * that they popped from existence.
+       *
+       * So the far end of the procession sits a tenth of a frame LOWER than
+       * where the piece will come to rest, and closes that gap as it
+       * approaches. The whole queue drifts upward through the frame while the
+       * reader scrolls down it, which is both the honest reading of a camera
+       * moving forward and level, and the motion that makes the arrival a
+       * move instead of an event. It is a pure function of d like everything
+       * else here, so it scrubs backwards without a stray state. */
+      const rise = Math.max(d, 0) * viewH * 0.1;
       // Offset by half the piece's own box, so the scale (which pivots on
       // that box's centre) grows it about the point it is aimed at.
       const x = cx + Math.cos(it.ang) * r * spreadX - it.w * 0.5;
-      const y = cy + Math.sin(it.ang) * r * spreadY - it.h * 0.5;
-      // In from the far distance, and out as it sweeps past the reader.
-      const a =
-        (d > 0.82 ? 1 - (d - 0.82) / 0.18 : 1) * (d < 0 ? 1 + d / PAST : 1);
+      const y = cy + Math.sin(it.ang) * r * spreadY + rise - it.h * 0.5;
+      /* In from the far distance over MOST of the approach, not over its last
+       * fifth. The old window ran from d 1.0 to 0.82, which at this queue
+       * length is a couple of hundred pixels of scroll: long enough to be a
+       * fade in the code and short enough to be a pop on the screen. Opening
+       * it out to nearly half the travel means a piece is already there, faint
+       * and small and climbing, well before it is worth looking at. Squared,
+       * so it stays quiet at the far end and does its arriving late, where the
+       * rise is also biggest. */
+      const inK = clamp((1 - d) / 0.45, 0, 1);
+      const a = inK * inK * (d < 0 ? 1 + d / PAST : 1);
       it.el.style.opacity = clamp(a, 0, 1).toFixed(3);
       it.el.style.transform =
         "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" +
