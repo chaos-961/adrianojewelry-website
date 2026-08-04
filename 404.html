@@ -11,7 +11,7 @@
          crawlable so this directive can actually be read, at every depth the
          file gets served for. -->
     <meta name="robots" content="noindex, follow" />
-    <meta name="theme-color" content="#f4f4f4" />
+    <meta name="theme-color" content="#050506" />
     <!-- Root-absolute like everything else here: Pages serves this file for a
          miss at any depth, so a relative icon href would resolve against
          whatever path was missed. -->
@@ -47,24 +47,26 @@
 
       :root {
         /* Mirrors assets/css/site.css, which this page cannot link because it
-           is served at any depth. Two flat steps of one grey: the paper the
-           page is set on, and the footer one stop DOWN from it. Keep these in
-           step with --paper and --paper-sunk over there, and mirror the
-           contrast arithmetic in that file's CONTRAST FLOOR note, which is
-           where the ratios for this ramp are recorded. White, black and grey
-           only: every value here has R, G and B equal. */
-        --ground-page: #f4f4f4;
-        --ground-footer: #e8e8e8;
-        --page-fg: #1a1a1a;
-        --page-muted: #5c5c5c;
-        --footer-fg: #1a1a1a;
-        --footer-rule: rgba(26, 26, 26, 0.18);
-        --accent: #1a1a1a;
-        --accent-dim: rgba(26, 26, 26, 0.5);
-        --pewter: #3a3a3a;
-        --pewter-strong: #000000;
-        --pewter-dim: rgba(26, 26, 26, 0.55);
-        --pewter-wash: rgba(26, 26, 26, 0.05);
+           is served at any depth. Two steps of one grey over black silk: the
+           ink the page is set on, and the footer one stop UP from it. Keep
+           these in step with --paper and --paper-sunk over there, and mirror
+           the contrast arithmetic in that file's CONTRAST FLOOR note, which is
+           where the ratios for this ramp are recorded, including the ones
+           measured against the silk's brightest patch rather than its average.
+           White, black and grey only: every value here has R, G and B equal. */
+        --ground-page: #050506;
+        --ground-footer: rgba(10, 10, 11, 0.82);
+        --page-fg: #ececec;
+        --page-muted: #c9c9c9;
+        --footer-fg: #ececec;
+        --footer-rule: rgba(236, 236, 236, 0.16);
+        --accent: #ececec;
+        --accent-dim: rgba(236, 236, 236, 0.38);
+        --pewter: #c9c9c9;
+        --pewter-strong: #ffffff;
+        --pewter-dim: rgba(236, 236, 236, 0.42);
+        --pewter-wash: rgba(10, 10, 11, 0.62);
+        --velvet-a: 0.5;
         --caps-track: 0.15em;
         /* See site.css: cancels the descender space that pushes all-caps text
            high inside a flex-centred pill. Raised from 0.03em to the measured
@@ -83,7 +85,7 @@
       html {
         height: 100%;
         -webkit-text-size-adjust: 100%;
-        color-scheme: light;
+        color-scheme: dark;
         background-color: var(--ground-page);
       }
 
@@ -98,23 +100,72 @@
         font-size: 16px;
         /* 400, and no -webkit-font-smoothing: see the note on body in
            assets/css/site.css. Both are the optical correction for setting
-           dark type on a light ground rather than the other way round. */
-        font-weight: 400;
+           light type on a dark ground rather than the other way round. */
+        font-weight: 300;
+        -webkit-font-smoothing: antialiased;
         line-height: 1.5;
       }
 
       /* Fixed ground layer, not a body background: a background on <body> is
          sized against the root box, which is one viewport tall, so anything
          sized with `cover` stopped dead at 100vh and left a visible seam. The
-         ground is one flat colour now and could not seam, but the layer stays
-         so re-adding a gradient here is safe. See assets/css/site.css. */
+         ground is one flat colour now and could not seam. It is the base coat
+         under the silk, and the ground a device with no WebGL keeps for good.
+         See assets/css/site.css. */
       body::before {
         content: "";
         position: fixed;
         inset: 0;
-        z-index: -1;
+        z-index: -2;
         background-color: var(--ground-page);
         pointer-events: none;
+      }
+
+      /* The silk, mirrored from site.css. /assets/js/velvet.js is linked
+         root-absolute for the same reason the icons and the @font-face urls
+         above are: this page is served for a miss at any depth, so a relative
+         src would resolve against whatever path was missed. */
+      .velvet {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+        opacity: var(--velvet-a);
+        background-color: var(--ground-page);
+      }
+
+      .velvet canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 1.1s cubic-bezier(0.22, 0.8, 0.3, 1);
+      }
+
+      .velvet canvas.is-on {
+        opacity: 1;
+      }
+
+      .velvet.is-painted-flat {
+        background-image: radial-gradient(
+            120% 42% at 24% 8%,
+            rgba(255, 255, 255, 0.13),
+            rgba(255, 255, 255, 0) 62%
+          ),
+          radial-gradient(
+            90% 30% at 78% 34%,
+            rgba(255, 255, 255, 0.09),
+            rgba(255, 255, 255, 0) 60%
+          ),
+          linear-gradient(
+            168deg,
+            #121212,
+            #050505 32%,
+            #191919 55%,
+            #060606 78%,
+            #131313
+          );
       }
 
       .page {
@@ -163,9 +214,12 @@
       .page-contact:hover,
       .page-contact:focus-visible {
         border-color: var(--pewter);
-        background: rgba(26, 26, 26, 0.1);
+        background-image: linear-gradient(
+          rgba(236, 236, 236, 0.14),
+          rgba(236, 236, 236, 0.14)
+        );
         color: var(--pewter-strong);
-        box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.18);
+        box-shadow: 0 0 0 1px rgba(236, 236, 236, 0.2);
       }
 
       .page-contact:active {
@@ -207,20 +261,21 @@
         color: var(--accent);
       }
 
-      /* Brushed-graphite sheen across the numerals: the same four-stop rake
-         the dark palette used, run the other way up the ramp so the highlight
-         is the light step and the body of the stroke is the dark one. Gated on
-         support, because `color: transparent` without a working text clip
-         renders nothing at all; the flat accent above stays the fallback. */
+      /* Brushed-silver sheen across the numerals: a four-stop rake with the
+         highlight at the top of the ramp and the body of the stroke below the
+         accent, so the figures read as metal standing on the cloth rather than
+         as flat type. Gated on support, because `color: transparent` without a
+         working text clip renders nothing at all; the flat accent above stays
+         the fallback. */
       @supports (-webkit-background-clip: text) or (background-clip: text) {
         .notfound__code {
           color: transparent;
           background-image: linear-gradient(
             170deg,
-            #000000 0%,
+            #ffffff 0%,
             var(--accent) 38%,
-            #8f8f8f 62%,
-            #121212 100%
+            #6f6f6f 62%,
+            #d8d8d8 100%
           );
           -webkit-background-clip: text;
           background-clip: text;
@@ -269,7 +324,7 @@
         color: var(--accent);
         font-size: 0.8rem;
         text-decoration: none;
-        background: rgba(0, 0, 0, 0.02);
+        background: rgba(10, 10, 11, 0.55);
         transition: border-color 0.25s ease, background-color 0.25s ease,
           color 0.25s ease;
       }
@@ -277,8 +332,11 @@
       .notfound__home:hover,
       .notfound__home:focus-visible {
         border-color: var(--accent);
-        background: rgba(0, 0, 0, 0.07);
-        color: #000000;
+        background-image: linear-gradient(
+          rgba(236, 236, 236, 0.12),
+          rgba(236, 236, 236, 0.12)
+        );
+        color: #ffffff;
       }
 
       .notfound__home:active {
@@ -391,10 +449,13 @@
       .site-social__link:hover,
       .site-social__link:focus-visible {
         border-color: var(--pewter);
-        background: rgba(26, 26, 26, 0.1);
+        background-image: linear-gradient(
+          rgba(236, 236, 236, 0.14),
+          rgba(236, 236, 236, 0.14)
+        );
         color: var(--pewter-strong);
-        box-shadow: 0 0 0 1px rgba(26, 26, 26, 0.22),
-          0 4px 18px rgba(26, 26, 26, 0.14);
+        box-shadow: 0 0 0 1px rgba(236, 236, 236, 0.24),
+          0 4px 18px rgba(236, 236, 236, 0.1);
       }
 
       .site-social__link:hover svg,
@@ -436,7 +497,10 @@
       .site-footer__link:hover,
       .site-footer__link:focus-visible {
         border-color: var(--pewter);
-        background: rgba(26, 26, 26, 0.1);
+        background-image: linear-gradient(
+          rgba(236, 236, 236, 0.14),
+          rgba(236, 236, 236, 0.14)
+        );
         color: var(--pewter-strong);
       }
 
@@ -543,6 +607,24 @@
     </main>
 
     <!-- @partial footer -->
+    <!-- THE GROUND, stamped into every page from here.
+
+         It lives in the footer partial rather than in a region of its own because
+         the footer is the one slot every page on the site fills, index.html
+         included, and the site's rule is that shared chrome is authored once. Its
+         position in the markup does not matter: the layer is fixed and sits at
+         z-index -1, behind everything, whatever order it is declared in.
+
+         assets/js/velvet.js paints the silk into this element ONCE and then throws
+         its WebGL context away. It is deferred, so it never blocks the parse and
+         never competes with the landing film's own module for the main thread
+         while the loader is up. With scripting off, or on a device with no WebGL,
+         this div stays empty and every page stands on the flat --paper underneath
+         it, which is the ground the site shipped before v0.3.7 and is complete on
+         its own. -->
+    <div class="velvet" id="velvet" aria-hidden="true"></div>
+    <script src="/assets/js/velvet.js" defer></script>
+
     <footer class="site-footer">
       <div class="site-footer__inner">
         <div class="site-social">
@@ -584,7 +666,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.6</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.7</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

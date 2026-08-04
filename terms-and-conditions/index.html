@@ -10,7 +10,7 @@
       content="The terms that govern purchases, custom commissions and repairs at Adriano Jewelry, 333 Washington Street, Boston, including our return and refund policy."
     />
     <link rel="canonical" href="https://adrianojewelry.com/terms-and-conditions/" />
-    <meta name="theme-color" content="#f4f4f4" />
+    <meta name="theme-color" content="#050506" />
     <link rel="icon" href="../favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" href="../assets/img/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png" />
@@ -504,6 +504,24 @@
     </main>
 
     <!-- @partial footer -->
+    <!-- THE GROUND, stamped into every page from here.
+
+         It lives in the footer partial rather than in a region of its own because
+         the footer is the one slot every page on the site fills, index.html
+         included, and the site's rule is that shared chrome is authored once. Its
+         position in the markup does not matter: the layer is fixed and sits at
+         z-index -1, behind everything, whatever order it is declared in.
+
+         assets/js/velvet.js paints the silk into this element ONCE and then throws
+         its WebGL context away. It is deferred, so it never blocks the parse and
+         never competes with the landing film's own module for the main thread
+         while the loader is up. With scripting off, or on a device with no WebGL,
+         this div stays empty and every page stands on the flat --paper underneath
+         it, which is the ground the site shipped before v0.3.7 and is complete on
+         its own. -->
+    <div class="velvet" id="velvet" aria-hidden="true"></div>
+    <script src="../assets/js/velvet.js" defer></script>
+
     <footer class="site-footer">
       <div class="site-footer__inner">
         <div class="site-social">
@@ -545,7 +563,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.6</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.7</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

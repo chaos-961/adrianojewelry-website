@@ -6,12 +6,23 @@
    that enter and leave with scroll, a white passage through the inside of the
    diamond, and a finale on black. This sheet is the costume for all of it.
 
-   THE GROUND HERE IS INK, NOT PAPER. The journey opens on near-black
-   (#050506, matched to the render's own room) and the shared light palette
-   would fail against it, so this sheet carries the dark half of the site's
-   one grey ramp. The rule from site.css still holds: R, G and B equal in
-   every token, no hue anywhere, so the gold of the marque, the fire in the
-   stone and the photographed pieces are the only colour on the page.
+   THE GROUND IS THE SAME GROUND THE WHOLE SITE STANDS ON, which it was not
+   until v0.3.7. This sheet carried the dark half of the ramp alone while the
+   rest of the site was paper; site.css is black silk over the same #050506
+   now, so the tokens below are the shared ones restated rather than a second
+   palette, and the film simply opens on the ground the reader was already on.
+   The rule from site.css still holds: R, G and B equal in every token, no hue
+   anywhere, so the gold of the marque, the fire in the stone and the
+   photographed pieces are the only colour on the page.
+
+   THE SILK IS BEHIND THE FILM, not beside it. home.js drives the .velvet
+   layer's opacity from the same scroll progress everything else on this page
+   comes from: dimmed to a fraction while the dark room plays, so it reads as
+   the wall the box stands against rather than as wallpaper competing with it;
+   zero from the moment the reader crosses the table until the crystal room
+   collapses, because in there the ground is white and belongs to the shader;
+   and full strength by the time the film parks and the finale scrolls up. The
+   canvas is transparent over it, which is why the room's own dome is gone.
 
    CONTRAST FLOOR, DARK GROUND (WCAG 2.1 relative luminance, measured):
    on #050506: --pearl #ececec 17.3:1, --silver #c9c9c9 12.3:1,
@@ -24,8 +35,8 @@
    The same tokens restyle the footer at the foot of this page; on its
    slightly lifted #0a0a0b ground the tightest value is --fog at 7.0:1.
 
-   INSIDE THE DIAMOND the ground is white and the ink beats reuse site.css
-   tokens: --graphite 15:1 and --smoke at worst 5.2:1 against the darkest
+   INSIDE THE DIAMOND the ground is white and the ink beats carry their own
+   two values: --crystal-fg 15:1 and --crystal-muted at worst 5.2:1 against the darkest
    patch the crystal shader is allowed to put behind text. The shader's
    shading terms sum to a floor of 0.52 before tonemapping, which lands at
    #ea under the film's inside exposure, still clear of the #e6 those
@@ -47,20 +58,25 @@
   --hairline: rgba(236, 236, 236, 0.42);
   --hairline-faint: rgba(236, 236, 236, 0.16);
   --wash: rgba(236, 236, 236, 0.06);
+
+  /* INSIDE THE DIAMOND the ground is white, so the two values that paint on it
+     are the only ones on this page that are not from the dark ramp above.
+     They used to be read straight out of site.css as --graphite and --smoke,
+     which was right for exactly as long as that file WAS the light half of the
+     ramp. Since v0.3.7 it is the dark half, shared with every other page, and
+     those names now resolve to #ECECEC and #C9C9C9: white type on a white
+     room. So the white world carries its own two, and the ratios quoted in the
+     note above (15:1 and 5.2:1 against the darkest patch the crystal shader is
+     allowed to put behind text) are the ratios for these. */
+  --crystal-fg: #1a1a1a;
+  --crystal-muted: #5c5c5c;
 }
 
-/* The dark ground exists only when the journey can run. With JavaScript off
-   nothing below is displayed and site.css's paper page (the footer and the
-   ground, nothing else) ships exactly as it has since v0.2.1. */
-html.js {
-  background-color: var(--ink);
-  /* Dark scrollbar and UA chrome on the dark page. */
-  color-scheme: dark;
-}
-
-html.js body::before {
-  background-color: var(--ink);
-}
+/* The landing chrome exists only when the journey can run. With JavaScript
+   off nothing below is displayed and the page is the footer-only page it has
+   been since v0.2.1, on the shared ground: site.css owns the black and the
+   colour-scheme for every page now, so the two overrides that used to live
+   here said nothing the shared sheet was not already saying. */
 
 .loader,
 .nav,
@@ -276,8 +292,8 @@ html.js .nav {
 
 .nav--ink {
   background: linear-gradient(rgba(244, 244, 244, 0.88), rgba(244, 244, 244, 0));
-  --nav-fg: var(--graphite);
-  --nav-muted: var(--pewter);
+  --nav-fg: var(--crystal-fg);
+  --nav-muted: #3a3a3a;
   --nav-dim: rgba(26, 26, 26, 0.55);
   --nav-wash: rgba(26, 26, 26, 0.05);
   --nav-solid: #1a1a1a;
@@ -461,13 +477,20 @@ html.js .journey {
   display: none;
 }
 
+/* --silver, not --fog, in the four places below. Everything else on this page
+   paints over the RENDER, which is a picture the film controls; the finale and
+   the WebGL-off card paint straight onto the site's silk, which is a texture
+   with a bright end. --fog measures 7.3:1 on flat ink and 3.5:1 on the silk's
+   brightest patch, so it stopped clearing the floor the moment the ground
+   stopped being flat. This is the same move site.css makes with its muted
+   step, for the same measured reason. */
 .journey.is-fallback .journey__fallback {
   display: block;
   margin: 0;
   padding: 0 1.5rem;
   max-width: 30rem;
   text-align: center;
-  color: var(--fog);
+  color: var(--silver);
   font-size: 0.9rem;
   line-height: 1.8;
 }
@@ -701,17 +724,17 @@ html.js .journey {
 }
 
 .beat--ink .beat__title {
-  color: var(--graphite);
+  color: var(--crystal-fg);
   text-shadow: 0 0 26px rgba(255, 255, 255, 0.95), 0 0 9px rgba(255, 255, 255, 0.8);
 }
 
 .beat--ink .beat__sub {
-  color: var(--smoke);
+  color: var(--crystal-muted);
   text-shadow: 0 0 18px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.85);
 }
 
 .beat--ink .beat__eyebrow {
-  color: var(--smoke);
+  color: var(--crystal-muted);
   text-shadow: 0 0 14px rgba(255, 255, 255, 0.95);
 }
 
@@ -940,7 +963,7 @@ html.js .finale {
   font-weight: 400;
   letter-spacing: 0.34em;
   text-indent: 0.34em;
-  color: var(--fog);
+  color: var(--silver);
 }
 
 .finale__title {
@@ -959,7 +982,7 @@ html.js .finale {
   max-width: 26rem;
   font-size: clamp(0.88rem, 2.6vw, 0.98rem);
   line-height: 1.65;
-  color: var(--fog);
+  color: var(--silver);
 }
 
 .finale__actions {
@@ -979,7 +1002,7 @@ html.js .finale {
   margin: clamp(1rem, 3svh, 1.5rem) 0 0;
   font-size: clamp(0.82rem, 2.4vw, 0.9rem);
   line-height: 1.6;
-  color: var(--fog);
+  color: var(--silver);
 }
 
 .finale__call a {
@@ -1081,22 +1104,20 @@ html.js .finale {
 
 /* ------------------------------------------------------- footer, on ink */
 
-/* The universal footer partial stays byte-identical across the site; this
-   page dresses it for the dark ground by swapping the tokens site.css draws
-   it with. Ratios for these values are in the header note. */
-html.js .site-footer {
-  --ground-footer: var(--ink-lifted);
-  --footer-fg: var(--silver);
-  --page-muted: var(--fog);
-  --pewter: var(--silver);
-  --pewter-strong: #ffffff;
-  --pewter-dim: var(--hairline);
-  --pewter-wash: var(--wash);
-  --footer-rule: var(--hairline-faint);
-}
+/* THIS BLOCK IS GONE, and its absence is the point (v0.3.7).
+   The universal footer partial has always stayed byte-identical across the
+   site, and this page used to dress it for the dark ground by overriding eight
+   of the tokens site.css drew it with. site.css is the dark half of the ramp
+   now and every page stands on the same black silk, so those eight overrides
+   were saying what the shared sheet already says, and one of them
+   (--page-muted at --fog) was quietly UNDOING the shared sheet's decision to
+   lift the muted step for a textured ground. The footer is dressed once, over
+   there, for every page including this one.
 
-/* Site.css draws focus rings in pewter, which is invisible on ink: the
-   landing chrome restates them in its own foreground values. */
+   Site.css draws focus rings in --pewter, which is the right value on the
+   silk and the wrong one over the film's own render, so the landing chrome
+   restates them in its own foreground values. */
+
 .nav :focus-visible {
   outline: 2px solid var(--nav-fg);
   outline-offset: 3px;

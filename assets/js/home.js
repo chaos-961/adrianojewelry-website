@@ -86,15 +86,28 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const cue = document.getElementById("cue");
   const fallbackEl = document.getElementById("stage-fallback");
   const finale = document.getElementById("finale");
+  /* The site's ground, stamped into every page by the footer partial. On this
+   * one page the film owns its strength: the canvas above it is transparent as
+   * of v0.3.7, so the silk IS the wall the ring box stands against, and there
+   * is one stretch of the story where it must not exist at all. */
+  const velvetEl = document.getElementById("velvet");
   if (!journey || !pin || !canvas || !veil || !loaderEl || !nav) return;
 
   const params = new URLSearchParams(location.search);
   /* QA knobs for the render path, alongside ?p= / ?prop= / ?q= below. Each
    * stands one layer down so its cost and its contribution can be read
    * separately, which is the only way to answer "what is this frame spending
-   * it on" without a profiler: ?noground, ?nodome, ?nostone, ?nolens. */
+   * it on" without a profiler: ?noground, ?nostone, ?nolens, ?novelvet. */
   const DBG = params.has("fps") || params.has("dbg");
   const NO_LENS = params.has("nolens");
+  /* How much silk the film is allowed, read from site.css rather than restated
+   * here, so --velvet-a stays the one place the ground's strength is written
+   * down and the landing page can never drift from the rest of the site. The
+   * film scales this; it never raises it. One computed-style read at boot. */
+  const VELVET =
+    velvetEl && !params.has("novelvet")
+      ? parseFloat(getComputedStyle(velvetEl).opacity) || 0
+      : 0;
   let dbgState = "";
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -342,13 +355,26 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* The room. Dark, and no cast shadow on the ground: every glow and pool
    * belongs to the box's own lamp and lives in the model. The fog lets the
-   * floor's far edge disappear instead of drawing a horizon. */
+   * floor's far edge disappear instead of drawing a horizon.
+   *
+   * NO scene.background, and that is the whole of what makes the silk behind
+   * this page visible (v0.3.7). The renderer was already built with alpha and
+   * a clear alpha of zero; a background Color was overwriting it with an
+   * opaque near-black every frame, so the canvas was a solid rectangle over
+   * the site's ground and the film played in a room of its own. Cleared to
+   * nothing instead, every pixel the props and the floor do not cover is the
+   * page underneath, which is the black silk, dimmed by home.js to whatever
+   * the beat wants. The lens pass carries the alpha through with it; see the
+   * note there, because a blur that gathers colour and drops coverage is the
+   * one way this goes wrong. */
   let ground;
-  scene.background = new THREE.Color(0x060607);
-  /* Lifted off the room's own black toward the dome's horizon, so the band
-   * where the ground is both fogging and fading has nothing to step across.
-   * The floor's alpha does the real work; this only keeps the two halves of
-   * the transition on speaking terms. */
+  /* Lifted a little off the room's own black, so the band where the ground is
+   * both fogging and fading has nothing to step across. It used to be graded
+   * toward the dome's horizon; there is no dome now, and the value still
+   * holds, because what the floor's rim fades into is the silk, which is a
+   * near-black of about the same weight. The floor's alpha does the real
+   * work; this only keeps the two halves of the transition on speaking
+   * terms. */
   scene.fog = new THREE.Fog(0x0f1014, 15, 42);
   if ("environmentIntensity" in scene) scene.environmentIntensity = 0.65;
   {
@@ -357,23 +383,46 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * light instead of on a hole. */
     /* The ground does not END anywhere; it thins out. Fogging it to a colour
      * and letting its rim arrive is what used to draw a hard line across the
-     * frame: the floor reaching one brightness while the dome behind it (a
-     * raw shader, unfogged) sat at another, worst in portrait where the
-     * camera stands back and puts that join through the middle of the
-     * picture. A radial fade in its own alpha means there is no brightness
-     * to match: the ground simply becomes the room, at any distance the film
-     * ever stands off to, with nothing to tune.
+     * frame: the floor reaching one brightness while the wall behind it sat
+     * at another, worst in portrait where the camera stands back and puts
+     * that join through the middle of the picture. A radial fade in its own
+     * alpha means there is no brightness to match: the ground simply becomes
+     * the room, at any distance the film ever stands off to, with nothing to
+     * tune. That is what lets the wall be a page layer rather than a mesh.
      *
      * CircleGeometry lays its uv out from the centre, so the map's own
-     * radius is the floor's. */
+     * radius is the floor's.
+     *
+     * THE STOPS ARE WHERE THEY ARE BECAUSE OF FORESHORTENING, and they moved
+     * in v0.3.7 when the wall behind them stopped being a painted gradient
+     * and started being a texture. This floor is 90 units across and is seen
+     * almost edge-on from about twelve; everything past thirty units is
+     * squeezed into a few dozen pixels just under the horizon. A fade that
+     * ran from 0.52 to 1.0 of the radius therefore did all of its work inside
+     * that squeezed band, which is invisible against a smooth wall and a hard
+     * horizontal edge against a woven one: silk above, sudden flat gradient
+     * below, worst in portrait, where the camera stands furthest back and
+     * puts the join through the middle of the picture.
+     *
+     * So the fade starts at a tenth of the radius, nine units, which is
+     * already behind anything the film ever puts on the floor, and takes an
+     * eased tail out to seven tenths. In world terms that is a much longer
+     * ramp; in SCREEN terms it is the band that used to be a line, and the
+     * weave now comes through the ground gradually instead of arriving all at
+     * once. It also finishes before the fog does (near 15, far 42), so the
+     * floor is gone by the time it would have flattened to one fog colour. */
     const fade = document.createElement("canvas");
     fade.width = fade.height = 128;
     {
       const g = fade.getContext("2d");
       const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
       grd.addColorStop(0, "#ffffff");
-      grd.addColorStop(0.52, "#ffffff");
-      grd.addColorStop(1, "#000000");
+      grd.addColorStop(0.1, "#ffffff");
+      grd.addColorStop(0.2, "#e4e4e4");
+      grd.addColorStop(0.32, "#b0b0b0");
+      grd.addColorStop(0.45, "#6c6c6c");
+      grd.addColorStop(0.58, "#2e2e2e");
+      grd.addColorStop(0.7, "#000000");
       g.fillStyle = grd;
       g.fillRect(0, 0, 128, 128);
     }
@@ -394,96 +443,30 @@ import { JEWELRY } from "./jewelry-manifest.js";
     else scene.add(ground);
   }
 
-  /* The walls. A dome of barely lifted greys instead of one flat black: a
-   * low band of haze at the horizon and a soft pool of lighter dark behind
-   * the subject, so the room has air and depth without ever stopping being
-   * a black room. The values are tiny and the gradient is dithered, because
-   * an 8-bit ramp this quiet bands into visible steps without it. */
-  {
-    const dome = new THREE.Mesh(
-      new THREE.SphereGeometry(34, 48, 24),
-      new THREE.ShaderMaterial({
-        side: THREE.BackSide,
-        depthWrite: false,
-        vertexShader: [
-          "varying vec3 vD;",
-          "void main() {",
-          "  vD = position;",
-          "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
-          "}",
-        ].join("\n"),
-        fragmentShader: [
-          /* THIS SHADER IS FULL SCREEN AND IT IS THE FIRST THING DRAWN.
-           *
-           * The dome is a BackSide sphere, so at the opening frame, where the
-           * camera stands furthest back and the box is smallest, it covers
-           * very nearly every pixel on screen. That makes it the one place in
-           * the film where an extra transcendental per fragment is worth
-           * caring about at all. A first reading put the naive gelled version
-           * at 17.8ms to 25.9ms on an Intel UHD 620, but do not trust that
-           * number and do not repeat it: three alternating A/B pairs later
-           * put the dome's WHOLE cost at 1 to 2ms, under this machine's noise
-           * floor. The arithmetic below is kept because it is strictly less
-           * work than what it replaced, not because a profiler said so.
-           *
-           * The gels are kept and the arithmetic is paid for instead. The
-           * direction constants are pre-normalized here rather than
-           * normalized per pixel, and every pow with a small integer-ish
-           * exponent is a multiply chain. pow(x, 2.2) becomes x*x, which for
-           * a term this faint and this broad is a difference no eye can find
-           * and the profiler certainly can. */
-          "varying vec3 vD;",
-          "const vec3 POOL_DIR = vec3(0.0, 0.13864, -0.99034);",
-          "const vec3 COUNTER_DIR = vec3(-0.77442, 0.51628, 0.36569);",
-          "void main() {",
-          "  vec3 d = normalize(vD);",
-          // The ambient floor of the room. Neutral, and the only neutral
-          // thing left in here.
-          "  vec3 col = vec3(0.0008);",
-          // The haze where the floor meets the walls. COOL: far air is the
-          // coldest thing in any room, and a cold horizon is what gives the
-          // warm pool behind the subject something to be warm against. A
-          // single grey value for both is why this room read as flat.
-          "  float t = (d.y - 0.06) * 4.2;",
-          "  col += (0.0060 * exp(-t * t)) * vec3(0.80, 0.93, 1.14);",
-          // The pool of lighter dark the story plays against. WARM, because
-          // it is a tungsten wash off the back wall, which is what a bench
-          // actually stands in.
-          "  float h = max(dot(d, POOL_DIR), 0.0);",
-          "  col += (0.0112 * h * h * h) * vec3(1.20, 1.00, 0.82);",
-          // A broad cool counter off the upper left, so the room has two
-          // directions in it rather than one. Faint on purpose: this is
-          // depth, not a light, and nothing here may compete with the lamp.
-          "  float c = max(dot(d, COUNTER_DIR), 0.0);",
-          "  col += (0.0046 * c * c) * vec3(0.76, 0.89, 1.16);",
-          "  gl_FragColor = vec4(col, 1.0);",
-          "  #include <tonemapping_fragment>",
-          "  #include <colorspace_fragment>",
-          "  float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);",
-          "  gl_FragColor.rgb += vec3((n - 0.5) / 255.0);",
-          "}",
-        ].join("\n"),
-      })
-    );
-    /* Drawn LAST among the opaque, not first. three's opaque comparator sorts
-     * on material.id before z, and this material is constructed long before
-     * any prop's, so with no renderOrder the FURTHEST surface in the room was
-     * the first thing rasterised every frame, with an empty depth buffer and
-     * nothing able to reject it. Every pixel the box, ring and stone then
-     * cover had been shaded twice. renderOrder 1 puts the dome after them, so
-     * depth rejection throws those fragments away instead.
-     *
-     * No millisecond figure is claimed, because none is available: the dome's
-     * entire cost measured at 1 to 2ms here, under this machine's own noise
-     * floor, and this recovers only the share of that the props cover. It is
-     * kept because it is strictly less work by construction. The picture
-     * cannot move: opaque materials render with blending off, the dome is
-     * behind every prop at every camera the fit can produce, and depthWrite
-     * was already false, so the depth texture the rack focus samples is
-     * untouched. */
-    dome.renderOrder = 1;
-    if (!params.has("nodome")) scene.add(dome);
-  }
+  /* THE WALLS ARE THE PAGE'S OWN SILK NOW, and the dome that used to draw
+   * them is gone (v0.3.7).
+   *
+   * What it was: a BackSide sphere carrying three gelled terms, a cool haze
+   * at the horizon, a warm tungsten pool behind the subject and a broad cool
+   * counter off the upper left, summing to values between 0.0008 and 0.018
+   * before tonemapping. That is a black room with air in it, and it was the
+   * right answer while the canvas was opaque and the page behind it was
+   * paper. It is the wrong answer now: the site stands on a sweep of black
+   * silk and the film's room is the same room, so the wall is simply let
+   * through instead of being painted a second time. The reader gets a real
+   * lit cloth behind the box rather than a gradient standing in for one.
+   *
+   * Three things came off with it, and all three are wins by construction:
+   * the largest full-screen fragment shader in the opening chapter, the
+   * renderOrder juggling it needed to stop being rasterised first, and the
+   * ?nodome knob, which measured a cost this page no longer pays.
+   *
+   * WHAT REPLACED ITS JOB. The dome also kept the fogged rim of the floor
+   * from ending against nothing. The floor's own radial alpha fade already
+   * does that work (see the note above it), and it now fades into the silk
+   * rather than into a painted horizon, which is the same transition with one
+   * less surface in it. If a wall ever has to come back, write it new.
+   */
 
   /* Gelled warm against the cool fill below. A single white key and a nearly
    * white fill is why the metal read as grey: white gold has nothing to
@@ -1257,24 +1240,44 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "float coc(float z) {",
         "  return clamp(abs(z - uFocus) / max(z, 0.001) * 2.6, 0.0, 1.0) * uAper;",
         "}",
+        /* EVERYTHING HERE IS RGBA, and that is not tidiness (v0.3.7). The
+         * scene renders into this target over a clear of (0,0,0,0), so the
+         * alpha channel IS the coverage: 1 where a prop or the floor stands,
+         * 0 where the page's silk should show through. A pass that gathered
+         * only .rgb and wrote 1.0 for alpha handed the canvas a solid
+         * rectangle again for exactly the stretch of the film the rack focus
+         * is fitted over, which is most of the ring chapters.
+         *
+         * The gather is correct on premultiplied values, and these are
+         * premultiplied by construction rather than by declaration: opaque
+         * materials draw with blending off, so a covered texel is (colour, 1)
+         * and an uncovered one is the clear, (0,0,0,0). A weighted mean of
+         * those is a premultiplied colour with the right coverage, which is
+         * also the form the canvas wants, since the context is the default
+         * premultipliedAlpha. Gathering straight colour and alpha separately
+         * instead would fringe every bokeh edge toward black. */
         "void main() {",
-        "  vec3 col;",
+        "  vec4 col;",
         "  if (uPress > 0.0005) {",
         "    vec2 c = (vUv - 0.5) * vec2(uA, 1.0);",
         "    float r2 = dot(c, c) / (0.25 * (uA * uA + 1.0));",
         "    float k = uPress * (0.26 * r2 + 0.14 * r2 * r2);",
         "    float f = uPress * (0.003 + 0.022 * r2);",
         "    vec2 b = vUv - 0.5;",
+        "    vec4 mid = texture2D(uCol, 0.5 + b * (1.0 - k));",
         "    col.r = texture2D(uCol, 0.5 + b * (1.0 - k + f)).r;",
-        "    col.g = texture2D(uCol, 0.5 + b * (1.0 - k)).g;",
+        "    col.g = mid.g;",
         "    col.b = texture2D(uCol, 0.5 + b * (1.0 - k - f)).b;",
+        // Coverage takes the middle sample: it is the one the green channel
+        // is read at, so the shape stays registered with the picture.
+        "    col.a = mid.a;",
         "  } else if (uAper > 0.02) {",
         "    float z = viewZ(vUv);",
         "    float rad = coc(z);",
         "    if (rad < 0.9) {",
-        "      col = texture2D(uCol, vUv).rgb;",
+        "      col = texture2D(uCol, vUv);",
         "    } else {",
-        "      vec3 sum = texture2D(uCol, vUv).rgb;",
+        "      vec4 sum = texture2D(uCol, vUv);",
         "      float wsum = 1.0;",
         /* Taps on a golden-angle spiral: an even disc at any radius, and no
          * ring artefacts, which a square kernel gives away instantly.
@@ -1302,15 +1305,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * line gets drawn around every lit thing on the stage. That outline
          * was the artefact, not the model. */
         "        float w = zs < z - 0.02 ? clamp(coc(zs) - dp + 1.0, 0.0, 1.0) : 1.0;",
-        "        sum += texture2D(uCol, su).rgb * w;",
+        "        sum += texture2D(uCol, su) * w;",
         "        wsum += w;",
         "      }",
         "      col = sum / wsum;",
         "    }",
         "  } else {",
-        "    col = texture2D(uCol, vUv).rgb;",
+        "    col = texture2D(uCol, vUv);",
         "  }",
-        "  gl_FragColor = vec4(col, 1.0);",
+        "  gl_FragColor = col;",
+        // Encodes rgb and leaves a alone, which is what a premultiplied
+        // colour wants.
         "  #include <colorspace_fragment>",
         "}",
       ].join("\n"),
@@ -1605,6 +1610,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const vigEl = document.getElementById("vig");
   let veilKLast = -1;
   let vigKLast = -1;
+  let velvetKLast = -1;
   let rigSigLast = NaN;
   function setOpacity(el, last, v, keep) {
     if (Math.abs(v - last) < 0.002) return;
@@ -1884,6 +1890,26 @@ import { JEWELRY } from "./jewelry-manifest.js";
       inCoda ? 0.85 * codaIn : 0
     );
     if (vigEl) setOpacity(vigEl, vigKLast, vigK, (v) => (vigKLast = v));
+
+    /* THE SILK GOES OUT BEFORE THE READER GOES IN, and comes back with the
+     * stone. Inside the diamond the ground is white and it belongs to the
+     * crystal shader alone; the shader is opaque, so nothing would show
+     * through it anyway, but a layer left standing under an opaque one is a
+     * layer the compositor is still carrying, and the point of the chapter is
+     * that there is no room left outside the stone.
+     *
+     * It leaves across the dive rather than at the cut. From B.press the frame
+     * is being squeezed and split by channel, and the silk is a PAGE layer, so
+     * it cannot be squeezed with it: held at strength it would sit dead still
+     * behind a picture visibly bending, which is the one thing that would give
+     * away that the wall is not in the room. Fading it out over the same
+     * stretch means the stone crosses the table against black, which is where
+     * the film was already going.
+     *
+     * codaIn on the way back, the same ramp the stone's own light rides, so
+     * the wall comes up with the piece it is behind rather than ahead of it. */
+    const velvetK = VELVET * (inCoda ? codaIn : 1 - smooth(seg(p, B.press[0], FLASH[0])));
+    if (velvetEl) setOpacity(velvetEl, velvetKLast, velvetK, (v) => (velvetKLast = v));
 
     // Which world the canvas shows. Past the collapse the crystal renders
     // itself black, and the coda takes the canvas back for the stone.
@@ -2389,7 +2415,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * stays answerable; and the bar's last stretch is the honest progress of
    * it, which is what a loading bar is supposed to be. */
   const WARM = [
-    0, // the closed box, the dome, the floor
+    0, // the closed box and the floor
     0.19, // the lamp: a second shadow-caster joins the scene
     0.27, // the ring lit and rising
     0.31, // the rack focus opens: the scene into a render target

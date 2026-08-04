@@ -139,12 +139,22 @@ function indent(block, pad) {
     .join("\n");
 }
 
-/** Points a relative page href at the site root, for depth-agnostic pages. */
+/** Points a relative page href at the site root, for depth-agnostic pages.
+ *
+ * Asset srcs are rewritten too, and they cannot take the data-root-link
+ * treatment: a script has already begun fetching by the time any fixup could
+ * run, so there is nothing to correct after the fact. Root-absolute is
+ * therefore the whole answer for them, which is exactly what 404.html already
+ * does by hand for its icons and its inlined @font-face urls. The cost is that
+ * this one page's assets miss on a github.io project page; its links still
+ * resolve, because those go through the marker below. */
 function rootRelative(html) {
-  return html.replace(
-    /href="([a-z0-9-]+\/)"/g,
-    (_m, slug) => `href="/${slug}" data-root-link="${slug}"`
-  );
+  return html
+    .replace(
+      /href="([a-z0-9-]+\/)"/g,
+      (_m, slug) => `href="/${slug}" data-root-link="${slug}"`
+    )
+    .replace(/(src|href)="(assets\/)/g, (_m, attr, dir) => `${attr}="/${dir}`);
 }
 
 /** Marks the link that points at the page currently being built. */
