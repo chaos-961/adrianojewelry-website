@@ -3,9 +3,9 @@
  * The store's black lidded LED ring box, complete in this one module: swept
  * shells for base and lid, velvet cushion with the ring slot cut between its
  * pads, the lamp in the lid with its spot, spill, lens bloom and a faint
- * drawn beam, and the Adriano marque (black marble under gold horses,
- * crown, diamond and wordmark) painted onto a canvas and inlaid flush in
- * the lid's plateau.
+ * drawn beam, and the Adriano branding painted onto canvases: a black marble
+ * inlay flush in the lid's plateau, the crown-and-diamond crest printed on
+ * the front of the lid, the wordmark on the front of the base.
  *
  * The one thing it does not build itself is the ring standing in that slot.
  * That is its own prop in its own module, solitaire-ring.js, and this file
@@ -28,8 +28,8 @@
  * ways mid-shot can keep every prop at the top of its own scene. Left out,
  * the box builds and seats its own ring, as it always has.
  *
- * drawMarque() is exported separately so the stage's ?flat=1 debug view can
- * inspect the artwork without standing the scene up.
+ * drawArtwork() is exported separately so the stage's ?flat=1 debug view can
+ * inspect all three paintings without standing the scene up.
  */
 
 import * as THREE from "../vendor/three.module.min.js";
@@ -77,136 +77,6 @@ function goldPath(ctx, path, y0, y1) {
   ctx.strokeStyle = "rgba(46,26,4,0.5)";
   ctx.lineWidth = 1.6;
   ctx.stroke(path);
-  ctx.restore();
-}
-
-/* The rearing horse, facing right, assembled in a 100x140 box (y down) the
- * way a heraldic silhouette actually holds together: overlapping masses (a
- * capsule of a torso, an ellipse of a haunch, tapered strokes for neck,
- * legs, tail and mane) painted gold into an offscreen sprite and stamped
- * onto the marble once, so the drop shadow wraps the union rather than
- * every part shadowing its neighbours. */
-let horseSprite = null;
-
-function buildHorseSprite(s) {
-  const c = document.createElement("canvas");
-  c.width = Math.ceil(100 * s);
-  c.height = Math.ceil(140 * s);
-  const x = c.getContext("2d");
-  x.scale(s, s);
-  const gold = goldGradient(x, 6, 140);
-  x.fillStyle = gold;
-  x.strokeStyle = gold;
-  x.lineCap = "round";
-  x.lineJoin = "round";
-
-  // A smoothed thick polyline: every limb segment is one of these.
-  const stroke = (pts, w) => {
-    x.lineWidth = w;
-    x.beginPath();
-    x.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length - 1; i++) {
-      x.quadraticCurveTo(
-        pts[i][0], pts[i][1],
-        (pts[i][0] + pts[i + 1][0]) / 2,
-        (pts[i][1] + pts[i + 1][1]) / 2
-      );
-    }
-    const l = pts[pts.length - 1];
-    x.lineTo(l[0], l[1]);
-    x.stroke();
-  };
-  const ell = (cx, cy, rx, ry, rot) => {
-    x.beginPath();
-    x.ellipse(cx, cy, rx, ry, rot || 0, 0, Math.PI * 2);
-    x.fill();
-  };
-  // A leaf: two quadratic edges from base to tip. Mane locks, tail waves.
-  const leaf = (bx, by, cx1, cy1, tx1, ty1, cx2, cy2, wb) => {
-    x.beginPath();
-    x.moveTo(bx, by - wb / 2);
-    x.quadraticCurveTo(cx1, cy1, tx1, ty1);
-    x.quadraticCurveTo(cx2, cy2, bx, by + wb / 2);
-    x.closePath();
-    x.fill();
-  };
-  // A hoof: a small wedge, toe slanting forward-down. Solid fill: under
-  // the hoof's rotation the shared gradient would sample from the wrong
-  // height and flash pale, and real hooves read darker than the coat.
-  const hoof = (hx, hy, ang, len, hgt, tone) => {
-    x.save();
-    x.translate(hx, hy);
-    x.rotate(ang);
-    x.fillStyle = tone;
-    x.beginPath();
-    x.moveTo(-len * 0.5, -hgt * 0.5);
-    x.lineTo(len * 0.42, -hgt * 0.5);
-    x.lineTo(len * 0.62, hgt * 0.34);
-    x.quadraticCurveTo(len * 0.5, hgt * 0.52, len * 0.2, hgt * 0.5);
-    x.lineTo(-len * 0.5, hgt * 0.5);
-    x.closePath();
-    x.fill();
-    x.restore();
-    x.fillStyle = gold;
-  };
-
-  // Far hind leg first, so the near masses sit over it.
-  stroke([[49.5, 86], [56.5, 97], [59.8, 107]], 8.5);
-  stroke([[59.8, 107], [60.8, 119], [60.2, 131.5]], 4.1);
-  hoof(61, 134.8, 0.16, 5.6, 4.6, "#6e430f");
-
-  // Tail: a full falling S with two wave tips.
-  stroke([[44.5, 73], [36.5, 81], [32.8, 94], [34.3, 108], [32.3, 120]], 9.2);
-  leaf(33, 117, 30.2, 126, 31.8, 134.5, 36.4, 124, 7);
-  leaf(35, 107, 40, 116, 39.4, 128, 33.2, 115, 6);
-
-  // Hindquarters, torso, chest: the masses that make it read as muscle.
-  ell(46.5, 81, 10.4, 13, -0.14);
-  stroke([[46.5, 73], [49.8, 63], [52.8, 56]], 21);
-  ell(53.4, 55, 10.2, 9.4, 0.2);
-
-  // Near hind leg: gaskin into hock, cannon to the ground.
-  stroke([[47, 86], [51.5, 97], [53.7, 106.5]], 9.4);
-  stroke([[53.7, 106.5], [54.1, 117], [53.3, 131.5]], 4.3);
-  hoof(54, 134.9, 0.12, 5.8, 4.8, "#77490f");
-
-  // Neck, arched into the poll.
-  stroke([[50.5, 48], [55, 37], [59.8, 24], [61.2, 20.5]], 17.5);
-  stroke([[57, 31], [61, 23], [62.4, 20]], 12);
-
-  // Head: skull, jaw, tapering muzzle, two ears.
-  ell(62.4, 20.6, 5.3, 4.7, 0.5);
-  ell(63.2, 24.8, 4.4, 3.9, 0.35);
-  stroke([[62.5, 20.8], [67, 23], [70.4, 25]], 7.6);
-  stroke([[68.5, 23.8], [73.8, 26.4]], 5);
-  leaf(61, 15.5, 61.4, 11.3, 62.5, 8.4, 64.3, 12.4, 4.8);
-  leaf(64.5, 15.8, 65.7, 11.8, 67.4, 9.2, 68.2, 13.3, 4.4);
-
-  // Mane: four locks flowing back off the crest.
-  leaf(58.5, 21, 51, 16, 43, 17, 52, 23, 7.5);
-  leaf(54.5, 28, 46, 24.5, 39.8, 27, 47.5, 31.5, 8);
-  leaf(52, 35, 44, 33.5, 39, 37.5, 46, 39.5, 8);
-  leaf(50, 42.5, 43.5, 43, 40, 48.5, 45.5, 47.5, 7.5);
-
-  // Forelegs: the upper one folded high, the lower reaching further down,
-  // held apart so each reads as its own bent leg, each ending in a wedge
-  // of a hoof.
-  stroke([[53.5, 50.5], [60.5, 46.8], [66.5, 45.6]], 5.8);
-  stroke([[66.5, 45.6], [70, 50.6], [71.4, 55.6]], 4.2);
-  hoof(72.3, 57.8, 0.95, 5.2, 4.2, "#9c661d");
-  stroke([[53.5, 60.5], [60.5, 61], [65.2, 63]], 5.8);
-  stroke([[65.2, 63], [68, 69.5], [69.2, 75]], 4.1);
-  hoof(70, 77.2, 0.9, 5.2, 4.2, "#95601a");
-
-  return c;
-}
-
-function drawHorse(ctx, tx, ty, s, mirror) {
-  if (!horseSprite) horseSprite = buildHorseSprite(s);
-  ctx.save();
-  ctx.translate(tx, ty);
-  if (mirror) ctx.scale(-1, 1);
-  ctx.drawImage(horseSprite, 0, 0);
   ctx.restore();
 }
 
@@ -424,84 +294,234 @@ function drawMarble(ctx, rand) {
   ctx.fillRect(0, 0, MARQUE_W, MARQUE_H);
 }
 
-export function drawMarque() {
+/** The plateau inlay: marble and nothing else. The gold used to be printed
+ * here too, and on a lid seen this close to edge-on it was never once
+ * legible; it has gone to the two faces that actually turn toward a reader,
+ * and the slab is left to do what a slab does. */
+export function drawPlateau() {
   const c = document.createElement("canvas");
   c.width = MARQUE_W;
   c.height = MARQUE_H;
-  const ctx = c.getContext("2d");
-  const rand = rng(20260731);
+  drawMarble(c.getContext("2d"), rng(20260731));
+  return c;
+}
 
-  drawMarble(ctx, rand);
-
-  // A breath of gold light behind the centre pieces, as the print has.
-  const glow = ctx.createRadialGradient(1024, 620, 60, 1024, 620, 780);
-  glow.addColorStop(0, "rgba(212,168,74,0.10)");
-  glow.addColorStop(1, "rgba(212,168,74,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, MARQUE_W, MARQUE_H);
-
-  /* Every gold element is painted into one art layer first, so the emblem
-   * can be finished as a set: a thin light-gold contour is laid under the
-   * whole union (the layer's own silhouette, dilated), and a single drop
-   * shadow wraps everything once. That is what keeps it reading as one
-   * drawn mark rather than parts floating on marble. */
+/* Finish a set of gold pieces as ONE drawn mark, on a transparent ground:
+ * a thin light contour laid under the whole union (the painted layer's own
+ * silhouette, dilated by stamping it round a ring of offsets) and a single
+ * drop shadow wrapping everything once. Per piece, both of those would have
+ * each part outlining and shadowing its neighbours, which is what parts
+ * floating on a card look like rather than one struck emblem.
+ *
+ * `weight` scales the contour and the shadow with the canvas, since both are
+ * in pixels and each mark is authored at whatever resolution its face needs. */
+function goldSet(w, h, weight, paint) {
   const art = document.createElement("canvas");
-  art.width = MARQUE_W;
-  art.height = MARQUE_H;
-  const a = art.getContext("2d");
+  art.width = w;
+  art.height = h;
+  paint(art.getContext("2d"));
 
-  drawHorse(a, 160, 344, 6.5, false);
-  drawHorse(a, MARQUE_W - 160, 344, 6.5, true);
-  drawCrown(a, 1024, 452, 1.28);
-  drawDiamond(a, 1024, 498, 0.94);
-
-  // Wordmark. System serifs only (Palatino where the platform has it, an
-  // honest serif where it does not), so nothing ever waits on a font.
-  const face =
-    '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif';
-  const word = (text, size, baseline, spacing) => {
-    a.save();
-    a.translate(MARQUE_W / 2, baseline);
-    try {
-      a.letterSpacing = spacing + "px";
-    } catch (e) {
-      /* older engines: tracking is a nicety */
-    }
-    a.font = `italic 700 ${size}px ${face}`;
-    a.textAlign = "center";
-    a.fillStyle = goldGradient(a, -size * 0.74, size * 0.22);
-    a.fillText(text, 0, 0);
-    a.strokeStyle = "rgba(46,26,4,0.4)";
-    a.lineWidth = 1.4;
-    a.strokeText(text, 0, 0);
-    a.restore();
-  };
-  word("Adriano", 225, 1440, 6);
-  word("Jewelry", 128, 1602, 10);
-
-  // The contour: the art layer stamped in a ring of offsets, then recoloured.
   const outline = document.createElement("canvas");
-  outline.width = MARQUE_W;
-  outline.height = MARQUE_H;
+  outline.width = w;
+  outline.height = h;
   const o = outline.getContext("2d");
-  const OW = 4;
+  const OW = 4 * weight;
   for (let i = 0; i < 16; i++) {
     const ang = (i / 16) * Math.PI * 2;
     o.drawImage(art, Math.cos(ang) * OW, Math.sin(ang) * OW);
   }
   o.globalCompositeOperation = "source-in";
   o.fillStyle = "#e9c46a";
-  o.fillRect(0, 0, MARQUE_W, MARQUE_H);
+  o.fillRect(0, 0, w, h);
 
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.6)";
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 9;
+  ctx.shadowBlur = 16 * weight;
+  ctx.shadowOffsetY = 9 * weight;
   ctx.drawImage(outline, 0, 0);
   ctx.restore();
   ctx.drawImage(art, 0, 0);
-
   return c;
+}
+
+/* The crest, worn on the lid's front: the crown over the stone it crowns.
+ * Sized so the pair just fills the canvas with room for the contour, because
+ * the decal is fitted to the lid by ARC LENGTH and any slack here would come
+ * off the mark rather than off the box. */
+const CREST_W = 912;
+const CREST_H = 1240;
+
+export function drawCrest() {
+  return goldSet(CREST_W, CREST_H, 2, (a) => {
+    drawCrown(a, CREST_W / 2, 541, 2.56);
+    drawDiamond(a, CREST_W / 2, 633, 1.88);
+  });
+}
+
+/* The name, worn on the base's front. */
+const WORD_W = 1400;
+const WORD_H = 620;
+
+const FACE =
+  '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif';
+
+/* One line of the wordmark, FITTED to a width rather than set at a size.
+ * System serifs only, so nothing ever waits on a font, but that means the
+ * face is Palatino on one machine and Georgia on the next and Georgia sets a
+ * good deal wider: at a fixed size the name overhangs the box here and swims
+ * in it there. Two passes converge, because the tracking is a fraction of a
+ * size the first measurement does not know yet. */
+function word(ctx, text, targetW, baseline, track) {
+  ctx.save();
+  ctx.textAlign = "center";
+  let size = (targetW / Math.max(text.length, 1)) * 1.6;
+  for (let i = 0; i < 3; i++) {
+    ctx.font = `italic 700 ${size}px ${FACE}`;
+    try {
+      ctx.letterSpacing = size * track + "px";
+    } catch (e) {
+      /* older engines: tracking is a nicety */
+    }
+    const m = ctx.measureText(text).width;
+    if (m > 1) size *= targetW / m;
+  }
+  ctx.translate(WORD_W / 2, baseline);
+  ctx.fillStyle = goldGradient(ctx, -size * 0.74, size * 0.22);
+  ctx.fillText(text, 0, 0);
+  ctx.strokeStyle = "rgba(46,26,4,0.4)";
+  ctx.lineWidth = Math.max(1, size * 0.0062);
+  ctx.strokeText(text, 0, 0);
+  ctx.restore();
+}
+
+export function drawWordmark() {
+  return goldSet(WORD_W, WORD_H, 1.6, (a) => {
+    word(a, "Adriano", 1128, 312, 0.028);
+    word(a, "Jewelry", 636, 492, 0.078);
+  });
+}
+
+/** ?flat=1: the three paintings on one sheet, at the sizes they take on the
+ * box, for checking the artwork without standing the scene up. The box wears
+ * them on three different faces; this is a proof, not a layout. */
+export function drawArtwork() {
+  const c = document.createElement("canvas");
+  c.width = MARQUE_W;
+  c.height = MARQUE_H;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(drawPlateau(), 0, 0);
+  // World heights, as set on the shells below, scaled to the plateau's own
+  // 3.68cm of canvas so the two marks are shown at their true relative size.
+  const k = MARQUE_H / 3.68;
+  const put = (art, worldH, cy) => {
+    const h = worldH * k;
+    const w = (h * art.width) / art.height;
+    ctx.drawImage(art, (MARQUE_W - w) / 2, cy - h / 2, w, h);
+  };
+  put(drawCrest(), CREST_ARC, MARQUE_H * 0.3);
+  put(drawWordmark(), WORD_ARC, MARQUE_H * 0.72);
+  return c;
+}
+
+/* ------------------------------------------------------------------ decals
+ * How the two marks are WORN: where each one starts up the front wall of its
+ * own shell, and how far it runs measured along that wall. Arc length rather
+ * than height, because the lid's front is not a wall but a pillow, and a mark
+ * laid on by height would squash toward the top of it. */
+const CREST_AT = 0.4; // lid-local, above the seam
+const CREST_ARC = 1.26;
+const WORD_AT = 0.58; // base-local, above the foot
+const WORD_ARC = 1.55;
+
+/** A decal lying ON a swept shell's front wall: the shell's own profile,
+ * resampled by arc length through the window the mark occupies, extruded
+ * across x and lifted a hair along the surface normal. Flat where the wall is
+ * flat and curved where it pillows, so the mark wraps the lid the way a foil
+ * stamp does instead of floating over it on a card.
+ *
+ * The window's width is DERIVED from the art's own aspect, so nothing here
+ * can stretch a mark; ask for a taller one and it gets wider by itself.
+ * Front only: within +-(w/2 - r) the outline's front edge is dead straight,
+ * so two columns describe it exactly. */
+function frontDecal(profile, d, at, arc, aspect, lift) {
+  // Walk the profile as a polyline, measuring as we go. Linear steps between
+  // stations lie exactly on the mesh, since the mesh is flat between rings.
+  const pts = [[profile[0].i, profile[0].y]];
+  const len = [0];
+  for (let j = 0; j < profile.length - 1; j++) {
+    const a = profile[j];
+    const b = profile[j + 1];
+    const l = Math.hypot(b.i - a.i, b.y - a.y);
+    if (l < 1e-9) continue; // stations meeting at a crease
+    pts.push([b.i, b.y]);
+    len.push(len[len.length - 1] + l);
+  }
+  // Where the mark starts, in arc.
+  let s0 = 0;
+  for (let k = 1; k < pts.length; k++) {
+    if (pts[k][1] >= at) {
+      const t = (at - pts[k - 1][1]) / (pts[k][1] - pts[k - 1][1] || 1);
+      s0 = len[k - 1] + (len[k] - len[k - 1]) * t;
+      break;
+    }
+  }
+  const at_ = (s) => {
+    let k = 1;
+    while (k < pts.length - 1 && len[k] < s) k++;
+    const t = (s - len[k - 1]) / (len[k] - len[k - 1] || 1);
+    const a = pts[k - 1];
+    const b = pts[k];
+    const di = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const l = Math.hypot(di, dy) || 1;
+    // The shell's own outward normal where the outline faces +z.
+    return {
+      i: a[0] + di * t,
+      y: a[1] + dy * t,
+      ny: di / l,
+      nz: dy / l,
+    };
+  };
+
+  const halfW = (arc * aspect) / 2;
+  const ROWS = 16;
+  const COLS = 2;
+  const pos = [];
+  const nor = [];
+  const uv = [];
+  for (let r = 0; r <= ROWS; r++) {
+    const f = r / ROWS;
+    const p = at_(s0 + arc * f);
+    for (let c = 0; c <= COLS; c++) {
+      const g = c / COLS;
+      pos.push(
+        -halfW + 2 * halfW * g,
+        p.y + p.ny * lift,
+        d / 2 - p.i + p.nz * lift
+      );
+      nor.push(0, p.ny, p.nz);
+      uv.push(g, f);
+    }
+  }
+  const idx = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const a = r * (COLS + 1) + c;
+      const b = a + 1;
+      const u = a + COLS + 1;
+      idx.push(a, b, u, b, u + 1, u);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return g;
 }
 
 /* ------------------------------------------------------------------- model */
@@ -549,9 +569,10 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
     sheenRoughness: 0.62,
     specularIntensity: 0.12,
   });
-  const marqueTex = new THREE.CanvasTexture(drawMarque());
+  const aniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
+  const marqueTex = new THREE.CanvasTexture(drawPlateau());
   marqueTex.colorSpace = THREE.SRGBColorSpace;
-  marqueTex.anisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
+  marqueTex.anisotropy = aniso;
   const marque = new THREE.MeshPhysicalMaterial({
     map: marqueTex,
     roughness: 0.3,
@@ -561,6 +582,32 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
     specularIntensity: 1,
   });
   marque.envMapIntensity = 1.35;
+  /* The two gold marks. Transparent, because each is a mark on a ground
+   * rather than a panel: the satin has to come through everywhere the gold
+   * is not. depthWrite off and a breath of polygon offset keep them out of
+   * the shell's own depth without a lip, since they are printed on it rather
+   * than stuck to it. Same finish as the plateau, so all three read as one
+   * process on one box. */
+  const goldDecal = (art) => {
+    const tex = new THREE.CanvasTexture(art);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = aniso;
+    const m = new THREE.MeshPhysicalMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+      roughness: 0.3,
+      metalness: 0,
+      clearcoat: 0.75,
+      clearcoatRoughness: 0.28,
+      specularIntensity: 1,
+    });
+    m.envMapIntensity = 1.35;
+    return m;
+  };
   const lens = new THREE.MeshStandardMaterial({
     color: 0xd8dde3,
     roughness: 0.35,
@@ -585,6 +632,14 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
     quarterIn(profile, 0, 2.38, 0.12, BASE_H, 4);
     root.add(
       mesh(sweep(W, D, R, profile), satin, { cast: true, receive: true })
+    );
+    // The name, printed across the front wall.
+    root.add(
+      mesh(
+        frontDecal(profile, D, WORD_AT, WORD_ARC, WORD_W / WORD_H, 0.004),
+        goldDecal(drawWordmark()),
+        { receive: true }
+      )
     );
     // Rim, cavity walls, velvet floor, underside.
     const rim = mesh(
@@ -705,8 +760,16 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
     }
     quarterIn(profile, 0.62, 1.78, PLATEAU_IN, LID_H, 3);
     lid.add(mesh(sweep(W, D, R, profile), satin, { cast: true, receive: true }));
+    // The crest, printed over the pillow the lid's front is.
+    lid.add(
+      mesh(
+        frontDecal(profile, D, CREST_AT, CREST_ARC, CREST_W / CREST_H, 0.004),
+        goldDecal(drawCrest()),
+        { receive: true }
+      )
+    );
 
-    // The marque, inlaid flush in the plateau.
+    // The plateau inlay.
     const plate = mesh(
       capGeometry(W - 2 * PLATEAU_IN, D - 2 * PLATEAU_IN, 0.3, true),
       marque

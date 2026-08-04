@@ -17,7 +17,14 @@
          the meta is static and the lit journey is what nearly every visitor
          meets first. -->
     <meta name="theme-color" content="#050506" />
-    <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+    <!-- The store's gold mark, as a raster: it is painted artwork rather than
+         a letterform, so there is nothing here to vectorise honestly. The .ico
+         carries three real sizes (16, 32 and 48, each sharpened for its own
+         downsample) and it sits at the site root because browsers and crawlers
+         ask for /favicon.ico by convention whether or not a page links to it.
+         The 192 is what Google reads, which wants a multiple of 48px square. -->
+    <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="assets/img/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
 
     <meta property="og:type" content="website" />
@@ -89,7 +96,7 @@
     </script>
   </head>
   <body>
-    <!-- The loading room. Black, the marque's own name, a hairline that fills
+    <!-- The loading room. Black, the wordmark's own name, a hairline that fills
          as the scene stands up. home.js retires it the moment the first frame
          has actually been drawn, never on a timer. -->
     <div class="loader" id="loader" role="status" aria-label="Loading the Adriano ring box">
@@ -212,9 +219,10 @@
             <p class="beat__enter">Step inside.</p>
           </div>
 
-          <!-- The ink beats start once the room has opened around the reader:
-               Snell's window lands them in the dark until 0.699, and dark
-               grey type on a near-black frame is nobody's idea of legible. -->
+          <!-- The ink beats start once the flash has decayed off the room:
+               dark grey type reads on the crystal room's near-white and on
+               nothing else, so none of them may open over the white spike
+               the reader crosses the table under. -->
           <div class="beat beat--ink beat--center" data-a="0.688" data-b="0.748">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Custom design</span></p>
             <h2 class="beat__title">
@@ -322,7 +330,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.4</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.3.5</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

@@ -18,11 +18,12 @@
  * through a curtain of white and came back out of the stone through a
  * curtain of black. Now the table is crossed as an OPTICAL event (the frame
  * squeezed and split by channel the way glass does to a picture, one hard
- * flash at contact), the first thing inside is Snell's window (the dark room
- * folded into a bright disc overhead with the claws warped round its rim,
- * receding as the reader sinks), and the way out converges on the octagon of
- * the table itself, which the coda then opens on face-up before swinging
- * down. Shape carried across a cut, so the two halves are one place.
+ * flash at contact), and the flash is the whole of the way in: the crystal
+ * room takes the canvas under the top of the spike, already open, so no
+ * frame ever shows the switch. The way out is the room going down to black
+ * for the cut. Both ends used to carry the octagon of the table, drawn as
+ * Snell's window arriving and as the collapse leaving; the reader asked for
+ * that business gone (v0.3.5) and it is gone from both.
  *
  * The rest of the pass is handling and glass: the props move as though a
  * hand had them (moves overlap, a departing piece leans into its travel, a
@@ -52,7 +53,7 @@
  *   ?spin=25       freeze the stone's own turn at that angle (degrees)
  *   ?prop=ring     the solitaire alone in the room, ?prop=diamond the stone
  *   ?turn=-30      with ?prop: orbit the standalone prop (degrees)
- *   ?flat=1        the painted marque, flat
+ *   ?flat=1        the box's three paintings, flat, on one sheet
  *   ?ledx / ?ledshadow  lamp debug, passed through to the box
  *
  * Rendering only happens while something moves; a held frame costs nothing.
@@ -66,7 +67,7 @@
  */
 
 import * as THREE from "./vendor/three.module.min.js";
-import { createRingBox, drawMarque } from "./models/ring-box.js";
+import { createRingBox, drawArtwork } from "./models/ring-box.js";
 import { createSolitaireRing } from "./models/solitaire-ring.js";
 import { createBrilliantDiamond } from "./models/brilliant-diamond.js";
 import { JEWELRY } from "./jewelry-manifest.js";
@@ -194,7 +195,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   }
 
   /* The finale must never depend on the film: every early-return path
-   * (marque flat, missing WebGL2, standalone props, ?end) reveals it
+   * (artwork flat, missing WebGL2, standalone props, ?end) reveals it
    * directly, and the ordinary path hands it to an IntersectionObserver so
    * it settles in as the reader arrives. */
   function revealFinale() {
@@ -215,9 +216,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
     }
   }
 
-  // ?flat=1: the model's marque alone, for checking the artwork.
+  // ?flat=1: the model's paintings alone, for checking the artwork.
   if (params.get("flat") === "1") {
-    const art = drawMarque();
+    const art = drawArtwork();
     canvas.replaceWith(art);
     art.className = "journey__canvas is-ready";
     art.style.objectFit = "contain";
@@ -735,8 +736,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     focus: [0.3, 0.56], // the shallow lens is fitted, and taken off
     press: [0.62, 0.6585], // glass pressed against the eye at the table
     inside: [0.66, 0.852], // the crystal room and the gallery
-    window: [0.66, 0.699], // Snell's window: where the reader has landed
-    collapse: [0.806, 0.852], // the white folds back to the table's octagon
+    window: [0.66, 0.699], // arrival: the gallery ramps in behind the flash
+    collapse: [0.806, 0.852], // the white goes down to black for the cut
   };
 
   /* Contact. The old join was a slow white dissolve; this is a hit: the
@@ -760,12 +761,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * room owns that stretch), so the segment that joins them is free to be
    * whatever the interpolation makes of it.
    *
-   * The coda opens FACE-UP on the stone, small and far, because that is the
-   * shape the collapse hands it: the white room folds down to the octagon of
-   * the table, and the first coda frame is that same octagon, now lit. The
-   * camera then rolls down off the face to the three-quarter view the words
-   * stand beside. Shape carried across the cut, which is the whole reason
-   * the two halves read as one place instead of two films spliced. */
+   * The coda opens FACE-UP on the stone, small and far: the reader has spent
+   * the last chapter inside it, so the first thing they get back is the one
+   * view a diamond is ever photographed in. The camera then rolls down off
+   * the face to the three-quarter the words stand beside. This used to be a
+   * shape match, the collapse handing over the octagon of the table for the
+   * coda to relight; the octagon is gone as of v0.3.5 and the shot holds up
+   * on its own, so it stays. */
   const KEYS = [
     { p: 0.0, y: 2.15, yaw: 0.62, pit: 0.3, d: 17.5, fov: 30, sx: -2.3, fitW: 8.6 },
     { p: 0.088, y: 2.2, yaw: 0.3, pit: 0.26, d: 14.2, fov: 30, sx: -1.0, fitW: 8.2 },
@@ -951,7 +953,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * dispersion trick, colour allowed only where two planes meet. Two broad
    * beams sweep the room as it turns and a few glints ride the scroll. uK
    * is scroll, so the room stands deterministically still whenever the
-   * reader does; uOut folds it to its own seams and then to black. */
+   * reader does; uOut rushes the field past and takes it down to black. */
   const inside = (() => {
     const iScene = new THREE.Scene();
     const iCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -967,9 +969,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
         uK: { value: 0 },
         uOut: { value: 0 },
         uA: { value: 1 },
-        uIn: { value: 0 },
-        uTab: { value: 0 },
-        uTabA: { value: 0 },
       },
       vertexShader: [
         "varying vec2 vQ;",
@@ -983,9 +982,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "uniform float uK;",
         "uniform float uOut;",
         "uniform float uA;",
-        "uniform float uIn;",
-        "uniform float uTab;",
-        "uniform float uTabA;",
         /* NOT fract(sin(dot(...))). That is the hash everybody writes and it
          * is a transcendental per component, which is nothing at all until
          * you notice where it is being called from: the Voronoi below needs
@@ -1051,11 +1047,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  return vec3(md, mr);",
         "}",
         "void main() {",
-        // Leaving, the facets rush past: the field zooms as it darkens. q0 is
-        // the frame itself, unzoomed, which is what the table's octagon has
-        // to be measured in: it has to land at the size the stone's own
-        // table will have in the first coda frame, and the rushing field
-        // would otherwise carry it away from that by a factor of two.
+        // Leaving, the facets rush past: the field zooms as it darkens, which
+        // is the reader still moving through the room while its light goes.
         "  vec2 q0 = vec2(vQ.x * uA, vQ.y);",
         "  vec2 q = q0 * (1.0 + uOut * 0.85);",
         "  float rr = length(q);",
@@ -1079,7 +1072,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * and their own white clearing sits inside it regardless. */
         "  lum -= 0.26 * smoothstep(0.5, 1.75, rr);",
         "  vec3 tint = vec3(0.0);",
-        "  float seams = 0.0;",
         // The near shell: big facet cells turning slowly with the scroll,
         // each one a flat shade with one soft ramp of light across it.
         "  vec2 idA;",
@@ -1090,7 +1082,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  float eA = 1.0 - smoothstep(0.0, 0.03, va.x);",
         "  float eAr = 1.0 - smoothstep(0.0, 0.03, va.x - 0.012);",
         "  float eAb = 1.0 - smoothstep(0.0, 0.03, va.x + 0.010);",
-        "  seams += eA * 0.16;",
         "  lum += eA * 0.09;",
         // Red pulled to one side of every edge and blue to the other: the
         // stone's own fire trick at a whisper, and only ever on an edge.
@@ -1102,7 +1093,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  vec3 vb = facets(qb, idB);",
         "  lum += (hash(idB + 3.7) - 0.5) * 0.05;",
         "  float eB = 1.0 - smoothstep(0.0, 0.06, vb.x);",
-        "  seams += eB * 0.06;",
         "  lum += eB * 0.04;",
         // Two broad beams of light crossing the room as it turns.
         "  for (int i = 0; i < 2; i++) {",
@@ -1138,141 +1128,26 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  lum -= incl * 0.26;",
         "  lum += feather * 0.6;",
         "  vec3 col = vec3(lum) + tint - vec3((tint.r + tint.g + tint.b) / 3.0);",
-        /* SNELL'S WINDOW, and it is the shot the film was missing.
-         *
-         * The old cut arrived inside the stone with no orientation at all
-         * (white curtain, then abstract room), which is exactly why it read
-         * as a splice. Physics hands you the establishing shot for free:
-         * past the critical angle a diamond is a mirror, so from in here the
-         * ENTIRE outside world is squeezed into one bright disc overhead and
-         * everything around it is the dark room folded back on itself. The
-         * four claws that were holding the girdle bite into the rim of it.
-         *
-         * It is a reveal, not a dissolve: the mirror stops being a mirror as
-         * the reader sinks, so the darkness lifts off the room rather than
-         * the room fading up through it. The window recedes and shrinks
-         * while it happens, which is what selects "sinking away from the
-         * table" over "a light coming on". */
-        "  if (uIn > 0.001) {",
-        "    float t = 1.0 - uIn;",
-        "    vec2 wc = q - vec2(0.0, 0.06 + 0.16 * t);",
-        "    float wa = atan(wc.y, wc.x);",
-        /* AN OCTAGON, because it is the table. The window used to be a circle
-         * with a few sine wobbles on its radius and four soft dents in it,
-         * and at any size below half the frame that is not a window at all,
-         * it is a white blob. Shape is what makes an image legible, and the
-         * shape this one wants is the one the reader has just come through
-         * and will see again on the way out: eight sides, turning slowly.
-         * The film's whole geometry rhymes on that octagon now. */
-        "    vec2 og = rot(0.3927 + uK * 0.013) * wc;",
-        "    float od = max(max(abs(og.x), abs(og.y)),",
-        "                   (abs(og.x) + abs(og.y)) * 0.7071068);",
-        // Four claws, hard-edged, biting in OVER the rim from outside. Soft
-        // ones read as dents in a blob; these have to read as metal.
-        "    float claw = 0.0;",
-        "    for (int i = 0; i < 4; i++) {",
-        "      float ca = float(i) * 1.5707963 + 0.55;",
-        "      float dd = abs(mod(wa - ca + 3.14159265, 6.2831853) - 3.14159265);",
-        "      claw = max(claw, 1.0 - smoothstep(0.035, 0.13, dd));",
-        "    }",
-        // A portrait frame is narrower than it is tall, and a window sized to
-        // the height runs straight off both sides of it, taking the claws
-        // with it. Sized to whichever half-extent is smaller, the shot is the
-        // same shot on a phone as on a monitor.
-        /* IT STARTS BIGGER THAN THE FRAME. That is the whole difference
-         * between a window and a blob. At the instant of arrival the reader
-         * is directly under the table, so the table is not a shape in the
-         * picture: it IS the picture, and its eight edges come into frame
-         * from the corners as they sink away from it. Every version that
-         * opened on a shape small enough to see all of read as an object
-         * floating in a room, which is exactly backwards: the reader is
-         * inside, looking up and out. */
-        /* AND IT NEVER SHRINKS SMALLER THAN THE FRAME. 1.9 down to 1.25 is
-         * the whole travel: enough that the table is felt to be receding,
-         * never so much that it becomes an object with air around it. Every
-         * blob this shot has produced came from the same place: a shape
-         * allowed to pass through the size at which the eye stops reading it
-         * as "the surface I am under" and starts reading it as "a thing over
-         * there". Held above frame size, that stage does not exist; the
-         * shroud lifts off the corners and the room simply takes over from
-         * a table still overhead. */
-        "    float edge = mix(1.25, 1.9, uIn) * (1.0 - 0.13 * claw)",
-        "               * min(1.0, uA / 0.95);",
-        "    float win = 1.0 - smoothstep(edge - 0.02, edge + 0.006, od);",
-        "    float rim = 1.0 - smoothstep(0.0, 0.028, abs(od - edge));",
-        /* WHAT IS IN THE WINDOW. The old one was filled with a flat wash,
-         * which is why it read as a hole cut in paper rather than as a view.
-         * Through the table, from in here, the whole outside world is
-         * squeezed into this disc, and the outside world at this moment in
-         * the film is one dark room with one lamp in it and four claws round
-         * the rim. So that is what is painted: a hot core falling away, the
-         * room's dim body around it, and the claws taking bites out of the
-         * bright near the edge where they actually sit. */
-        "    float rw = od / max(edge, 0.001);",
-        "    vec3 world = vec3(0.44, 0.45, 0.49) * exp(-rw * rw * 2.2) + vec3(0.06);",
-        "    world *= 1.0 - 0.85 * claw * smoothstep(0.5, 1.0, rw);",
-        /* The shroud darkens what is OUTSIDE the window and nothing else,
-         * and it lifts as the reader sinks. Two things had to be right here.
-         * Darkening both sides by the same amount is a dissolve wearing a
-         * window's clothes, and it shows. And the attenuation has to be
-         * GEOMETRIC: a mix toward black can never be darker than its own
-         * blend factor, so at four fifths of the way in it is stuck at a
-         * fifth of full brightness, which, at the exposure the inside of
-         * the stone is graded to, is a light grey, not a mirror. An
-         * exponent holds true black for as long as the window is up and
-         * then lets the room in quickly, which is also what sinking away
-         * from a surface actually looks like. */
-        "    col *= exp(-6.5 * uIn * (1.0 - win));",
-        // REPLACED, not added. Added, the room's own near-white and the
-        // window's light stacked and the whole thing blew out to paper,
-        // which is precisely how the last one came to look like a blob. What
-        // is inside the window is not the room lit a bit more; it is a
-        // different place, seen through a hole.
-        "    col = mix(col, world, win * uIn);",
-        "    col += vec3(rim * uIn * 0.5);",
-        // The rim is an edge, and colour belongs on edges: the same trick
-        // the stone's fire and the room's seams are made of.
-        "    col += vec3(0.13, 0.0, -0.13) * rim * uIn * 0.7;",
-        "  }",
-        /* The way out is the way in, run backwards. The room dims to its own
-         * seams and the lines of light outlive it, and then, instead of
-         * fading to nothing, they gather into the one shape this whole place
-         * is inside: the octagon of the table. It shrinks to the size the
-         * stone's own table will have in the first coda frame, holds, and
-         * goes out just as the cut lands. The coda opens face-up on that
-         * octagon, lit. Shape carried across a splice is the oldest trick
-         * there is and it is still the only thing that makes two shots one
-         * place. */
-        "  float body2 = (1.0 - uOut) * (1.0 - uOut);",
-        "  float lines = seams * (1.0 - uOut) * 1.6 * smoothstep(0.0, 0.45, uOut);",
-        "  col = col * body2 + vec3(lines);",
-        // The octagon carries its own two numbers rather than being derived
-        // from uOut: nested smoothsteps left it at full size for one frame
-        // and gone the next, and a shape that has to be RECOGNISED across a
-        // cut needs to be held long enough to be read.
-        "  if (uTabA > 0.001) {",
-        "    vec2 og = rot(0.3927 + uK * 0.006) * q0;",
-        "    float od = max(max(abs(og.x), abs(og.y)), (abs(og.x) + abs(og.y)) * 0.7071068);",
-        "    float orad = mix(1.15, 0.222, uTab);",
-        /* A FACET, not a wireframe. This used to be one hard line written at
-         * five times full, which, clipped by the tone mapper, came out as a
-         * flat white polygon outline on black: clip art, and the reader said
-         * so. A table is a SURFACE. So it is filled with the last of the
-         * room's own light, brightest at its middle the way a flat facet
-         * under a broad source is, and its edge is a soft rim carrying the
-         * dispersion every other edge in this film carries. The reader is
-         * meant to recognise the stone's table arriving, not a shape being
-         * drawn for them. */
-        "    float ow = mix(0.06, 0.016, uTab);",
-        "    float face = 1.0 - smoothstep(orad - ow, orad + ow * 0.25, od);",
-        "    float rim = 1.0 - smoothstep(0.0, ow, abs(od - orad));",
-        "    vec3 tab = vec3(0.34 + 0.30 * (1.0 - od / max(orad, 0.001)));",
-        // The multipliers are large because by now the film's exposure has
-        // been pulled all the way down to its floor to reach black, and
-        // anything written at 1.0 comes out of that grade as a pencil mark.
-        "    col += (tab * face * 1.5 + vec3(rim) * 2.4) * uTabA;",
-        "    col += vec3(0.12, 0.0, -0.12) * rim * uTabA * 1.6;",
-        "  }",
+        /* THE WAY IN IS THE FLASH, and nothing else. Snell's window used to
+         * open this chapter: past the critical angle a diamond is a mirror,
+         * so the whole outside world arrived squeezed into one octagon
+         * overhead with the four claws biting its rim, and a shroud lifted
+         * off the room as the reader sank away from it. The reader asked for
+         * the transition into the stone gone, and this is the version of
+         * that which costs the film nothing: the crystal room takes the
+         * canvas at 0.66, three thousandths after the flash reaches full
+         * white, so the room is simply ALREADY THERE when the white decays
+         * off it. No shape, no fade, and still no frame that shows the
+         * switch. */
+        /* The way out is a dim, not a shape. This used to fold the room to
+         * its own seams and then gather them into the octagon of the table,
+         * held across the splice so the coda could open face-up on that same
+         * shape. The reader asked for that piece of business gone from both
+         * ends of the stone, so the room now simply goes down to black and
+         * the coda cuts up out of it. Squared rather than linear because
+         * light falls off that way, and a linear ramp on a room this bright
+         * reads as a wipe. */
+        "  col *= (1.0 - uOut) * (1.0 - uOut);",
         "  gl_FragColor = vec4(col, 1.0);",
         "  #include <tonemapping_fragment>",
         "  #include <colorspace_fragment>",
@@ -1807,8 +1682,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const enterK = seg(p, B.enter[0], B.enter[1]);
     const inCoda = p >= CODA[0];
     // The relight is already under way at the cut (the range opens before
-    // CODA does), so the stone's table arrives lit rather than climbing out
-    // of a black frame the octagon has just left.
+    // CODA does), so the stone arrives lit rather than climbing out of the
+    // black the collapse leaves behind.
     const codaIn = smooth(seg(p, CODA[0] - 0.008, CODA[0] + 0.034));
     const stoneY = ringY + GIRDLE + S_LIFT * liftK;
     stone.root.position.set(0, stoneY, 0);
@@ -2013,29 +1888,14 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // Which world the canvas shows. Past the collapse the crystal renders
     // itself black, and the coda takes the canvas back for the stone.
     const isInside = p >= B.inside[0] && !inCoda;
-    // How much of the frame the stone is still mirroring: 1 the instant the
-    // reader lands, 0 once the room has opened around them.
+    // How far into the room the reader has come: 1 at the instant of arrival,
+    // 0 once it has opened around them. The window it used to drive is gone,
+    // so this only ramps the gallery in behind the flash now.
     const winK = isInside ? 1 - smooth(seg(p, B.window[0], B.window[1])) : 0;
     if (isInside) {
       inside.mat.uniforms.uK.value = p * 34;
       inside.mat.uniforms.uOut.value = smooth(seg(p, B.collapse[0], B.collapse[1]));
       inside.mat.uniforms.uA.value = aspect;
-      inside.mat.uniforms.uIn.value = winK;
-      // The table's octagon: it gathers out of the folding room, shrinks to
-      // the size the stone's own table will have in the first coda frame,
-      // holds there long enough to be read as a shape, and goes out exactly
-      // on the cut. That hold is the whole match: a shape carried across a
-      // splice has to be recognised, and recognition takes time.
-      inside.mat.uniforms.uTab.value = smooth(
-        seg(p, B.collapse[0] + 0.022, B.collapse[1] - 0.004)
-      );
-      // It dims into the cut but is never taken to nothing: the shape has to
-      // still be on the retina when the stone's table arrives in its place.
-      // A cut is what this join wants; a fade would only be the dissolve
-      // coming back in through the other door.
-      inside.mat.uniforms.uTabA.value =
-        smooth(seg(p, B.collapse[0] + 0.02, B.collapse[0] + 0.034)) *
-        (1 - 0.72 * smooth(seg(p, CODA[0] - 0.004, CODA[0])));
       renderer.render(inside.scene, inside.cam);
     } else if (lensOn) {
       lens.set(focusZ, aperF, pressK, aspect);
@@ -2044,10 +1904,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
       renderer.render(scene, camera);
     }
 
-    /* The gallery rides the inside stretch. It comes up out of Snell's
-     * window with the room rather than floating at full strength over the
-     * dark the reader lands in, and dims out with the collapse rather than
-     * hanging over the black that follows it. */
+    /* The gallery rides the inside stretch. It ramps in behind the flash
+     * rather than being at full strength in the frame the room arrives on,
+     * and dims out with the collapse rather than hanging over the black
+     * that follows it. */
     const galleryOn = p > B.inside[0] && p < B.collapse[0] + 0.024;
     if (galleryEl) {
       galleryEl.classList.toggle("is-on", galleryOn);
