@@ -99,7 +99,56 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * separately, which is the only way to answer "what is this frame spending
    * it on" without a profiler: ?nostone, ?nolens, ?novelvet. */
   const DBG = params.has("fps") || params.has("dbg");
-  const NO_LENS = params.has("nolens");
+
+  /* IS THERE A GPU AT ALL? (v0.3.9)
+   *
+   * Chrome falls back to SwiftShader, a CPU rasteriser, whenever it cannot
+   * use the machine's graphics hardware: a driver on the blocklist, a VM, a
+   * remote desktop, a locked-down corporate image, an old integrated part.
+   * Those readers get the same film through a renderer that is one to two
+   * orders of magnitude slower, and they are the ones least able to afford a
+   * full-frame post-process pass.
+   *
+   * They also cannot compile one. Measured while landing v0.3.9: under
+   * SwiftShader with a real clock the depth-of-field gather fails to LINK on
+   * four runs out of four, with an empty program log, an empty log on both
+   * shaders, no GL error and the context not lost, and with `getShaderSource`
+   * still returning the whole shader. A five-line vertex shader that reports
+   * COMPILE_STATUS false with nothing to say about why is a rasteriser giving
+   * up, not a shader with a mistake in it; the same source links every time
+   * on real hardware and every time under a virtual clock. Nothing on the
+   * page errors when it happens, the program is simply not runnable, so the
+   * blur target keeps whatever was in it and the composite mixes that in.
+   *
+   * So the rack focus is not offered to a software rasteriser. It is a beat
+   * of the film and losing it is a real loss (see the note on the pass), but
+   * it is the beat that costs 48 of the 61ms in its own chapter, and the
+   * alternative on these machines is not a sharper picture, it is a broken
+   * one. Everything else stands: the crystal room still runs at half
+   * resolution, which is a straight win here, and the governor still has its
+   * resolution to spend.
+   *
+   * `?soft=1` forces this path on so it can be checked, and `?lens=1` forces
+   * the pass back on in spite of it, which is not a nicety: `scripts/shot.js`
+   * runs Chrome with `--disable-gpu`, so every headless capture this repo
+   * takes is a SwiftShader capture, and without that knob no screenshot could
+   * ever show the rack focus again. Photograph the lens with `&lens=1`. */
+  const softGL = (() => {
+    if (params.get("soft") === "1") return true;
+    try {
+      const c = document.createElement("canvas").getContext("webgl2");
+      if (!c) return false;
+      const x = c.getExtension("WEBGL_debug_renderer_info");
+      const r = x ? String(c.getParameter(x.UNMASKED_RENDERER_WEBGL) || "") : "";
+      const lose = c.getExtension("WEBGL_lose_context");
+      if (lose) lose.loseContext();
+      return /swiftshader|llvmpipe|softpipe|software|basic render|paravirtual/i.test(r);
+    } catch (e) {
+      return false;
+    }
+  })();
+  const NO_LENS =
+    params.has("nolens") || (softGL && params.get("lens") !== "1");
   /* How much silk the film is allowed, read from site.css rather than restated
    * here, so --velvet-a stays the one place the ground's strength is written
    * down and the landing page can never drift from the rest of the site. The
@@ -158,8 +207,41 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * governor that hunts is worse than no governor at all. */
   let quality = lowPower ? 0.8 : 1;
   const QUALITY_MIN = 0.55;
+
+  /* THE SECOND MULTIPLIER: WHETHER THE PICTURE IS MOVING (v0.3.9).
+   *
+   * The governor above only ever answers one question, "is this machine
+   * missing frames", and a machine that holds sixty of them by running its
+   * GPU at three quarters of its clock answers it with a cheerful no. That
+   * is the case the reader actually reported: not a stutter, a fan. Frame
+   * rate is what a governor can see and it is not what a laptop pays.
+   *
+   * So resolution is also spent on whether it can be SEEN. While the reader
+   * is scrolling, every prop on screen is being carried across the frame,
+   * the depth of field is wide open over most of the stretch, and the whole
+   * picture is under a camera move; a tenth of a millimetre of edge
+   * definition in there is not something an eye has any way to collect. The
+   * moment the scroll comes to rest, and that is the moment somebody stops
+   * to read a beat and look at the stone, the film draws that frame again at
+   * every pixel the device has. Sharp where it is looked at, cheap where it
+   * is moving, which is the same bargain the governor makes and a better
+   * trigger for it.
+   *
+   * 0.72 is half the fragments (0.72 squared is 0.52) and it is deliberately
+   * a mild step rather than the biggest one that would still work: it has to
+   * survive being wrong. If a reader does somehow catch the film mid-scroll
+   * and stare, what they have caught is a frame at a slightly lower
+   * resolution, not a frame with a beat missing from it. */
+  const MOTION_K = 0.72;
+  let moving = false;
+  let moveRun = 0;
   const pixelRatio = () =>
-    Math.max(0.75, Math.min(window.devicePixelRatio || 1, DPR_CAP) * quality);
+    Math.max(
+      0.75,
+      Math.min(window.devicePixelRatio || 1, DPR_CAP) *
+        quality *
+        (moving ? MOTION_K : 1)
+    );
 
   const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
   const seg = (p, a, b) => clamp((p - a) / (b - a), 0, 1);
@@ -794,6 +876,122 @@ import { JEWELRY } from "./jewelry-manifest.js";
     camera.updateProjectionMatrix();
   }
 
+  /* --------------------------------------------------- the scratch frame */
+
+  /* ONE HALF-RESOLUTION SCRATCH FRAME, and the fullscreen triangle that puts
+   * anything drawn into it back on the canvas.
+   *
+   * This exists because of two measurements, and they are the two largest
+   * numbers this page has ever produced (v0.3.9, software rasteriser at
+   * 1264x705, `?fps=`). At p 0.45 the frame costs 118ms, and with `?nolens=1`
+   * the SAME frame costs 13.7ms: the depth-of-field pass was 88% of the ring
+   * chapters. At p 0.7 the frame costs 120ms for exactly one triangle: the
+   * crystal room's shader was the whole of that chapter. Between them they
+   * own the middle two thirds of the film, and neither is geometry, neither
+   * is overdraw, and neither can be argued down. They are fragment counts.
+   *
+   * What both have in common is that they are LOW-FREQUENCY BY CONSTRUCTION.
+   * A bokeh's entire content is the absence of detail. The crystal room's
+   * finest feature is a facet seam, and its seams are a soft ramp about ten
+   * pixels wide because that is how two planes of a stone meet. Neither
+   * image has anything in it that a full-resolution grid is required to
+   * carry, so both are drawn at half the width and half the height, a
+   * quarter of the fragments, and scaled back up.
+   *
+   * The scratch frame is shared because the two never coexist: the lens
+   * closes at p 0.6585 and the room opens at 0.66. One allocation, resized
+   * with the canvas, and the governor's own resolution multiplies through it
+   * for free since it is always derived from the drawing buffer.
+   *
+   * UNSIGNED_BYTE tagged sRGB, for the reason the lens found in v0.3.0: three
+   * hands an SRGB8_ALPHA8 attachment to WebGL2, the hardware encodes on the
+   * way in and decodes on the way out, so the darks keep sRGB's precision
+   * instead of eight flat linear bits and nothing has to be written twice.
+   * Whatever renders into it therefore leaves its own tone mapping alone and
+   * skips its encode (three renders into a target in the WORKING space, so
+   * the encode chunk is a no-op there anyway); the blit below does it. */
+  const HALF = 0.5;
+  const fx = (() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3)
+    );
+    /* One triangle, one scene, one camera, and the material is swapped for
+     * whichever pass is being run. Every fullscreen pass on this page draws
+     * the same three vertices; giving each its own scene was three matrix
+     * updates and three render lists a frame to draw the same triangle. */
+    const scn = new THREE.Scene();
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const tri = new THREE.Mesh(geo, null);
+    tri.frustumCulled = false;
+    scn.add(tri);
+
+    const VERT = [
+      "varying vec2 vUv;",
+      "void main() {",
+      "  vUv = position.xy * 0.5 + 0.5;",
+      "  gl_Position = vec4(position.xy, 0.0, 1.0);",
+      "}",
+    ].join("\n");
+
+    const blitMat = new THREE.ShaderMaterial({
+      depthTest: false,
+      depthWrite: false,
+      uniforms: { uTex: { value: null } },
+      vertexShader: VERT,
+      fragmentShader: [
+        "varying vec2 vUv;",
+        "uniform sampler2D uTex;",
+        "void main() {",
+        // Linear in (the sampler decoded it), sRGB out. Alpha is carried
+        // through untouched, which is what a premultiplied colour wants and
+        // what lets the page's silk stay visible under a half-res frame.
+        "  gl_FragColor = texture2D(uTex, vUv);",
+        "  #include <colorspace_fragment>",
+        "}",
+      ].join("\n"),
+    });
+
+    let rt = null;
+    const size = new THREE.Vector2();
+    return {
+      VERT,
+      /** The scratch frame, at half of whatever the canvas currently is. */
+      half() {
+        renderer.getDrawingBufferSize(size);
+        const w = Math.max(1, Math.round(size.x * HALF));
+        const h = Math.max(1, Math.round(size.y * HALF));
+        if (rt && rt.width === w && rt.height === h) return rt;
+        if (rt) rt.dispose();
+        rt = new THREE.WebGLRenderTarget(w, h, {
+          type: THREE.UnsignedByteType,
+          colorSpace: THREE.SRGBColorSpace,
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter,
+          depthBuffer: false,
+          stencilBuffer: false,
+        });
+        rt.texture.generateMipmaps = false;
+        rt.texture.wrapS = THREE.ClampToEdgeWrapping;
+        rt.texture.wrapT = THREE.ClampToEdgeWrapping;
+        return rt;
+      },
+      /** Run one fullscreen pass with the given material, wherever the
+       *  render target currently points. */
+      pass(mat) {
+        tri.material = mat;
+        renderer.render(scn, cam);
+      },
+      /** Put a scratch frame back on the canvas, scaled up and encoded. */
+      blit(tex) {
+        blitMat.uniforms.uTex.value = tex;
+        tri.material = blitMat;
+        renderer.render(scn, cam);
+      },
+    };
+  })();
+
   /* ------------------------------------------------------ inside the stone */
 
   /* The white room. A fullscreen shader rather than geometry, and cut the
@@ -809,13 +1007,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * is scroll, so the room stands deterministically still whenever the
    * reader does; uOut rushes the field past and takes it down to black. */
   const inside = (() => {
-    const iScene = new THREE.Scene();
-    const iCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3)
-    );
     const mat = new THREE.ShaderMaterial({
       depthTest: false,
       depthWrite: false,
@@ -823,6 +1014,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         uK: { value: 0 },
         uOut: { value: 0 },
         uA: { value: 1 },
+        uExp: { value: 1 },
       },
       vertexShader: [
         "varying vec2 vQ;",
@@ -836,6 +1028,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "uniform float uK;",
         "uniform float uOut;",
         "uniform float uA;",
+        "uniform float uExp;",
         /* NOT fract(sin(dot(...))). That is the hash everybody writes and it
          * is a transcendental per component, which is nothing at all until
          * you notice where it is being called from: the Voronoi below needs
@@ -1025,16 +1218,80 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * the white for most of the window and then falls off it hard, so the
          * chapter ends in a cut rather than in a long grey. */
         "  col *= (1.0 - uOut) * (1.0 - uOut);",
+        /* ACES, WRITTEN OUT RATHER THAN INCLUDED, and this is a trap worth
+         * knowing about before anything else on this page is moved into a
+         * render target (v0.3.9).
+         *
+         * `#include <tonemapping_fragment>` compiles to nothing at all unless
+         * three defines TONE_MAPPING, and three decides that per DRAW, from
+         * one line in the renderer: `material.toneMapped && (currentTarget
+         * !== null && !currentTarget.isXRRenderTarget || (tm =
+         * renderer.toneMapping))`. Read it carefully. If the current render
+         * target is anything other than null, the left side of the `||` is
+         * true, the assignment never runs, and the material is compiled with
+         * NO tone mapping. So the moment this shader stopped drawing to the
+         * canvas and started drawing into the scratch frame it silently lost
+         * ACES, and with it every bit of the exposure ramp the chapter rides:
+         * the swell into the stone and the fall across the collapse are both
+         * `renderer.toneMappingExposure`, which is a tone mapping uniform and
+         * therefore was not being applied either. Nothing errors. The room
+         * just quietly plays flat.
+         *
+         * So it is done here, by hand, from three's own ACESFilmic with the
+         * exposure passed in as an ordinary uniform. Matched against the
+         * pre-v0.3.9 frames, which is the only way to be sure of a curve. */
+        "  col *= uExp / 0.6;",
+        "  const mat3 ACESIn = mat3(0.59719, 0.07600, 0.02840,",
+        "                           0.35458, 0.90834, 0.13383,",
+        "                           0.04823, 0.01566, 0.83777);",
+        "  const mat3 ACESOut = mat3( 1.60475, -0.10208, -0.00327,",
+        "                            -0.53108,  1.10813, -0.07276,",
+        "                            -0.07367, -0.00605,  1.07602);",
+        "  col = ACESIn * col;",
+        "  vec3 na = col * (col + 0.0245786) - 0.000090537;",
+        "  vec3 nb = col * (0.983729 * col + 0.4329510) + 0.238081;",
+        "  col = clamp(ACESOut * (na / nb), 0.0, 1.0);",
+        // No encode: this draws into the scratch frame, where three's output
+        // space is the working space and the chunk would be a no-op anyway,
+        // and the SRGB8 attachment does it in hardware. fx.blit encodes on
+        // the way to the canvas.
         "  gl_FragColor = vec4(col, 1.0);",
-        "  #include <tonemapping_fragment>",
-        "  #include <colorspace_fragment>",
         "}",
       ].join("\n"),
     });
-    const tri = new THREE.Mesh(geo, mat);
-    tri.frustumCulled = false;
-    iScene.add(tri);
-    return { scene: iScene, cam: iCam, mat };
+    return {
+      mat,
+      /* HALF RESOLUTION, and this is the cheapest 4x on the page (v0.3.9).
+       * Measured at 120ms for one triangle, this shader WAS the chapter: two
+       * Voronoi shells at eighteen cell points each, two beams, four glints
+       * and three inclusion layers, every one of them per fragment.
+       *
+       * Nothing in it is fine enough to need a full-resolution grid. The
+       * facet seams are `smoothstep(0.0, 0.03, d)` over a field about two
+       * units tall, which is a ramp roughly a hundredth of the frame wide:
+       * ten pixels on a laptop, and it stays a ten-pixel ramp when five
+       * half-res pixels are scaled back up. The glints are gaussians two
+       * hundredths across. The only thing here with any real edge is the
+       * inclusions, which are pinpoints of about three pixels and come back
+       * as pinpoints of about three slightly softer pixels; they are meant
+       * to read as specks in a stone rather than as dots on a screen, and a
+       * touch of softness is on the right side of that.
+       *
+       * The gallery, the beams and the ink beats are all DOM standing over
+       * this, so every photograph and every word in the chapter stays at the
+       * device's own resolution. What is halved is the wall behind them. */
+      draw() {
+        // The exposure this chapter rides, handed over explicitly because
+        // three does not apply its own inside a render target. See the note
+        // beside the ACES block above.
+        mat.uniforms.uExp.value = renderer.toneMappingExposure;
+        const rt = fx.half();
+        renderer.setRenderTarget(rt);
+        fx.pass(mat);
+        renderer.setRenderTarget(null);
+        fx.blit(rt.texture);
+      },
+    };
   })();
 
   /* ---------------------------------------------------------------- the lens */
@@ -1077,17 +1334,66 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * in linear (the only place a blur is allowed to happen), the darks get
    * sRGB's own precision instead of eight flat linear bits, and the whole
    * pass moves half the bytes. This pass still does the final encode itself
-   * on the way to the canvas. */
+   * on the way to the canvas.
+   *
+   * AND THE GATHER RUNS AT HALF RESOLUTION (v0.3.9), which is where the rest
+   * of the cost turned out to be. Measured at p 0.45: 118ms with the lens,
+   * 13.7ms for the same frame under `?nolens=1`. The pass was 88% of the
+   * film's most expensive chapter, and the reason is arithmetic rather than
+   * anything subtle. Sixteen taps, each of them a colour read AND a depth
+   * read, over every fragment of the frame, is thirty-two dependent texture
+   * fetches per pixel; on a phone at its own resolution that is upwards of a
+   * hundred million fetches for one frame, before the film has drawn a
+   * single prop. It ran at 60fps on a good machine by making that machine's
+   * GPU work most of its clock to do it, which is a thing a frame counter
+   * cannot see and a battery can.
+   *
+   * A bokeh is the one image on this page that is low-frequency BY
+   * DEFINITION: its entire content is the absence of detail. So the disc is
+   * gathered into the shared scratch frame at half the width and half the
+   * height, a quarter of the fragments, and composited back against the
+   * sharp full-resolution frame. The taps are untouched: same count, same
+   * golden-angle spiral, same radius in SOURCE texels, because uTexel still
+   * names the full-resolution frame they read from. What drops is the number
+   * of places the disc is evaluated at, and a disc evaluated every other
+   * pixel and then scaled up is a disc.
+   *
+   * The subject comes out SHARPER for it, which is the part worth keeping. A
+   * fragment in focus now takes the full-resolution frame untouched instead
+   * of a sixteen-tap average of a disc under a pixel across. A defocused
+   * diamond is a dead diamond (v0.3.3), and this is the first change in this
+   * pass's history that makes the plane of focus more exact rather than
+   * less. */
   const TAPS = lowPower ? 8 : 16;
   const lens = (() => {
-    const lScene = new THREE.Scene();
-    const lCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3)
-    );
-    const mat = new THREE.ShaderMaterial({
+    /* The shared arithmetic, spliced into both fragment shaders below rather
+     * than written twice, because the composite decides what to show using
+     * the same circle of confusion the gather blurs by, and the day those
+     * two disagree is the day a sharp subject picks up a soft ring. */
+    const DEPTH = [
+      "uniform sampler2D uDep;",
+      "uniform float uNear;",
+      "uniform float uFar;",
+      "uniform float uFocus;",
+      "uniform float uAper;",
+      "float viewZ(vec2 uv) {",
+      "  float d = texture2D(uDep, uv).x * 2.0 - 1.0;",
+      "  return (2.0 * uNear * uFar) / (uFar + uNear - d * (uFar - uNear));",
+      "}",
+      /* The circle of confusion, in pixels: how far off the plane of focus
+       * this fragment is, relative to its own distance. It saturates at a
+       * third of a stop rather than running away, and that is a sampling
+       * decision, not a photographic one: a fixed budget of taps spread
+       * over an unbounded radius stops being a blur and starts being a
+       * ring of copies, which is the one artefact that gives a cheap depth
+       * of field away. Nothing beyond the subject here is more than a
+       * gradient anyway. */
+      "float coc(float z) {",
+      "  return clamp(abs(z - uFocus) / max(z, 0.001) * 2.6, 0.0, 1.0) * uAper;",
+      "}",
+    ].join("\n");
+
+    const gather = new THREE.ShaderMaterial({
       depthTest: false,
       depthWrite: false,
       uniforms: {
@@ -1098,42 +1404,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
         uFar: { value: 80 },
         uFocus: { value: 6 },
         uAper: { value: 0 },
-        uPress: { value: 0 },
-        uA: { value: 1 },
       },
-      vertexShader: [
-        "varying vec2 vUv;",
-        "void main() {",
-        "  vUv = position.xy * 0.5 + 0.5;",
-        "  gl_Position = vec4(position.xy, 0.0, 1.0);",
-        "}",
-      ].join("\n"),
+      vertexShader: fx.VERT,
       fragmentShader: [
         "varying vec2 vUv;",
         "uniform sampler2D uCol;",
-        "uniform sampler2D uDep;",
         "uniform vec2 uTexel;",
-        "uniform float uNear;",
-        "uniform float uFar;",
-        "uniform float uFocus;",
-        "uniform float uAper;",
-        "uniform float uPress;",
-        "uniform float uA;",
-        "float viewZ(vec2 uv) {",
-        "  float d = texture2D(uDep, uv).x * 2.0 - 1.0;",
-        "  return (2.0 * uNear * uFar) / (uFar + uNear - d * (uFar - uNear));",
-        "}",
-        /* The circle of confusion, in pixels: how far off the plane of focus
-         * this fragment is, relative to its own distance. It saturates at a
-         * third of a stop rather than running away, and that is a sampling
-         * decision, not a photographic one: a fixed budget of taps spread
-         * over an unbounded radius stops being a blur and starts being a
-         * ring of copies, which is the one artefact that gives a cheap depth
-         * of field away. Nothing beyond the subject here is more than a
-         * gradient anyway. */
-        "float coc(float z) {",
-        "  return clamp(abs(z - uFocus) / max(z, 0.001) * 2.6, 0.0, 1.0) * uAper;",
-        "}",
+        DEPTH,
         /* EVERYTHING HERE IS RGBA, and that is not tidiness (v0.3.7). The
          * scene renders into this target over a clear of (0,0,0,0), so the
          * alpha channel IS the coverage: 1 where a prop or the floor stands,
@@ -1151,6 +1428,126 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * premultipliedAlpha. Gathering straight colour and alpha separately
          * instead would fringe every bokeh edge toward black. */
         "void main() {",
+        "  float z = viewZ(vUv);",
+        "  float rad = coc(z);",
+        "  vec4 sum = texture2D(uCol, vUv);",
+        "  float wsum = 1.0;",
+        /* Taps on a golden-angle spiral: an even disc at any radius, and no
+         * ring artefacts, which a square kernel gives away instantly.
+         * Sixteen of them, or eight on a phone, where the aperture is
+         * narrowed to match, so the SPACING between samples stays about the
+         * same and the halved count costs sharpness of the bokeh rather than
+         * introducing the rings a sparser disc would.
+         *
+         * uTexel is the SOURCE frame's texel, not this pass's own, so the
+         * disc covers exactly the picture it always did even though this is
+         * being evaluated at half the density (v0.3.9). */
+        "  for (int i = 0; i < " + TAPS + "; i++) {",
+        "    float fi = float(i);",
+        "    float a = fi * 2.3999632;",
+        "    float dp = sqrt((fi + 0.5) / " + TAPS + ".0) * rad;",
+        "    vec2 su = vUv + vec2(cos(a), sin(a)) * dp * uTexel;",
+        "    float zs = viewZ(su);",
+        /* Whether a neighbour reaches this fragment is decided by ITS circle
+         * of confusion, not by this fragment's.
+         *
+         * A neighbour behind is simply gathered. One in front only arrives if
+         * its own blur is wide enough to scatter this far, which is what
+         * stops a sharp foreground smearing across the subject, and, just as
+         * importantly, what lets a DEFOCUSED one spread outward the way real
+         * bokeh does. Weighing a front neighbour against this fragment's
+         * radius instead, as this did until v0.3.0, forbids the spread in
+         * both cases: the object's own edge darkens as it gathers the ground
+         * behind it while the ground receives nothing back, and a hard dark
+         * line gets drawn around every lit thing on the stage. That outline
+         * was the artefact, not the model. */
+        "    float w = zs < z - 0.02 ? clamp(coc(zs) - dp + 1.0, 0.0, 1.0) : 1.0;",
+        "    sum += texture2D(uCol, su) * w;",
+        "    wsum += w;",
+        "  }",
+        // No encode: this writes into the scratch frame, whose attachment
+        // does it in hardware. The composite below reads it back linear.
+        "  gl_FragColor = sum / wsum;",
+        "}",
+      ].join("\n"),
+    });
+
+    /* THE COMPOSITE, at the canvas's own resolution, and the only pass that
+     * ever touches it. Three jobs, and they are mutually exclusive in the
+     * film's own timeline: the press (which is a distortion, not a blur, so
+     * it stays sharp and full-resolution and costs three reads), the mix
+     * between the sharp frame and the gathered one, and a straight
+     * passthrough for the frames at either end of the focus window where the
+     * aperture is open but the widest disc in the picture is under a pixel.
+     *
+     * HOW MUCH BLUR A FRAGMENT TAKES IS ITS OWN CIRCLE OF CONFUSION, dilated
+     * by four probes at half the aperture that only count if they are IN
+     * FRONT. That last clause is the whole of it. Undilated, a defocused
+     * thing passing over a sharp one would be cut off at the sharp one's
+     * silhouette, which is the hard outline v0.3.0 spent a version removing.
+     * Dilated without the depth test, the background's own blur would creep
+     * inward over the subject and soften the very edge the pass exists to
+     * keep, since empty space sits at uFar and is therefore as defocused as
+     * this frame gets. In front only, and both hold. */
+    const out = new THREE.ShaderMaterial({
+      depthTest: false,
+      depthWrite: false,
+      uniforms: {
+        uCol: { value: null },
+        uBlur: { value: null },
+        uDep: { value: null },
+        uTexel: { value: new THREE.Vector2(1, 1) },
+        uBTexel: { value: new THREE.Vector2(1, 1) },
+        uNear: { value: 0.08 },
+        uFar: { value: 80 },
+        uFocus: { value: 6 },
+        uAper: { value: 0 },
+        uPress: { value: 0 },
+        uA: { value: 1 },
+        uMix: { value: 0 },
+      },
+      vertexShader: fx.VERT,
+      fragmentShader: [
+        "varying vec2 vUv;",
+        "uniform sampler2D uCol;",
+        "uniform sampler2D uBlur;",
+        "uniform vec2 uTexel;",
+        "uniform vec2 uBTexel;",
+        "uniform float uPress;",
+        "uniform float uA;",
+        "uniform float uMix;",
+        DEPTH,
+        // The dilation probe: a neighbour's blur, but only if the neighbour
+        // stands in front of this fragment.
+        "float front(vec2 uv, float z0) {",
+        "  float z = viewZ(uv);",
+        "  return z < z0 - 0.02 ? coc(z) : 0.0;",
+        "}",
+        /* THE SCRATCH FRAME IS READ THROUGH A TENT, NOT A BILINEAR TAP, and
+         * this is the one line the half-resolution gather actually cost.
+         *
+         * The gather leaves a thin dark rim just outside a defocused object,
+         * where its taps stop reaching and the weighted mean falls back to
+         * the empty frame behind it. That rim has always been there; at full
+         * resolution it is a pixel wide and reads as the edge of a soft
+         * thing, which is what it is. Sampled once and scaled up it is two
+         * pixels of hard 2x2 blocks and reads as a dotted line drawn round
+         * the ring, which was the one visible regression in the whole of
+         * this change.
+         *
+         * Four taps half a scratch texel off centre, each of them already a
+         * bilinear read, is a 3x3 tent for the price of four fetches, and it
+         * puts the rim back to the smooth gradient it is at full resolution.
+         * Compared side by side against a gather forced to full resolution,
+         * this is the frame that matches. */
+        "vec4 blurred() {",
+        "  vec2 o = uBTexel * 0.5;",
+        "  return 0.25 * (texture2D(uBlur, vUv + o)",
+        "               + texture2D(uBlur, vUv - o)",
+        "               + texture2D(uBlur, vUv + vec2(o.x, -o.y))",
+        "               + texture2D(uBlur, vUv + vec2(-o.x, o.y)));",
+        "}",
+        "void main() {",
         "  vec4 col;",
         "  if (uPress > 0.0005) {",
         "    vec2 c = (vUv - 0.5) * vec2(uA, 1.0);",
@@ -1165,45 +1562,21 @@ import { JEWELRY } from "./jewelry-manifest.js";
         // Coverage takes the middle sample: it is the one the green channel
         // is read at, so the shape stays registered with the picture.
         "    col.a = mid.a;",
-        "  } else if (uAper > 0.02) {",
+        "  } else if (uMix > 0.0) {",
         "    float z = viewZ(vUv);",
         "    float rad = coc(z);",
-        "    if (rad < 0.9) {",
-        "      col = texture2D(uCol, vUv);",
-        "    } else {",
-        "      vec4 sum = texture2D(uCol, vUv);",
-        "      float wsum = 1.0;",
-        /* Taps on a golden-angle spiral: an even disc at any radius, and no
-         * ring artefacts, which a square kernel gives away instantly.
-         * Sixteen of them, or eight on a phone, where the aperture is
-         * narrowed to match, so the SPACING between samples stays about the
-         * same and the halved count costs sharpness of the bokeh rather than
-         * introducing the rings a sparser disc would. */
-        "      for (int i = 0; i < " + TAPS + "; i++) {",
-        "        float fi = float(i);",
-        "        float a = fi * 2.3999632;",
-        "        float dp = sqrt((fi + 0.5) / " + TAPS + ".0) * rad;",
-        "        vec2 su = vUv + vec2(cos(a), sin(a)) * dp * uTexel;",
-        "        float zs = viewZ(su);",
-        /* Whether a neighbour reaches this fragment is decided by ITS circle
-         * of confusion, not by this fragment's.
-         *
-         * A neighbour behind is simply gathered. One in front only arrives if
-         * its own blur is wide enough to scatter this far, which is what
-         * stops a sharp foreground smearing across the subject, and, just as
-         * importantly, what lets a DEFOCUSED one spread outward the way real
-         * bokeh does. Weighing a front neighbour against this fragment's
-         * radius instead, as this did until v0.3.0, forbids the spread in
-         * both cases: the object's own edge darkens as it gathers the ground
-         * behind it while the ground receives nothing back, and a hard dark
-         * line gets drawn around every lit thing on the stage. That outline
-         * was the artefact, not the model. */
-        "        float w = zs < z - 0.02 ? clamp(coc(zs) - dp + 1.0, 0.0, 1.0) : 1.0;",
-        "        sum += texture2D(uCol, su) * w;",
-        "        wsum += w;",
-        "      }",
-        "      col = sum / wsum;",
-        "    }",
+        "    vec2 d = uAper * 0.5 * uTexel;",
+        "    rad = max(rad, front(vUv + vec2(d.x, 0.0), z));",
+        "    rad = max(rad, front(vUv - vec2(d.x, 0.0), z));",
+        "    rad = max(rad, front(vUv + vec2(0.0, d.y), z));",
+        "    rad = max(rad, front(vUv - vec2(0.0, d.y), z));",
+        /* Under a pixel of disc is not a blur, it is a resample, so the
+         * sharp frame is handed over untouched; past two and a bit the
+         * gathered one has all of the picture there is. Between them the
+         * crossfade is short on purpose, because it is exactly the width of
+         * the plane of focus and a long ramp there reads as a soft subject. */
+        "    col = mix(texture2D(uCol, vUv), blurred(),",
+        "              uMix * smoothstep(0.9, 2.4, rad));",
         "  } else {",
         "    col = texture2D(uCol, vUv);",
         "  }",
@@ -1214,9 +1587,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "}",
       ].join("\n"),
     });
-    const tri = new THREE.Mesh(geo, mat);
-    tri.frustumCulled = false;
-    lScene.add(tri);
 
     let rt = null;
     const size = new THREE.Vector2();
@@ -1243,27 +1613,40 @@ import { JEWELRY } from "./jewelry-manifest.js";
       dep.minFilter = THREE.NearestFilter;
       dep.magFilter = THREE.NearestFilter;
       rt.depthTexture = dep;
-      mat.uniforms.uCol.value = rt.texture;
-      mat.uniforms.uDep.value = dep;
-      mat.uniforms.uTexel.value.set(1 / w, 1 / h);
+      for (const m of [gather, out]) {
+        m.uniforms.uCol.value = rt.texture;
+        m.uniforms.uDep.value = dep;
+        m.uniforms.uTexel.value.set(1 / w, 1 / h);
+      }
       return rt;
     }
 
     return {
-      scene: lScene,
-      cam: lCam,
-      mat,
       /** Blur radius is named as a fraction of frame height, so the lens is
        * the same lens on a phone as on a monitor and the same on either
        * pixel ratio. */
       set(focus, aperFrac, press, aspect) {
         renderer.getDrawingBufferSize(size);
-        mat.uniforms.uFocus.value = focus;
-        mat.uniforms.uAper.value = aperFrac * size.y;
-        mat.uniforms.uPress.value = press;
-        mat.uniforms.uA.value = aspect;
-        mat.uniforms.uNear.value = camera.near;
-        mat.uniforms.uFar.value = camera.far;
+        const aper = aperFrac * size.y;
+        for (const m of [gather, out]) {
+          m.uniforms.uFocus.value = focus;
+          m.uniforms.uAper.value = aper;
+          m.uniforms.uNear.value = camera.near;
+          m.uniforms.uFar.value = camera.far;
+        }
+        out.uniforms.uPress.value = press;
+        out.uniforms.uA.value = aspect;
+        /* Whether the disc is worth gathering at all, and it is a RAMP
+         * rather than a switch. The aperture opens and shuts across a fifth
+         * of the focus window, and at either end of that ramp the widest
+         * circle anywhere in the frame is a pixel or so: a gather there is
+         * sixteen taps landing inside one texel to reproduce it, which is
+         * most of the pass's cost for none of its picture. But a hard cutoff
+         * at any threshold takes some real fraction of a blur off in one
+         * frame, so the composite's mix is scaled to nothing first and the
+         * pass is skipped only once it can no longer show. */
+        out.uniforms.uMix.value =
+          press > 0.0005 ? 0 : clamp((aper - 1.4) / 1.6, 0, 1);
       },
       draw() {
         // Hoisted, not asked per frame: this is the hot loop.
@@ -1274,8 +1657,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
         renderer.getDrawingBufferSize(size);
         renderer.setRenderTarget(target(size.x, size.y));
         renderer.render(scene, camera);
+        // The gather, into the shared scratch frame at a quarter of the
+        // fragments. Skipped whole on the frames that cannot show it.
+        if (out.uniforms.uMix.value > 0) {
+          const bt = fx.half();
+          renderer.setRenderTarget(bt);
+          fx.pass(gather);
+          out.uniforms.uBlur.value = bt.texture;
+          out.uniforms.uBTexel.value.set(1 / bt.width, 1 / bt.height);
+        }
         renderer.setRenderTarget(null);
-        renderer.render(lScene, lCam);
+        fx.pass(out);
       },
     };
   })();
@@ -1852,7 +2244,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       inside.mat.uniforms.uK.value = p * 34;
       inside.mat.uniforms.uOut.value = easeIn3(seg(p, B.collapse[0], B.collapse[1]));
       inside.mat.uniforms.uA.value = aspect;
-      renderer.render(inside.scene, inside.cam);
+      inside.draw();
     } else if (lensOn) {
       lens.set(focusZ, aperF, pressK, aspect);
       lens.draw();
@@ -2049,6 +2441,49 @@ import { JEWELRY } from "./jewelry-manifest.js";
   let lastFrame = 0;
   let healTick = 0;
 
+  /* FRAME PACING, and it is the one economy on this page that costs the
+   * picture nothing at all (v0.3.9).
+   *
+   * Until now the film drew a frame for every frame the display asked for,
+   * which on a 60Hz panel is 60 of the most expensive frames on the site per
+   * second and on a 144Hz panel is 144 of them. Nothing about this film is
+   * better at 144: it is a scroll-driven camera move through a room, its
+   * fastest motion is a stone turning, and the reader's own scroll is
+   * smoothed through an exponential before it ever reaches a transform.
+   * Ninety of those frames a second were being drawn, composited and thrown
+   * away for a difference nobody has ever been able to see, and the machine
+   * paid for every one of them in heat.
+   *
+   * It is a DEADLINE rather than a stride: draw when the last drawn frame is
+   * at least this old, otherwise hand the slot back. 15.5ms is chosen so a
+   * 60Hz display's own 16.67ms interval clears it every single time with a
+   * millisecond to spare, which is the property that matters most here,
+   * because a cap that occasionally rounds a real frame out of a 60Hz panel
+   * turns the film into 30fps and is worse than no cap at all. Above 60 the
+   * skipping is uniform, one gap length and no other, so there is no judder,
+   * only fewer frames: 50Hz and 60Hz draw every callback, 120Hz and 240Hz
+   * land on 60, 165Hz on 55, 144Hz on 48. The one panel this is unkind to is
+   * 75Hz, which has no division between 75 and 37.5 and takes the lower one;
+   * that is a deadline cap's own arithmetic rather than a choice, and no
+   * value of this constant gives 75Hz its full rate without also handing
+   * 144Hz seventy-two frames a second it has no use for.
+   *
+   * The frames that ARE skipped cost a callback and nothing else. No film
+   * state is advanced in them, which is why the progress smoothing had to be
+   * frame-rate independent to begin with and always was. */
+  const FRAME_MS = 15.5;
+  let due = 0;
+  /* The display's own interval, learned rather than assumed, and only ever
+   * used to tell the governor below what a GOOD frame looks like now that
+   * the film is no longer trying to match the panel. It is the minimum
+   * delta between callbacks, because a callback can be late and never
+   * early. A spurious short reading cannot do any harm: the pace is the
+   * cap rounded UP to a whole number of display frames, so it is bounded
+   * below by the cap however wrong the estimate is. */
+  let rafGap = 16.7;
+  let lastRaf = 0;
+  const pace = () => Math.ceil(FRAME_MS / rafGap) * rafGap;
+
   /* The governor's bookkeeping. Only frames the film asked to be drawn back
    * to back are evidence: a frame that follows a sleep carries a delta of
    * whatever the reader was doing in between and says nothing about cost. */
@@ -2066,8 +2501,18 @@ import { JEWELRY } from "./jewelry-manifest.js";
       return;
     }
     qSeen++;
-    if (dt > 0.024) qSlow++; // worse than about 42 a second
-    else if (dt < 0.019) qFast++; // holding the refresh rate
+    /* Slow and fast are read against the pace the film is ACTUALLY asking
+     * for, not against a fixed 42 and 53 a second. Those two numbers were
+     * right when the film drew every display frame and would be quietly
+     * wrong now: on a 144Hz panel the cap lands the film on 48fps by
+     * design, and a governor holding a flat 24ms ceiling would read its own
+     * pacing as a machine in trouble, or, worse, never see a fast frame
+     * again and leave a phone that started at 0.8 stuck there for ever. The
+     * ratios are the old thresholds expressed against 16.7ms, so a 60Hz
+     * display behaves exactly as it did. */
+    const want = pace();
+    if (dt * 1000 > want * 1.44) qSlow++;
+    else if (dt * 1000 < want * 1.14) qFast++;
     if (qSeen < 45 || t < qHold) return;
     const slow = qSlow / qSeen;
     const fast = qFast / qSeen;
@@ -2080,6 +2525,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
     if (next === quality) return;
     quality = next;
     qHold = t + 1500;
+    rescale();
+  }
+
+  /* The drawing buffer, and the lens's target and the scratch frame with it,
+   * are reallocated when this is called, which is why neither dial that
+   * reaches it is allowed to hunt: the governor holds for a second and a
+   * half, and the motion tier below needs three consecutive moving frames to
+   * step down and gives the pixels back on the frame the film comes to rest.
+   * A flick of a trackpad that is over inside three frames never pays for
+   * one. */
+  function rescale() {
     renderer.setPixelRatio(pixelRatio());
     renderer.setSize(viewW, viewH, false);
   }
@@ -2092,6 +2548,18 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   function frameStep(t) {
     queued = false;
+
+    // The display's interval, and then the cap. A skipped slot advances
+    // nothing and draws nothing; it only asks for the next one.
+    const gap = t - lastRaf;
+    lastRaf = t;
+    if (gap > 0.5 && gap < rafGap) rafGap = Math.max(gap, 3.9);
+    if (t < due) {
+      wake();
+      return;
+    }
+    due = t + FRAME_MS;
+
     const dt = Math.min((t - lastFrame) / 1000 || 0.016, 0.05);
     lastFrame = t;
 
@@ -2148,7 +2616,26 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const introLive = !held && introT0 && introK < 1;
     const live = settling || teasing || soloLive || codaLive || introLive;
     govern(t, dt, live);
-    if (live) wake();
+
+    /* The motion tier. `pDrawn !== before` is the reader's own hand and
+     * nothing else: the tease breathing on the lid, the lifted stone's idle
+     * turn and the coda's are all live frames at a parked progress, and
+     * those are exactly the frames somebody is sitting still and looking at,
+     * so they keep every pixel. ANDed with `live` so the frame that comes to
+     * rest gives the resolution back on the spot rather than one frame late,
+     * which is the only frame where being late would show. */
+    const wasMoving = moving;
+    if (!qForced && live && pDrawn !== before) {
+      if (++moveRun >= 3) moving = true;
+    } else {
+      moveRun = 0;
+      moving = false;
+    }
+    if (moving !== wasMoving) rescale();
+
+    // ...and if that was the last frame, ask for one more, so the picture
+    // the reader stops on is the sharp one.
+    if (live || (wasMoving && !moving)) wake();
   }
 
   /* ------------------------------------------------------------- the boot */

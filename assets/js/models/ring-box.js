@@ -554,11 +554,10 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
 
   const satin = new THREE.MeshPhysicalMaterial({
     color: 0x121214,
-    roughness: 0.48,
+    roughness: 0.44,
     metalness: 0,
-    clearcoat: 0.5,
-    clearcoatRoughness: 0.42,
-    specularIntensity: 0.9,
+    ior: 1.62,
+    specularIntensity: 1,
   });
   const velvet = new THREE.MeshPhysicalMaterial({
     color: 0x0c0c0e,
@@ -567,6 +566,12 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
     sheen: 1,
     sheenColor: 0x36363c,
     sheenRoughness: 0.62,
+    specularIntensity: 0.12,
+  });
+  const liner = new THREE.MeshPhysicalMaterial({
+    color: 0x0c0c0e,
+    roughness: 1,
+    metalness: 0,
     specularIntensity: 0.12,
   });
   const aniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
@@ -663,7 +668,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
         { receive: true }
       )
     );
-    const floor = mesh(capGeometry(CAV_W, CAV_D, CAV_R, true), velvet, {
+    const floor = mesh(capGeometry(CAV_W, CAV_D, CAV_R, true), liner, {
       receive: true,
     });
     floor.position.y = CAV_Y;
@@ -798,7 +803,7 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
         { receive: true }
       )
     );
-    const ceiling = mesh(capGeometry(REC_W, REC_D, REC_R, false), velvet, {
+    const ceiling = mesh(capGeometry(REC_W, REC_D, REC_R, false), liner, {
       receive: true,
     });
     ceiling.position.y = REC_H;
