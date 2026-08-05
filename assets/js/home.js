@@ -1319,22 +1319,33 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * white dissolve was an admission that the two shots would not join; this
    * is the join.
    *
-   * COLOUR, which is where all the cost turned out to be. Three renders into
-   * a target in the working (linear) space, so the obvious target is half
-   * float: eight bits of LINEAR light in a room this dark bands on sight.
-   * But measured, that round trip cost more than everything else on the
-   * stage put together, and almost none of it was the taps: it was writing
-   * every fragment of the scene at sixteen bits a channel and reading the
-   * whole frame back.
+   * COLOUR, which is where all the cost turned out to be, and where the pass
+   * was quietly wrong for four versions. Three renders into a target in the
+   * working (linear) space, so the obvious target is half float: eight bits
+   * of LINEAR light in a room this dark bands on sight. But measured, that
+   * round trip cost more than everything else on the stage put together, and
+   * almost none of it was the taps: it was writing every fragment of the
+   * scene at sixteen bits a channel and reading the whole frame back.
    *
-   * An UNSIGNED_BYTE target tagged sRGB gets three to ask WebGL2 for an
-   * SRGB8_ALPHA8 attachment, and the hardware then does both conversions for
-   * free: the materials still write linear, the framebuffer encodes on the
-   * way in, the sampler decodes on the way out. So the gather still happens
-   * in linear (the only place a blur is allowed to happen), the darks get
-   * sRGB's own precision instead of eight flat linear bits, and the whole
-   * pass moves half the bytes. This pass still does the final encode itself
-   * on the way to the canvas.
+   * So the target is eight bits, and what it stores is the FINISHED PICTURE:
+   * ACES already applied, exposure already applied, sRGB already encoded, the
+   * exact bytes the canvas would have been handed. See the note on the target
+   * below for the three lines that arrange that, and why every one of them is
+   * needed. The gather then decodes each tap back to linear itself, which is
+   * the only place a blur is allowed to happen, and the composite hands a
+   * passthrough frame straight through untouched.
+   *
+   * That is the fix for the oldest bug in this file (v0.4.0). Three DISABLES
+   * tone mapping when it renders into a render target, so from v0.3.0 to
+   * v0.3.9 the whole of the rack focus played with no ACES and no exposure:
+   * measured at a passthrough progress against the same frame under
+   * `?nolens=1`, max 181, mean 9.3, on 78% of pixels. Three's ACES carries
+   * `exposure / 0.6`, so what the reader actually saw was a quarter of the
+   * film about 1.9 stops down with its highlights clipping flat instead of
+   * rolling off: the ring chapters played dark and chalky, and every prop in
+   * them wore a grey halo of lifted black. A passthrough frame now matches
+   * the same frame with the pass switched off to the byte everywhere except
+   * the silhouettes, which is the multisampling note on the target below.
    *
    * AND THE GATHER RUNS AT HALF RESOLUTION (v0.3.9), which is where the rest
    * of the cost turned out to be. Measured at p 0.45: 118ms with the lens,
@@ -1366,6 +1377,22 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * less. */
   const TAPS = lowPower ? 8 : 16;
   const lens = (() => {
+    /* sRGB, both ways, written out because the target now holds an encoded
+     * picture rather than linear light. The decode is three's own polynomial
+     * fit rather than a pow: it is three multiplies and two adds, it is
+     * accurate to about a quarter of a level, and the gather runs it
+     * seventeen times per fragment. The encode is exact and runs once. */
+    const SRGB = [
+      "vec3 dec(vec3 c) {",
+      "  return c * (c * (c * 0.305306011 + 0.682171111) + 0.012522878);",
+      "}",
+      "vec3 enc(vec3 c) {",
+      "  vec3 v = clamp(c, 0.0, 1.0);",
+      "  return mix(v * 12.92, 1.055 * pow(v, vec3(0.41666)) - 0.055,",
+      "             step(vec3(0.0031308), v));",
+      "}",
+    ].join("\n");
+
     /* The shared arithmetic, spliced into both fragment shaders below rather
      * than written twice, because the composite decides what to show using
      * the same circle of confusion the gather blurs by, and the day those
@@ -1410,7 +1437,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "varying vec2 vUv;",
         "uniform sampler2D uCol;",
         "uniform vec2 uTexel;",
+        SRGB,
         DEPTH,
+        // One tap: the frame is stored encoded, the blur belongs in linear.
+        "vec4 tap(vec2 uv) {",
+        "  vec4 c = texture2D(uCol, uv);",
+        "  return vec4(dec(c.rgb), c.a);",
+        "}",
         /* EVERYTHING HERE IS RGBA, and that is not tidiness (v0.3.7). The
          * scene renders into this target over a clear of (0,0,0,0), so the
          * alpha channel IS the coverage: 1 where a prop or the floor stands,
@@ -1428,9 +1461,40 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * premultipliedAlpha. Gathering straight colour and alpha separately
          * instead would fringe every bokeh edge toward black. */
         "void main() {",
+        /* THE DISC IS SIZED OFF THE WHOLE 2x2 BLOCK, NOT OFF ONE POINT, and
+         * this one line is the outline the reader reported (v0.4.0).
+         *
+         * The depth texture is UnsignedInt with a NEAREST sampler, because
+         * that is the only filter WebGL2 offers on one. Read at half
+         * resolution, `viewZ(vUv)` therefore does not average the four
+         * full-resolution texels under this fragment; it PICKS one of them.
+         * So along a silhouette, where the object's circle of confusion and
+         * the empty frame's differ by the whole aperture, neighbouring
+         * half-res fragments were being handed wildly different radii by a
+         * coin toss: one gathers a wide disc and comes back nearly empty, the
+         * next gathers almost nothing and keeps its own bilinear sample,
+         * which straddles the edge and is half object. Alternating dark and
+         * bright, at half resolution, along every edge in the frame. Scaled
+         * back up that is a two-pixel dotted line drawn round the ring and
+         * round the stone, which is exactly what was reported, and it is why
+         * it looked drawn rather than photographed.
+         *
+         * Four depth reads at the four full-resolution texel centres, widest
+         * disc wins. The widest is the right one and not merely the safe one:
+         * a fragment that covers any part of the defocused background is
+         * showing that background, and the composite decides per full-res
+         * pixel how much of this frame it wants anyway, so an edge fragment
+         * that gathers too wide is simply not asked for. Three extra fetches
+         * at a quarter of the fragments, against thirty-two per fragment
+         * already here. */
+        "  vec2 h = uTexel * 0.5;",
         "  float z = viewZ(vUv);",
         "  float rad = coc(z);",
-        "  vec4 sum = texture2D(uCol, vUv);",
+        "  rad = max(rad, coc(viewZ(vUv + h)));",
+        "  rad = max(rad, coc(viewZ(vUv - h)));",
+        "  rad = max(rad, coc(viewZ(vUv + vec2(h.x, -h.y))));",
+        "  rad = max(rad, coc(viewZ(vUv + vec2(-h.x, h.y))));",
+        "  vec4 sum = tap(vUv);",
         "  float wsum = 1.0;",
         /* Taps on a golden-angle spiral: an even disc at any radius, and no
          * ring artefacts, which a square kernel gives away instantly.
@@ -1462,11 +1526,12 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * line gets drawn around every lit thing on the stage. That outline
          * was the artefact, not the model. */
         "    float w = zs < z - 0.02 ? clamp(coc(zs) - dp + 1.0, 0.0, 1.0) : 1.0;",
-        "    sum += texture2D(uCol, su) * w;",
+        "    sum += tap(su) * w;",
         "    wsum += w;",
         "  }",
-        // No encode: this writes into the scratch frame, whose attachment
-        // does it in hardware. The composite below reads it back linear.
+        // Linear out. This writes into the scratch frame, whose SRGB8
+        // attachment encodes in hardware and decodes on the way back, so the
+        // composite reads a linear disc at sRGB's own precision.
         "  gl_FragColor = sum / wsum;",
         "}",
       ].join("\n"),
@@ -1516,6 +1581,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "uniform float uPress;",
         "uniform float uA;",
         "uniform float uMix;",
+        SRGB,
         DEPTH,
         // The dilation probe: a neighbour's blur, but only if the neighbour
         // stands in front of this fragment.
@@ -1574,16 +1640,24 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * sharp frame is handed over untouched; past two and a bit the
          * gathered one has all of the picture there is. Between them the
          * crossfade is short on purpose, because it is exactly the width of
-         * the plane of focus and a long ramp there reads as a soft subject. */
-        "    col = mix(texture2D(uCol, vUv), blurred(),",
+         * the plane of focus and a long ramp there reads as a soft subject.
+         *
+         * The crossfade itself happens in LINEAR, which is the whole reason
+         * the sharp frame is decoded here rather than mixed as it is stored:
+         * a half-and-half blend of an encoded highlight against an encoded
+         * black is not half the light, and every silhouette in the frame is
+         * somewhere on that ramp. */
+        "    vec4 sharp = texture2D(uCol, vUv);",
+        "    col = mix(vec4(dec(sharp.rgb), sharp.a), blurred(),",
         "              uMix * smoothstep(0.9, 2.4, rad));",
+        "    col.rgb = enc(col.rgb);",
         "  } else {",
+        // Nothing to do at all: the target already holds the finished,
+        // encoded picture, so this hands the canvas exactly the bytes the
+        // scene would have written to it with no pass fitted.
         "    col = texture2D(uCol, vUv);",
         "  }",
         "  gl_FragColor = col;",
-        // Encodes rgb and leaves a alone, which is what a premultiplied
-        // colour wants.
-        "  #include <colorspace_fragment>",
         "}",
       ].join("\n"),
     });
@@ -1603,7 +1677,54 @@ import { JEWELRY } from "./jewelry-manifest.js";
         magFilter: THREE.LinearFilter,
         depthBuffer: true,
         stencilBuffer: false,
+        /* NO MULTISAMPLING, and that is a measurement rather than an
+         * oversight (v0.4.0). `antialias` belongs to the CONTEXT and does not
+         * reach a render target, so on a one-to-one display the film really
+         * does lose its antialiased edges for the quarter of its length this
+         * pass is fitted over. `samples: 4` puts them back exactly: a
+         * passthrough frame then matches `?nolens=1` to the byte. It was
+         * written, measured and taken out again, because what it buys is not
+         * worth what it costs.
+         *
+         * What it buys, at p 0.45 with the stone in focus: a mean difference
+         * of 0.13 of 255 over the frame, on 1.2% of pixels, which are the
+         * silhouettes. Side by side at three times life size the two stones
+         * are the same picture. What it costs, on this box's own GPU rather
+         * than under the rasteriser: 14.4ms to 19.9ms at p 0.32 and 8.6ms to
+         * 12.9ms at p 0.45, so 38% and 50% of two chapters that were already
+         * the most expensive in the film, on the machine of a reader who has
+         * asked for less of their GPU, not more. Under SwiftShader it is 82ms
+         * to 129ms, though no software rasteriser ever runs this pass.
+         *
+         * A dense screen never sees any of it: the context turns `antialias`
+         * off above 1.5 device pixels anyway, so on a phone the target and
+         * the canvas already agree. */
       });
+      /* THREE LINES THAT PUT THE COLOUR PIPELINE BACK, and they only work
+       * together (v0.4.0).
+       *
+       * `isXRRenderTarget` is the switch this whole file needed and could not
+       * find. Three's rule is one line: `material.toneMapped && (target !==
+       * null && !target.isXRRenderTarget || (tm = renderer.toneMapping))`, so
+       * a target that claims to be an XR one is the only kind three will tone
+       * map into. It also makes three take the OUTPUT COLOUR SPACE from the
+       * target's own texture instead of forcing the working space, which is
+       * the second half of what is wanted: the material now writes ACES,
+       * exposure and the sRGB encode, exactly as it would to the canvas.
+       *
+       * Which leaves the encode being done twice, because an sRGB-tagged
+       * texture also gets an SRGB8_ALPHA8 attachment and the hardware encodes
+       * on write. `internalFormat` is the one hook three offers for that: set
+       * explicitly it is returned verbatim and the format guess is skipped,
+       * so the storage is plain eight-bit and the shader's encode is the only
+       * one. Eight bits is the right size for an ENCODED picture (it is what
+       * a screen holds); it was the wrong size for linear light, which is the
+       * whole of the v0.3.0 note above.
+       *
+       * The one thing to remember when reading the two shaders: uCol is no
+       * longer linear. It is the finished frame. */
+      rt.isXRRenderTarget = true;
+      rt.texture.internalFormat = "RGBA8";
       rt.texture.generateMipmaps = false;
       rt.texture.wrapS = THREE.ClampToEdgeWrapping;
       rt.texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -1705,6 +1826,67 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const items = [];
   let galleryArmed = false;
 
+  /* WHICH OF THE TWO SHIPPED SETS THIS BROWSER CAN READ (v0.4.0).
+   *
+   * The 74 pieces are the only photographs on the site and they were the
+   * largest thing it downloads. There are no bytes left in WebP: the note in
+   * CLAUDE.md is right that most of every one of these files is its ALPHA
+   * channel, that libwebp writes alpha losslessly unless told otherwise, and
+   * that the lossy alpha was already turned down as far as it would go. What
+   * is left is the CODEC, which nobody had tried.
+   *
+   * Measured over fifteen of the originals, mean bytes per piece against the
+   * error of the decoded piece composited over the room's own near-white
+   * ground, which is where any of it can actually be seen: the shipped WebP
+   * is 21.5KB at an RMSE of 5.13, and AVIF at quality 45 in 4:4:4, at the
+   * smaller 320px the pieces are now drawn at, is 15.5KB at an RMSE of 4.88.
+   * Fewer bytes AND a closer picture, which is not a trade at all. Whole set:
+   * 1570KB to 1143KB. 4:4:4 rather than 4:2:0 is worth its 10%, because these
+   * are pave renders and the entire subject is chroma-sharp sparkle.
+   *
+   * Every piece ships twice all the same, because a jewelry store cannot show
+   * one visitor in twenty an empty tunnel: the WebP set is still there, cut to
+   * the same 320 and 1340KB, for the browsers that predate AVIF. One decode of
+   * a one-pixel AVIF WITH AN ALPHA PLANE settles which, since alpha is the
+   * whole of what these files are and a decoder that took an opaque probe
+   * would prove nothing about them.
+   *
+   * THE ARMING WAITS FOR IT, and it has to: a decode is a callback, and the
+   * film warms itself at eleven progresses inside the first second, two of
+   * which are past 0.44, so the gallery can be armed before the probe has
+   * answered. On the first cut of this it always was, and every visitor got
+   * the WebP set while the AVIF set sat on the server unread. So `ext` starts
+   * undecided and an arm that arrives early parks; the probe releases it. A
+   * second and a half of silence settles on WebP anyway, because a gallery
+   * that never arms is worse than one in the wrong format, and a browser that
+   * answers neither onload nor onerror to a data URI is not one to bet a
+   * chapter on. */
+  let ext = null;
+  let armPending = false;
+  {
+    const probe = new Image();
+    const settle = (v) => {
+      if (ext) return;
+      ext = v;
+      if (armPending) {
+        armPending = false;
+        armGallery();
+      }
+    };
+    probe.onload = () => settle(probe.width > 0 ? ".avif" : ".webp");
+    probe.onerror = () => settle(".webp");
+    setTimeout(() => settle(".webp"), 1500);
+    probe.src =
+      "data:image/avif;base64," +
+      "AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAAGGbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAA" +
+      "AAAAAAAAAAAAAAAOcGl0bQAAAAAAAQAAACxpbG9jAAAAAEQAAAIAAQAAAAEAAAHAAAAAGAACAAAAAQAAAa4AAAASAAAA" +
+      "QmlpbmYAAAAAAAIAAAAaaW5mZQIAAAAAAQAAYXYwMUNvbG9yAAAAABppbmZlAgAAAAACAABhdjAxQWxwaGEAAAAAGmly" +
+      "ZWYAAAAAAAAADmF1eGwAAgABAAEAAADDaXBycAAAAJ1pcGNvAAAAFGlzcGUAAAAAAAAAAQAAAAEAAAAQcGl4aQAAAAAD" +
+      "CAgIAAAADGF2MUOBAAwAAAAAE2NvbHJuY2x4AAEADQAGgAAAAA5waXhpAAAAAAEIAAAADGF2MUOBABwAAAAAOGF1eEMA" +
+      "AAAAdXJuOm1wZWc6bXBlZ0I6Y2ljcDpzeXN0ZW1zOmF1eGlsaWFyeTphbHBoYQAAAAAeaXBtYQAAAAAAAAACAAEEAQKD" +
+      "BAACBAEFhgcAAAAybWRhdBIACgQYAAYVMggfkP/xAAIgqBIACggYAAYICGg0IDIKH5A////EAACv7g==";
+  }
+
   function buildGallery() {
     if (!galleryEl) return;
     const rand = rng(20260801);
@@ -1716,6 +1898,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
       const img = document.createElement("img");
       img.alt = "";
       img.decoding = "async";
+      // The extension is decided at arm time, not here: the manifest carries
+      // the stem alone, and which of the two shipped sets this browser gets
+      // is not known yet on the frame the DOM is built.
       img.dataset.src = "assets/img/jewelry/" + piece.f;
       img.width = piece.w;
       img.height = piece.h;
@@ -1750,18 +1935,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
   function layoutGallery() {
     const w = pin.clientWidth;
     const h = pin.clientHeight;
-    // Half the frame's width or getting on for half its height, whichever is
-    // the tighter, capped at the shipped file's own longest side. A phone
-    // gets a piece nearly half the screen across, which is the whole point of
-    // the rework; a laptop gets the file at native resolution.
-    //
-    // The 0.9 is the reader's, asked for as "the same size as they are now
-    // and like 10% smaller": at the old figure the biggest pieces crowded the
-    // copy standing in the tunnel's core, and a tenth off is enough air to
-    // read both. It multiplies the measured size rather than the caps, so the
-    // ceiling is still the shipped file's own 384px longest side and nothing
-    // is ever upscaled.
-    const base = clamp(Math.min(w * 0.5, h * 0.45) * 0.9, 135, 384);
+    /* Half the frame's width or getting on for half its height, whichever is
+     * the tighter, capped at the shipped file's own longest side, so nothing
+     * is ever upscaled.
+     *
+     * 0.68, and the ceiling with it from 384 to 320 (v0.4.0). The reader has
+     * now asked twice for these smaller: 0.9 in v0.3.7 and this. A quarter
+     * off again puts a piece at 245px on a 1280-wide laptop and 330 on a
+     * 1080p screen, which is where the ceiling starts binding rather than the
+     * frame, and the ceiling is exactly the resolution the files are now cut
+     * at, so the two agree and no piece is ever drawn from more or fewer
+     * pixels than it has. That agreement is the point: the smaller pieces are
+     * what let the whole set be re-cut at 320 rather than 384, and 320 is
+     * most of where the 27% off its bytes came from. */
+    const base = clamp(Math.min(w * 0.5, h * 0.45) * 0.68, 120, 320);
     for (const it of items) {
       const wid = Math.round(it.tall ? base * it.aspect : base);
       if (wid === it.w) continue;
@@ -1776,10 +1963,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * One call used to set all seventy-four srcs at once, which asks the
    * connection for 1.5MB in a single burst somewhere around p 0.44, right in
    * the middle of the ring chapter, and hands the decoder seventy-four images
-   * to unpack while the film is drawing. The pieces themselves are already as
-   * small as they are ever going to be (384px longest side, WebP at quality
-   * 64 with a lossy alpha, a median of 20KB), so there are no bytes left to
-   * take out; what was left was WHEN.
+   * to unpack while the film is drawing. Where the bytes went instead is the
+   * note above `ext`; what was left after that was WHEN.
    *
    * The procession is a queue, and its order is known at build time, so the
    * first wave is only the pieces that arrive first. Sixteen of them, which
@@ -1800,13 +1985,19 @@ import { JEWELRY } from "./jewelry-manifest.js";
       const img = items[i].img;
       if (!img.dataset.src) continue;
       img.fetchPriority = priority;
-      img.src = img.dataset.src;
+      img.src = img.dataset.src + ext;
       img.removeAttribute("data-src");
     }
   }
 
   function armGallery() {
     if (galleryArmed) return;
+    // Which of the two sets this browser gets is not known on the frame the
+    // film first crosses 0.44. Park; the probe calls back.
+    if (ext === null) {
+      armPending = true;
+      return;
+    }
     galleryArmed = true;
     armFrom(0, FIRST_WAVE, "high");
     /* The tail goes out on the next frame rather than in this one. Setting
@@ -2299,13 +2490,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const win = IN_FLIGHT / n;
     const cx = viewW * 0.5;
     /* The tunnel's core has to sit where the WORDS are, and on a narrow frame
-     * the words are not in the middle. home.css stacks an ink beat at the top
-     * of a portrait screen instead of centring it, so a core held at 50% left
-     * the copy outside its own clearing with a ring across it. The tunnel
-     * drops by the same measure the type rose, on the same 9/10 line the
-     * camera and the beats already trade layouts at. */
+     * the words are not in the middle. home.css stacks an ink beat at the TOP
+     * of a portrait screen instead of centring it, so a core held at 50%
+     * leaves the copy outside its own clearing with a ring across it.
+     *
+     * It moved by 0.13 the WRONG WAY from v0.3.2 to v0.4.0: the note said the
+     * core had to follow the type and then sent it thirteen hundredths of a
+     * screen DOWN while home.css was pulling the type up to 34%. Two thirds
+     * of a screen apart, on the only layout where it matters, which is why a
+     * phone kept putting a ring across the eyebrow and why the clearing over
+     * it had to be strong enough to be a panel. It now lands on the 34% the
+     * stylesheet uses, on the same 9/10 line the camera and the beats already
+     * trade layouts at. */
     const portraitK = clamp((0.9 - viewW / viewH) / 0.45, 0, 1);
-    const cy = viewH * (0.5 + 0.13 * portraitK);
+    const cy = viewH * (0.5 - 0.16 * portraitK);
     /* How far out a piece at full size flies, PER AXIS. One radius taken off
      * the frame's longest side works on a laptop and falls apart on a phone:
      * a portrait frame's long side is its height, so the tunnel was built
@@ -2360,27 +2558,40 @@ import { JEWELRY } from "./jewelry-manifest.js";
        * on rather than a thing arriving. The reader put it exactly right,
        * that they popped from existence.
        *
-       * So the far end of the procession sits a tenth of a frame LOWER than
-       * where the piece will come to rest, and closes that gap as it
-       * approaches. The whole queue drifts upward through the frame while the
-       * reader scrolls down it, which is both the honest reading of a camera
-       * moving forward and level, and the motion that makes the arrival a
-       * move instead of an event. It is a pure function of d like everything
-       * else here, so it scrubs backwards without a stray state. */
-      const rise = Math.max(d, 0) * viewH * 0.1;
+       * So the far end of the procession sits LOWER than where the piece will
+       * come to rest, and closes that gap as it approaches. The whole queue
+       * drifts upward through the frame while the reader scrolls down it,
+       * which is both the honest reading of a camera moving forward and
+       * level, and the motion that makes the arrival a move instead of an
+       * event. It is a pure function of d like everything else here, so it
+       * scrubs backwards without a stray state.
+       *
+       * A tenth of the frame was not enough and the reader said so again
+       * (v0.4.0). A quarter is: at the far end, where the piece is smallest
+       * and its own bearing gives it almost no travel, the rise is now the
+       * only movement it has, and it is a fifth of the screen's height of it.
+       * Squared, so the climb is mostly spent at the far end and the piece is
+       * already settling on its mark by the time it is big enough to read;
+       * linear, the whole queue slid visibly upward under the copy. */
+      const dd = Math.max(d, 0);
+      const rise = dd * dd * viewH * 0.25;
       // Offset by half the piece's own box, so the scale (which pivots on
       // that box's centre) grows it about the point it is aimed at.
       const x = cx + Math.cos(it.ang) * r * spreadX - it.w * 0.5;
       const y = cy + Math.sin(it.ang) * r * spreadY + rise - it.h * 0.5;
-      /* In from the far distance over MOST of the approach, not over its last
-       * fifth. The old window ran from d 1.0 to 0.82, which at this queue
-       * length is a couple of hundred pixels of scroll: long enough to be a
-       * fade in the code and short enough to be a pop on the screen. Opening
-       * it out to nearly half the travel means a piece is already there, faint
-       * and small and climbing, well before it is worth looking at. Squared,
-       * so it stays quiet at the far end and does its arriving late, where the
-       * rise is also biggest. */
-      const inK = clamp((1 - d) / 0.45, 0, 1);
+      /* In from the far distance over most of the approach: this ran from
+       * d 1.0 to 0.82 until v0.3.7 and to 0.55 after it, and it now runs to
+       * 0.45. Squared, so it stays faint at the far end where a piece is a
+       * speck and does its arriving late, where the rise is biggest too.
+       *
+       * It was briefly run over the WHOLE travel, and that was too far: taken
+       * with the rise the pieces were still climbing out of nothing at the
+       * point they are large enough to be worth looking at, and the reader
+       * asked where they had gone. A fade wants to be over BEFORE a piece
+       * arrives, not while it does. The rise is what carries the arrival now,
+       * and it is the better of the two cues because it is movement rather
+       * than an absence. */
+      const inK = clamp((1 - d) / 0.55, 0, 1);
       const a = inK * inK * (d < 0 ? 1 + d / PAST : 1);
       it.el.style.opacity = clamp(a, 0, 1).toFixed(3);
       it.el.style.transform =
@@ -2591,14 +2802,31 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // lights: any progress change, or the tease leaning on the lid.
     if (pDrawn !== before || teaseT0 >= 0) renderer.shadowMap.needsUpdate = true;
 
-    const teasing = filmAt(pDrawn, t, dt);
-    driveBeats(pDrawn, introK);
-
-    if (!canvas.classList.contains("is-ready")) {
-      canvas.classList.add("is-ready");
-      if (!loaderDone) finishLoader(t);
-    }
-
+    /* EVERY RESIZE HAPPENS BEFORE THE DRAW, NEVER AFTER IT, and that one
+     * ordering is the black-and-white flicker the reader reported inside the
+     * stone (v0.4.0).
+     *
+     * Assigning to a canvas's width or height re-initialises its drawing
+     * buffer, and a WebGL buffer is re-initialised to TRANSPARENT BLACK.
+     * Three's setSize does that assignment unconditionally, so every call to
+     * rescale() wipes whatever is on screen. Both dials that reach it used to
+     * be read at the END of the frame, after the film had been drawn: the
+     * finished picture was thrown away a line after it was made, and the
+     * canvas then stood empty until the NEXT frame drew into it, which the
+     * 60fps cap is free to hold back by up to a display interval or two.
+     *
+     * In the dark room an empty canvas is a black frame over black silk and
+     * nobody could ever have seen it. Inside the diamond the room is white,
+     * so the same empty frame is a hard black flash across the whole screen,
+     * and the motion tier fires one at the start of every scroll and another
+     * at the end of it. A reader working down that chapter in short pushes,
+     * which is how anybody reads, gets two flashes per push.
+     *
+     * Decided here, the resize lands on an empty frame and filmAt fills it in
+     * the same callback, so no wiped buffer is ever presented. Nothing else
+     * moves: the thresholds, the three-frame run and the governor's own hold
+     * are exactly as they were. */
+    const settling = pDrawn !== pTarget;
     const soloLive =
       !held &&
       !reduceMotion.matches &&
@@ -2612,30 +2840,44 @@ import { JEWELRY } from "./jewelry-manifest.js";
       !reduceMotion.matches &&
       pDrawn > CODA[0] + 0.004 &&
       pDrawn < 1;
-    const settling = pDrawn !== pTarget;
     const introLive = !held && introT0 && introK < 1;
-    const live = settling || teasing || soloLive || codaLive || introLive;
-    govern(t, dt, live);
+    /* The tease is the one live state that cannot be known before the film is
+     * evaluated, and it is also the one that never belongs here: it plays at
+     * a PARKED progress, so it can neither move the motion tier (which asks
+     * whether the reader's own hand is moving) nor tell the governor anything
+     * about sustained load. Everything else is arithmetic on pDrawn. */
+    const clocked = settling || soloLive || codaLive || introLive;
 
     /* The motion tier. `pDrawn !== before` is the reader's own hand and
      * nothing else: the tease breathing on the lid, the lifted stone's idle
      * turn and the coda's are all live frames at a parked progress, and
      * those are exactly the frames somebody is sitting still and looking at,
-     * so they keep every pixel. ANDed with `live` so the frame that comes to
-     * rest gives the resolution back on the spot rather than one frame late,
-     * which is the only frame where being late would show. */
+     * so they keep every pixel. */
     const wasMoving = moving;
-    if (!qForced && live && pDrawn !== before) {
+    if (!qForced && clocked && pDrawn !== before) {
       if (++moveRun >= 3) moving = true;
     } else {
       moveRun = 0;
       moving = false;
     }
     if (moving !== wasMoving) rescale();
+    govern(t, dt, clocked);
 
-    // ...and if that was the last frame, ask for one more, so the picture
-    // the reader stops on is the sharp one.
-    if (live || (wasMoving && !moving)) wake();
+    const teasing = filmAt(pDrawn, t, dt);
+    driveBeats(pDrawn, introK);
+
+    if (!canvas.classList.contains("is-ready")) {
+      canvas.classList.add("is-ready");
+      if (!loaderDone) finishLoader(t);
+    }
+
+    /* One more frame while the picture is still cheap, so the frame the
+     * reader stops on is the sharp one: the next callback finds pDrawn
+     * unmoved, steps the tier back up, resizes, and draws full resolution
+     * into the buffer it has just made. That is also why `moving` is a wake
+     * condition in its own right rather than a special case of the frame the
+     * film comes to rest on. */
+    if (clocked || teasing || moving) wake();
   }
 
   /* ------------------------------------------------------------- the boot */

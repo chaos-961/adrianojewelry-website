@@ -227,16 +227,45 @@ function buildBrilliant() {
  * time, is left a hair cool, so the body of it reads icy and the fire comes
  * up warm against that. Nothing here is more than a few percent off neutral;
  * a stone with an obvious colour cast is a stone with a problem. */
+/* THE PANELS ARE PROPERLY GELLED AS OF v0.4.0, asked for as wanting the
+ * stone's colour improved "with some purple/blue these amazing colours".
+ *
+ * They used to sit within a few percent of neutral, on the principle written
+ * above: a stone with an obvious colour cast is a stone with a problem. That
+ * principle is about the stone's BODY, and the body is set by the ceiling,
+ * which is still near-white and is still what the crown answers to most of
+ * the time. These nine are the standing walls, and what they do is rake ACROSS
+ * a turning stone: each one is a hard edge that crosses a facet, throws a
+ * flash on the way past, and leaves a band of fire where the spectrum
+ * straddles it. Gelled at four percent that flash is white; gelled properly it
+ * is the colour of the wall it came from, and it changes as the stone turns,
+ * which is what anybody means by a diamond having colour in it.
+ *
+ * So the walls are now a real bench's gels, and WHICH wall gets which is
+ * decided by its width, which is the part that had to be learned by getting
+ * it wrong. A gelled panel came out of the stone as a flat coloured plate the
+ * first time, because the two BROAD walls are what a big flat facet returns:
+ * held at 55% of the table's own width, the table is nearly always looking at
+ * one of them, and whatever colour it is, the table is that colour. The
+ * narrow ones are never returned by anything for long; they are the hard
+ * edges that rake ACROSS a turning stone and throw the flashes.
+ *
+ * So the broad walls stay near white, one cool and one warm, and every gel
+ * that means anything is spent on the narrow ones: two violet, two blue, one
+ * amber, alternating round the tent so the colour changes as the stone turns
+ * instead of sitting on it. Every value stays under 0.78 for the reason
+ * above, since a panel handed the sparkle multiplier turns the whole stone
+ * into a white pebble. */
 const PANELS = [
-  [0.055, 0.028, 0.3, 0.5, 0.54, 0.51, 0.45],
-  [0.155, 0.014, 0.33, 0.47, 0.33, 0.37, 0.44],
-  [0.3, 0.044, 0.28, 0.52, 0.66, 0.66, 0.68],
-  [0.41, 0.012, 0.31, 0.45, 0.46, 0.42, 0.35],
-  [0.52, 0.02, 0.32, 0.47, 0.3, 0.34, 0.4],
-  [0.63, 0.015, 0.29, 0.49, 0.44, 0.44, 0.44],
-  [0.74, 0.048, 0.29, 0.51, 0.62, 0.58, 0.5],
-  [0.865, 0.014, 0.33, 0.46, 0.36, 0.41, 0.48],
-  [0.945, 0.018, 0.3, 0.48, 0.5, 0.5, 0.52],
+  [0.055, 0.028, 0.3, 0.5, 0.6, 0.55, 0.46],
+  [0.155, 0.014, 0.33, 0.47, 0.26, 0.34, 0.62],
+  [0.3, 0.044, 0.28, 0.52, 0.62, 0.63, 0.7],
+  [0.41, 0.012, 0.31, 0.45, 0.44, 0.3, 0.62],
+  [0.52, 0.02, 0.32, 0.47, 0.3, 0.38, 0.6],
+  [0.63, 0.015, 0.29, 0.49, 0.6, 0.44, 0.26],
+  [0.74, 0.048, 0.29, 0.51, 0.62, 0.59, 0.53],
+  [0.865, 0.014, 0.33, 0.46, 0.34, 0.28, 0.62],
+  [0.945, 0.018, 0.3, 0.48, 0.44, 0.5, 0.62],
 ];
 const SPECKS = [
   [0.02, 0.6, 4], [0.11, 0.53, 5], [0.17, 0.63, 6], [0.21, 0.72, 3],
@@ -307,11 +336,31 @@ function tentTexture() {
    * change places as it turns. */
   const RINGS = [0, 0.07, 0.135, 0.19, 0.235];
   const CELLS = 12;
+  /* HAIRLINES, AND THEY HAVE TO STAY HAIRLINES (found the hard way, v0.4.0).
+   *
+   * Widening these to 0.007 and 0.011 looked like an obvious improvement: the
+   * seams are the crown's contrast, so more of them should be more structure.
+   * What it actually did was turn the TABLE solid yellow-green, and it took a
+   * long bisect to believe it. The pavilion hands the table the ceiling, the
+   * table is the largest flat facet in the cut so every fragment of it samples
+   * the same place, and the seven spectral bands land a fraction of a degree
+   * apart. Widen a seam and that fraction of a degree is enough for the short
+   * bands to fall in the black while the long ones stay on a lit cell: the
+   * missing blue comes back as a yellow plate across the biggest surface on
+   * the stone. Measured at the table's centre, 251,255,252 with these and
+   * 244,250,207 with the wide ones.
+   *
+   * The rule that falls out of it: any hard edge in this tent must be either
+   * NARROWER than the spectral spread, so every band crosses it together, or
+   * much wider than it. In between is a colour cast. */
   const SEAM_U = 0.0035;
   const SEAM_V = 0.005;
+  // A percent or two off neutral each way, and now a hair further, so the
+  // crown reads a dozen slightly different whites rather than one. Still far
+  // too little to cast: the body of the stone is set by the AVERAGE up here.
   const TINTS = [
-    [1.0, 0.99, 0.962], [1.0, 1.0, 1.0], [0.968, 0.988, 1.026],
-    [1.0, 0.997, 0.982], [0.984, 0.995, 1.014], [1.0, 0.982, 0.955],
+    [1.0, 0.985, 0.948], [1.0, 1.0, 1.0], [0.955, 0.985, 1.045],
+    [1.0, 0.995, 0.975], [0.972, 0.99, 1.03], [1.0, 0.972, 0.935],
   ];
   for (let ring = 0; ring < RINGS.length - 1; ring++) {
     for (let k = 0; k < CELLS; k++) {
@@ -344,16 +393,16 @@ function tentTexture() {
    * Nine degrees or so, which is a real lens at a real working distance, with
    * a soft rim so it reads as an aperture rather than a sticker. Small on
    * purpose: it must take the middle of the table and leave the coffered ring
-   * around it to do the burning. */
+   * around it to do the burning.
+   *
+   * A radial gradient used to be built here as well, and it was dead code: its
+   * fillStyle was overwritten by the linear one below before anything had been
+   * painted with it, so it never reached a pixel. Removed in v0.4.0, and
+   * nothing about the tent changed, which is the proof. A lat-long sheet's
+   * pole is its whole top EDGE, so a band across it is the right shape and a
+   * disc was never going to be one. */
   {
     const HEAD_V = 0.05;
-    const cap = g.createRadialGradient(0, 0, 0, 0, 0, H * (HEAD_V + 0.028));
-    cap.addColorStop(0, "rgba(0,0,0,0.97)");
-    cap.addColorStop(HEAD_V / (HEAD_V + 0.028), "rgba(0,0,0,0.95)");
-    cap.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = cap;
-    // The pole is the whole top edge of a lat-long sheet, so the obstruction
-    // is a band across it, faded by distance down from that edge.
     const band = g.createLinearGradient(0, 0, 0, H * (HEAD_V + 0.028));
     band.addColorStop(0, "rgba(0,0,0,0.97)");
     band.addColorStop(HEAD_V / (HEAD_V + 0.028), "rgba(0,0,0,0.92)");
@@ -364,7 +413,7 @@ function tentTexture() {
 
   const CEIL_V = RINGS[RINGS.length - 1];
   const fade = g.createLinearGradient(0, H * CEIL_V, 0, H * (CEIL_V + 0.022));
-  fade.addColorStop(0, lv(0.2, 0.21, 0.23));
+  fade.addColorStop(0, lv(0.17, 0.2, 0.28));
   fade.addColorStop(1, "rgba(0,0,0,0)");
   g.fillStyle = fade;
   g.fillRect(0, H * CEIL_V, W, H * 0.022);
@@ -560,12 +609,35 @@ const FRAG_BACK = [
  * a cool one cools the far end. With a neutral tent this is exactly the grey
  * behaviour it replaced; with a gelled one it is the difference between fire
  * that is always the same colour and fire that changes as the stone turns. */
+/* SEVEN BANDS, NOT FIVE, AND THE SHORT END IS VIOLET (v0.4.0).
+ *
+ * Five was still enough to quantise. A facet is FLAT, so the refracted
+ * direction barely varies across it, which means all five samples land in
+ * nearly the same five places for every fragment of that facet; if four of
+ * them fall on the tent's black and one on a lit panel, the whole triangle
+ * comes back one saturated colour. That is what the reader was looking at,
+ * and it reads as a coloured sticker rather than as fire, because real fire
+ * is a spectrum SMEARED along an edge and never a flat field.
+ *
+ * Seven bands with two thirds more spread put more samples in the gap, so a
+ * facet crossing an edge comes back as a graded run through the spectrum
+ * instead of a single primary, and a facet catching a light in most of its
+ * bands still reads white. Two extra cube fetches per fragment on the front
+ * pass, which is the only place on this page where colour is the subject.
+ *
+ * The short end is VIOLET rather than pure blue, which is both what the eye
+ * does at 430nm and what the reader asked for. Every colour is linear sRGB
+ * and the seven sum to exactly (1,1,1), so a stone standing in a flat white
+ * room still comes out white: the colour lives in the disagreement between
+ * the bands, never in their total. */
 const BANDS = [
-  ["1.0 + uDisp", "0.5319, 0.0556, 0.0"],
-  ["1.0 + 0.5 * uDisp", "0.3723, 0.2593, 0.0160"],
-  ["1.0", "0.0798, 0.3704, 0.0798"],
-  ["1.0 - 0.5 * uDisp", "0.0160, 0.2593, 0.3723"],
-  ["1.0 - uDisp", "0.0, 0.0556, 0.5319"],
+  ["1.0 + dsp", "0.23, 0.0, 0.0"],
+  ["1.0 + 0.667 * dsp", "0.31, 0.05, 0.0"],
+  ["1.0 + 0.333 * dsp", "0.24, 0.24, 0.0"],
+  ["1.0", "0.09, 0.36, 0.03"],
+  ["1.0 - 0.333 * dsp", "0.0, 0.25, 0.25"],
+  ["1.0 - 0.667 * dsp", "0.03, 0.09, 0.36"],
+  ["1.0 - dsp", "0.10, 0.01, 0.36"],
 ];
 
 const FRAG_FRONT = [
@@ -585,6 +657,17 @@ const FRAG_FRONT = [
   "  float f = clamp(1.0 - abs(dot(N, V)), 0.0, 1.0);",
   "  float fres = 0.172 + 0.828 * pow(f, 5.0);",
   "  vec3 refl = tent(reflect(V, N));",
+  /* HOW FAR THE SPECTRUM COMES APART IS A FUNCTION OF THE ANGLE (v0.4.0).
+   *
+   * A ray that meets a facet square goes straight through it: no deviation,
+   * and with no deviation there is no dispersion, whatever the stone is made
+   * of. The splitting grows with the angle of incidence, which is why a bench
+   * looks for fire on the raked facets round the edge of a crown and never off
+   * a table pointed at you, and it is why the fire this throws now moves as
+   * the stone turns rather than sitting on it. Held at a constant, as it was
+   * from v0.2.5, every facet split its spectrum by the same amount whether it
+   * was square to the reader or nearly edge on. */
+  "  float dsp = uDisp * (0.35 + 0.9 * f);",
   "  vec3 thru = vec3(0.0);",
 ]
   .concat(
@@ -667,7 +750,7 @@ export function createBrilliantDiamond(opts) {
       uGain,
       uHot,
       uEta: { value: 0.62 },
-      uDisp: { value: 0.035 },
+      uDisp: { value: 0.048 },
       uThru: { value: 0.46 },
       uRefl: { value: 1.0 },
     },

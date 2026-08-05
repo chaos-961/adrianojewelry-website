@@ -856,7 +856,25 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
   led.shadow.normalBias = 0.015;
   lid.add(led);
 
-  const ledSpill = new THREE.PointLight(0xf7fbff, 0, 3, 2);
+  /* THE SPILL IS WHAT MAKES THE LAMP VISIBLE, and until v0.4.0 it did not
+   * reach far enough to be seen at all.
+   *
+   * The lamp itself is at the lid's FREE edge, which is the one place on the
+   * box that a standing lid puts out of the shot: past 98.5 degrees the free
+   * edge has swung behind the hinge and above the rim, so the lens and its
+   * bloom end up at the far top of a recess the camera is looking into
+   * almost edge-on. Everything downstream was working; there was simply
+   * nothing in frame that was ON. The reader read the beat that says "It
+   * opens with its own light" against a lid whose inside was solid black,
+   * and reported, correctly, that the light only ever turns up later, when
+   * the rising ring finally carries some of it into view.
+   *
+   * So the evidence moves to where the camera IS looking, which is the inside
+   * of the lid: a point at nine, reaching six units instead of three, which
+   * is the recess's own diagonal. The recess ceiling and walls then carry the
+   * lamp's falloff across the whole of that black rectangle, and a lit
+   * interior is what a lit box looks like from the front. */
+  const ledSpill = new THREE.PointLight(0xf7fbff, 0, 6, 2);
   ledSpill.position.set(0, REC_H - 0.32, 1.42);
   lid.add(ledSpill);
 
@@ -880,7 +898,15 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
         blending: THREE.AdditiveBlending,
       })
     );
-    glowSprite.scale.setScalar(1.05);
+    /* BIG ENOUGH TO REACH DOWN INTO THE SHOT. The lamp sits at the lid's free
+     * edge and the opening chapter frames the BOX, so once the lid is
+     * standing the lamp itself is above the top of the viewport: measured at
+     * p 0.20, the brightest pixel anywhere in the top quarter of the frame was
+     * 12 of 255, and it was the beam, not the lamp. A bloom a sixth of the
+     * box across cannot be seen from outside the frame. At two and a half
+     * units it spills down over the lid's inner wall the way a real one does,
+     * which is the only part of it the reader was ever going to see. */
+    glowSprite.scale.setScalar(2.5);
     glowSprite.position.set(0, REC_H - 0.26, 1.42);
     lid.add(glowSprite);
   }
@@ -1022,7 +1048,20 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
         });
       }
 
-      const openFade = THREE.MathUtils.smoothstep(open, 0.45, 0.85);
+      /* EVERY ONE OF THESE USED TO WAIT FOR A LID THAT WAS MOSTLY OPEN, and
+       * that is the second half of the reader's report (v0.4.0). The lamp
+       * holds at full from the first frame (v0.3.7) but nothing that SHOWS it
+       * did: the bloom waited for the lid to be a fifth open, the shaft for
+       * nearly a half, the pool on the floor for two fifths. A lamp whose
+       * every visible sign arrives late is a lamp that arrives late, whatever
+       * its intensity says, and the beat it plays under is the one that
+       * promises a box with a light in it.
+       *
+       * They now come up with the crack, in the same breath as the seam glow
+       * that is already there, and hold. The gate cannot go to zero: the shut
+       * box has to stay shut, and a bloom drawn on the outside of a closed lid
+       * would be a lamp shining through wood. */
+      const openFade = THREE.MathUtils.smoothstep(open, 0.02, 0.2);
       led.intensity = 900 * lit * (parseFloat(dbg.ledx) || 1);
       // An unlit lamp must not bill for a shadow pass: three renders a
       // light's map regardless of intensity. Redrawing it is what the map
@@ -1031,10 +1070,9 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
       // under an intensity of zero contributes exactly nothing.
       led.shadow.needsUpdate =
         state.moved !== false && lit > 0.004 && dbg.ledshadow !== "0";
-      ledSpill.intensity = 2.6 * lit;
+      ledSpill.intensity = 9 * lit * openFade;
       lens.emissiveIntensity = 5 * lit;
-      glowSprite.material.opacity =
-        0.85 * lit * THREE.MathUtils.smoothstep(open, 0.2, 0.5);
+      glowSprite.material.opacity = 0.85 * lit * openFade;
 
       // The lamp's reach: the floor pool swells as the mouth opens; the
       // seam line glows only in the sliver between cracked and open.
@@ -1044,11 +1082,11 @@ export function createRingBox({ renderer, debug, ring: givenRing }) {
         (1 - THREE.MathUtils.smoothstep(open, 0.18, 0.42));
       seamGlow.material.opacity = 0.7 * crack;
       seamGlow.visible = crack > 0.01;
-      const poolFade = lit * THREE.MathUtils.smoothstep(open, 0.4, 0.9);
+      const poolFade = lit * openFade;
       floorPool.material.opacity = 0.75 * poolFade;
       floorPool.visible = poolFade > 0.01;
 
-      const beamA = 0.2 * lit * openFade;
+      const beamA = 0.5 * lit * openFade;
       beam.visible = beamA > 0.004;
       if (beam.visible) {
         beam.material.uniforms.uO.value = beamA;

@@ -708,34 +708,45 @@ html.js .journey {
   z-index: -1;
   left: 50%;
   top: 50%;
-  width: min(64rem, 104vw);
-  height: min(30rem, 74svh);
+  /* SMALLER AND MUCH WEAKER THAN IT WAS (v0.4.0). At 104vw by 74svh and 0.97
+     white at its middle this was not a clearing, it was a PANEL: it covered
+     most of the frame, it sat over the gallery by construction, and every
+     piece that came down the tunnel behind the copy was washed to a ghost by
+     it. The reader could see the ones out at the walls and asked where the
+     rest had gone. The type's legibility is carried by the halo on the glyphs
+     themselves, which is local and costs the picture nothing; this only has
+     to take the edge off whatever is directly under a line of text. */
+  width: min(48rem, 88vw);
+  height: min(22rem, 54svh);
   transform: translate(-50%, -50%);
-  /* Stronger than it was, because what is behind it is stronger than it was:
-     the pieces used to drift past small and half of them blurred, and they
-     now arrive sharp and up to a third of the frame across. */
   background: radial-gradient(
     closest-side,
-    rgba(255, 255, 255, 0.97),
-    rgba(255, 255, 255, 0.76) 55%,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.34) 55%,
     rgba(255, 255, 255, 0) 100%
   );
   opacity: calc(min(var(--k) / 0.14, 1) * (1 - clamp(0, (var(--k) - 0.82) / 0.16, 1)));
 }
 
+/* The halos do the work the panel above used to do, and they do it where it
+   is needed: hugging the letterforms rather than spread over the whole room.
+   Doubled up since v0.4.0, a wide soft one to lift whatever is behind the
+   line and a tight hard one to hold the stroke's own edge. */
 .beat--ink .beat__title {
   color: var(--crystal-fg);
-  text-shadow: 0 0 26px rgba(255, 255, 255, 0.95), 0 0 9px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 0 34px rgba(255, 255, 255, 0.98), 0 0 14px rgba(255, 255, 255, 0.95),
+    0 0 5px rgba(255, 255, 255, 0.9);
 }
 
 .beat--ink .beat__sub {
   color: var(--crystal-muted);
-  text-shadow: 0 0 18px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.98), 0 0 10px rgba(255, 255, 255, 0.95),
+    0 0 4px rgba(255, 255, 255, 0.9);
 }
 
 .beat--ink .beat__eyebrow {
   color: var(--crystal-muted);
-  text-shadow: 0 0 14px rgba(255, 255, 255, 0.95);
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.98), 0 0 6px rgba(255, 255, 255, 0.9);
 }
 
 /* The coda beat stands beside the returned stone: the stone is carried
@@ -1173,7 +1184,7 @@ html.js .finale {
      happens to be drifting behind them. */
   .beat--ink::before {
     top: 34%;
-    height: min(26rem, 56svh);
+    height: min(20rem, 44svh);
   }
 
   .beat__sub {
