@@ -708,21 +708,29 @@ html.js .journey {
   z-index: -1;
   left: 50%;
   top: 50%;
-  /* SMALLER AND MUCH WEAKER THAN IT WAS (v0.4.0). At 104vw by 74svh and 0.97
+  /* SMALLER AND MUCH WEAKER THAN IT WAS (v0.4.0), and weaker again now that
+     the field itself gets out of the way (v0.4.1). At 104vw by 74svh and 0.97
      white at its middle this was not a clearing, it was a PANEL: it covered
      most of the frame, it sat over the gallery by construction, and every
      piece that came down the tunnel behind the copy was washed to a ghost by
      it. The reader could see the ones out at the walls and asked where the
-     rest had gone. The type's legibility is carried by the halo on the glyphs
-     themselves, which is local and costs the picture nothing; this only has
-     to take the edge off whatever is directly under a line of text. */
-  width: min(48rem, 88vw);
-  height: min(22rem, 54svh);
+     rest had gone.
+
+     Two things carry the type instead, and both are local. The halo on the
+     glyphs themselves, which costs the picture nothing at all; and home.js
+     pushing any piece whose path crosses the band of type sideways as it
+     passes, so on any frame wide enough to have room the words stand in real
+     empty room rather than in a bleached patch. What is left here is for the
+     frames that have no room to give: a phone's copy is most of its width, a
+     piece shoved clear of it would be shoved off the screen, and that is the
+     one case where something still has to pass behind a line. */
+  width: min(46rem, 86vw);
+  height: min(21rem, 50svh);
   transform: translate(-50%, -50%);
   background: radial-gradient(
     closest-side,
-    rgba(255, 255, 255, 0.7),
-    rgba(255, 255, 255, 0.34) 55%,
+    rgba(255, 255, 255, 0.52),
+    rgba(255, 255, 255, 0.24) 55%,
     rgba(255, 255, 255, 0) 100%
   );
   opacity: calc(min(var(--k) / 0.14, 1) * (1 - clamp(0, (var(--k) - 0.82) / 0.16, 1)));

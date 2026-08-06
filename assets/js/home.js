@@ -347,17 +347,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* ------------------------------------------------------------ the studio */
 
+  /* Multisampling is bought per sample per pixel, and what it buys is edge
+   * quality the display may already be providing for free. On a screen dense
+   * enough that one CSS pixel is two device pixels the downsample is itself an
+   * antialias, and MSAA on top of it measured at a sixth of the frame for a
+   * difference that needs a loupe. So it is spent only where it shows: a
+   * one-to-one display. On the context it cannot be changed later, since the
+   * flag belongs to the context, which is the other reason the governor below
+   * works in resolution instead. The lens's own target reads the same number
+   * (see the note on the target), so the film antialiases the same way for its
+   * whole length rather than for three quarters of it. */
+  const MSAA = (window.devicePixelRatio || 1) < 1.5;
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    /* Multisampling is bought per sample per pixel, and what it buys is edge
-     * quality the display may already be providing for free. On a screen
-     * dense enough that one CSS pixel is two device pixels the downsample is
-     * itself an antialias, and MSAA on top of it measured at a sixth of the
-     * frame for a difference that needs a loupe. So it is spent only where it
-     * shows: a one-to-one display. It cannot be changed later, since the flag
-     * belongs to the context, which is the other reason the governor below
-     * works in resolution instead. */
-    antialias: (window.devicePixelRatio || 1) < 1.5,
+    antialias: MSAA,
     alpha: true,
     powerPreference: "high-performance",
     stencil: false,
@@ -734,9 +737,38 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * always, and these now are. */
     { p: 0.331, y: RING_Y_UP + 0.28, yaw: 0.1, pit: 0.36, d: 6.2, fov: 30, sx: 0, fitW: 3.6 },
     { p: 0.388, y: RING_Y_UP + 0.32, yaw: 0.16, pit: 0.38, d: 5.8, fov: 30, sx: 0, fitW: 3.4 },
-    { p: 0.463, y: STONE_Y - 0.95, yaw: 0.24, pit: 0.4, d: 5.4, fov: 30, sx: 0, fitW: 3.5 },
-    { p: 0.503, y: STONE_Y - 1.0, yaw: 0.32, pit: 0.3, d: 5.2, fov: 30, sx: 0, fitW: 3.4 },
-    { p: 0.543, y: STONE_Y - 0.35, yaw: 0.4, pit: 0.44, d: 4.2, fov: 31, sx: 0, fitW: 2.6 },
+    /* AND THEN THE CAMERA COMES IN ON THE STONE, which is the other half of
+     * what the reader meant by the first diamond not being the same quality
+     * as the last one (v0.4.1). The pass below fixed the outline; this is the
+     * picture.
+     *
+     * These three keys used to hold at d 5.4, 5.2 and 4.2 with the lookAt a
+     * whole unit BELOW the girdle, because the ring is still leaving through
+     * them and the frame was being asked to hold both. What that bought was a
+     * stone 0.82 across in 4.6 of world, which is eighteen percent of the
+     * width, about two hundred and fifty pixels on a laptop, seen from
+     * thirteen degrees above its own girdle. Fifty-eight facets at that size
+     * and that angle average into one pale grey lozenge: there are not enough
+     * pixels for the arrows, the flashes or the fire to be anything but their
+     * own mean, and thirteen degrees is looking at the girdle edge-on with
+     * the pavilion under it, which is the part of a brilliant that is dark by
+     * design. The coda plays the same stone at thirty-four degrees filling a
+     * third of the frame and it reads as a diamond, and nothing else about
+     * the two shots differs: exposure is 1.120 in both and stoneLit is 1.000
+     * in both, measured.
+     *
+     * So the eye comes down to about twenty-eight degrees above the girdle,
+     * where the crown returns the tent's coffered ceiling and the pavilion
+     * folds the observer disc into arrows, and the distance closes until the
+     * stone is nearer a third of the frame than a fifth. The lookAt rises
+     * with it, and `sx` carries the subject right of centre so the copy on
+     * the left keeps its own half of the frame rather than sharing it. The
+     * ring is on its way out through all three and is allowed to leave past
+     * the edge; a thing being carried off does not need to be held in frame
+     * to read as leaving. */
+    { p: 0.463, y: STONE_Y - 0.34, yaw: 0.24, pit: 0.6, d: 3.5, fov: 30, sx: -0.4, fitW: 2.2 },
+    { p: 0.503, y: STONE_Y - 0.26, yaw: 0.32, pit: 0.56, d: 3.2, fov: 30, sx: -0.34, fitW: 2.1 },
+    { p: 0.543, y: STONE_Y - 0.18, yaw: 0.4, pit: 0.54, d: 2.9, fov: 31, sx: 0, fitW: 1.9 },
     { p: 0.574, y: STONE_Y, yaw: 0.46, pit: 0.5, d: 2.35, fov: 32, sx: 0, fitW: 1.6 },
     /* THE APPROACH, and the rule it now obeys: the stone is never allowed to
      * outgrow its own frame.
@@ -910,7 +942,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * Whatever renders into it therefore leaves its own tone mapping alone and
    * skips its encode (three renders into a target in the WORKING space, so
    * the encode chunk is a no-op there anyway); the blit below does it. */
-  const HALF = 0.5;
+  /* `?full=1` runs the scratch frame at 1:1 instead of a quarter of the
+   * fragments. It is not a quality setting and it does not ship as one: it is
+   * the reference arm for anything that goes wrong in either pass, since every
+   * artefact this file has chased in the gather has come from the half
+   * resolution rather than from the arithmetic, and the fastest way to tell
+   * the two apart is to take the resolution away. */
+  const HALF = params.has("full") ? 1 : 0.5;
   const fx = (() => {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute(
@@ -1444,6 +1482,15 @@ import { JEWELRY } from "./jewelry-manifest.js";
         "  vec4 c = texture2D(uCol, uv);",
         "  return vec4(dec(c.rgb), c.a);",
         "}",
+        /* The four full-resolution depths under this fragment, and how much a
+         * sub-pixel of it is worth to its own blur. Both are read by the
+         * centre and by every tap in the loop; see the two notes in main. */
+        "vec4 zq;",
+        "float own(float zi) {",
+        "  float fr = max(max(step(zi + 0.02, zq.x), step(zi + 0.02, zq.y)),",
+        "                 max(step(zi + 0.02, zq.z), step(zi + 0.02, zq.w)));",
+        "  return mix(1.0, clamp(coc(zi), 0.0, 1.0), fr);",
+        "}",
         /* EVERYTHING HERE IS RGBA, and that is not tidiness (v0.3.7). The
          * scene renders into this target over a clear of (0,0,0,0), so the
          * alpha channel IS the coverage: 1 where a prop or the floor stands,
@@ -1461,41 +1508,127 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * premultipliedAlpha. Gathering straight colour and alpha separately
          * instead would fringe every bokeh edge toward black. */
         "void main() {",
-        /* THE DISC IS SIZED OFF THE WHOLE 2x2 BLOCK, NOT OFF ONE POINT, and
-         * this one line is the outline the reader reported (v0.4.0).
+        /* THE WHOLE 2x2 BLOCK IS READ, AND BOTH NUMBERS TAKEN FROM IT, and
+         * this is the outline the reader reported. Twice (v0.4.0, v0.4.1).
          *
          * The depth texture is UnsignedInt with a NEAREST sampler, because
          * that is the only filter WebGL2 offers on one. Read at half
          * resolution, `viewZ(vUv)` therefore does not average the four
-         * full-resolution texels under this fragment; it PICKS one of them.
-         * So along a silhouette, where the object's circle of confusion and
-         * the empty frame's differ by the whole aperture, neighbouring
-         * half-res fragments were being handed wildly different radii by a
-         * coin toss: one gathers a wide disc and comes back nearly empty, the
-         * next gathers almost nothing and keeps its own bilinear sample,
-         * which straddles the edge and is half object. Alternating dark and
-         * bright, at half resolution, along every edge in the frame. Scaled
-         * back up that is a two-pixel dotted line drawn round the ring and
-         * round the stone, which is exactly what was reported, and it is why
-         * it looked drawn rather than photographed.
+         * full-resolution texels under this fragment; it PICKS one of them,
+         * and vUv lands exactly on the corner where all four meet, so which
+         * one it picks is decided by rounding. Along a silhouette that is a
+         * coin toss between the object's depth and the empty frame's.
          *
-         * Four depth reads at the four full-resolution texel centres, widest
-         * disc wins. The widest is the right one and not merely the safe one:
-         * a fragment that covers any part of the defocused background is
-         * showing that background, and the composite decides per full-res
-         * pixel how much of this frame it wants anyway, so an edge fragment
-         * that gathers too wide is simply not asked for. Three extra fetches
-         * at a quarter of the fragments, against thirty-two per fragment
-         * already here. */
+         * v0.4.0 saw that and fixed the RADIUS, which is half the story: four
+         * reads at the four full-resolution texel centres, widest disc wins.
+         * The widest is the right one and not merely the safe one, since a
+         * fragment covering any part of the defocused background is showing
+         * that background, and the composite decides per full-res pixel how
+         * much of this frame it wants anyway.
+         *
+         * But `z` itself is the OCCLUSION REFERENCE in the tap loop below,
+         * and it was left on the coin toss, which is where the dots actually
+         * came from. Land on the object's depth and every tap in the disc is
+         * behind you, so the whole disc is gathered and the fragment comes
+         * back bright; land on the empty frame's and the object's own taps
+         * have to earn their way in through their circle of confusion, so the
+         * fragment comes back dark. Alternating bright and dark, texel by
+         * texel, along every silhouette in the frame: scaled back up, a
+         * two-pixel dotted line drawn round the ring and round the stone.
+         *
+         * So z is the FARTHEST of the four. That is the choice that makes the
+         * two cases the film actually plays come out right, rather than
+         * merely the choice that is stable. A sharp object against a
+         * defocused ground: its taps are killed past a pixel, the edge texel
+         * holds the ground alone, and no halo is smeared outward from a thing
+         * that is not scattering. A defocused object against anything: its
+         * own circle of confusion is wide, so its taps pass the same test and
+         * it spreads exactly as it should. Taking the nearest instead would
+         * hand every sharp silhouette in the film a two-pixel glow, which is
+         * the same outline in the other direction. */
         "  vec2 h = uTexel * 0.5;",
-        "  float z = viewZ(vUv);",
-        "  float rad = coc(z);",
-        "  rad = max(rad, coc(viewZ(vUv + h)));",
-        "  rad = max(rad, coc(viewZ(vUv - h)));",
-        "  rad = max(rad, coc(viewZ(vUv + vec2(h.x, -h.y))));",
-        "  rad = max(rad, coc(viewZ(vUv + vec2(-h.x, h.y))));",
-        "  vec4 sum = tap(vUv);",
-        "  float wsum = 1.0;",
+        "  zq = vec4(viewZ(vUv + h), viewZ(vUv - h),",
+        "            viewZ(vUv + vec2(h.x, -h.y)), viewZ(vUv + vec2(-h.x, h.y)));",
+        "  float rad = max(max(coc(zq.x), coc(zq.y)), max(coc(zq.z), coc(zq.w)));",
+        /* AND THE CENTRE TAP IS THE FOUR PIXELS IT ACTUALLY IS, each admitted
+         * or refused on its own (v0.4.1). This is the last of the outline and
+         * the only part of it that survived multisampling.
+         *
+         * Every other tap in this disc has to earn its way in: one standing
+         * in FRONT of this fragment only arrives if its own blur is wide
+         * enough to scatter this far. The centre was exempt, because at full
+         * resolution the centre IS this fragment and a surface always covers
+         * itself. At half resolution it is four pixels, they need not be the
+         * same surface, and `tap(vUv)` lands on the corner where all four
+         * meet, so a bilinear read hands back a quarter of whatever sharp
+         * thing happens to occupy one of them. Every other trace of that
+         * thing has been refused at w = 0; this one walks in at w = 1.
+         *
+         * On a background fragment beside the sharp ring, the disc is half
+         * killed, so the denominator is small and that quarter comes back as
+         * a couple of percent of a white shank: a faint bright hairline
+         * hugging the metal all the way round, stippled by which sub-pixels
+         * the block happened to straddle. It is the "weird outline" left
+         * after the depth fixes, it is the thing the tent read was papering
+         * over, and it is why the halo followed the silhouette exactly rather
+         * than spreading like a blur.
+         *
+         * So the centre is read four times, at the four full-resolution texel
+         * centres, and each is weighted by the same rule as everything else:
+         * full, unless it stands in front of any of its own neighbours, in
+         * which case it is worth its own circle of confusion, which is zero
+         * for a surface that is sharp and one for a surface that is not. A
+         * sharp edge is then absent from the blur entirely; a defocused one
+         * spreads exactly as it did. Three extra fetches on a quarter of the
+         * frame's fragments, against thirty-two already here, and the
+         * farthest sub-pixel is never in front of anything, so the weight can
+         * never all cancel. */
+        "  float wa = own(zq.x);",
+        "  float wb = own(zq.y);",
+        "  float wc = own(zq.z);",
+        "  float wd = own(zq.w);",
+        "  vec4 sum = tap(vUv + h) * wa + tap(vUv - h) * wb",
+        "           + tap(vUv + vec2(h.x, -h.y)) * wc",
+        "           + tap(vUv + vec2(-h.x, h.y)) * wd;",
+        "  float wsum = wa + wb + wc + wd;",
+        /* AND THE SPIRAL IS TURNED A DIFFERENT WAY IN EVERY FRAGMENT. THIS IS
+         * THE DASHED LINE, and it is not a depth problem at all (v0.4.1).
+         *
+         * Sixteen taps over a disc fifteen pixels across is one sample per
+         * forty-four pixels of it: nowhere near enough to answer "how much of
+         * this disc is ring" on its own. That is the design and it is fine,
+         * because the answer only has to be right ON AVERAGE over the
+         * neighbours an eye reads together. It was not averaging anything.
+         * Every fragment used the same spiral at the same rotation, so
+         * neighbouring fragments read the same picture through the same
+         * stencil shifted by a texel, and along a straight edge the number of
+         * taps that land on the object steps up and down in step with that
+         * shift. Identical error, in phase, the whole length of the
+         * silhouette: a dashed line drawn round the ring and round the stone,
+         * bright where the count runs high, dark where it runs low.
+         *
+         * Turning the spiral by a per-fragment angle breaks the phase, and the
+         * choice of angle is the whole quality of the fix, because what the
+         * dashes become is whatever structure the angles have. A quarter turn
+         * per position in a 2x2 tile was tried first, on the argument that the
+         * composite's tent averages exactly that neighbourhood and would
+         * cancel it: what it actually leaves is a checkerboard, since a spiral
+         * and the same spiral turned half way round are point reflections of
+         * each other and disagree maximally about a straight edge, and the eye
+         * finds a checkerboard faster than it finds a dashed line.
+         *
+         * The R2 sequence instead, which is the two-dimensional golden ratio:
+         * it has no repeating tile at all, so there is no structure to find,
+         * and it is low-discrepancy rather than random, so adjacent fragments
+         * get angles that are far apart rather than merely independent. What
+         * is left is a fine grain in the falloff of a bokeh, at the scale of
+         * one texel, on an image whose whole content is the absence of detail.
+         * It costs a dot, a fract and a multiply.
+         *
+         * Both depth fixes above stay. They are what took the halo off the
+         * stone, which was a real and separate thing. */
+        "  float a0 = 6.2831853 * fract(dot(gl_FragCoord.xy,",
+        "                                  vec2(0.7548776, 0.5698402)));",
         /* Taps on a golden-angle spiral: an even disc at any radius, and no
          * ring artefacts, which a square kernel gives away instantly.
          * Sixteen of them, or eight on a phone, where the aperture is
@@ -1508,10 +1641,38 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * being evaluated at half the density (v0.3.9). */
         "  for (int i = 0; i < " + TAPS + "; i++) {",
         "    float fi = float(i);",
-        "    float a = fi * 2.3999632;",
+        "    float a = fi * 2.3999632 + a0;",
         "    float dp = sqrt((fi + 0.5) / " + TAPS + ".0) * rad;",
         "    vec2 su = vUv + vec2(cos(a), sin(a)) * dp * uTexel;",
         "    float zs = viewZ(su);",
+        "    float ws = clamp(coc(zs) - dp + 1.0, 0.0, 1.0);",
+        /* AND THE TEST IS RUN AGAINST ALL FOUR SUB-DEPTHS, NOT ONE (v0.4.1).
+         *
+         * This fragment covers four full-resolution pixels, and at a
+         * silhouette they do not agree about what is in front of what. There
+         * is no single depth to test against, and every attempt to name one
+         * draws a line: the reference used to be a NEAREST read at the exact
+         * corner where the four texels meet, so along an edge it was a coin
+         * toss between the object's depth and the empty frame's, and the two
+         * answers are as far apart as the tap loop can be. Land on the
+         * object's and every tap in the disc is behind you, so the whole disc
+         * is gathered and the fragment comes back bright; land on the empty
+         * frame's and the object's own taps have to earn their way in through
+         * their circle of confusion, so it comes back dark. Alternating
+         * bright and dark, texel by texel, along every silhouette in the
+         * frame: scaled back up, the dotted line drawn round the ring.
+         *
+         * Naming one of the four instead of tossing for it is stable, and
+         * still a line, just a continuous one, because the step from "no
+         * sub-pixel here is behind that tap" to "all four are" still happens
+         * inside a single texel. So the fragment does what it is: it answers
+         * the question four times and takes the mean. `f` is the fraction of
+         * this fragment that the tap stands in front of, the weight ramps
+         * across it in five steps instead of two, and the edge comes out as
+         * the two-pixel gradient a full-resolution gather would have given
+         * had it been averaged down. It is four compares and a mix per tap,
+         * against the two texture fetches already in it. */
+        "    float f = 0.25 * dot(step(vec4(zs + 0.02), zq), vec4(1.0));",
         /* Whether a neighbour reaches this fragment is decided by ITS circle
          * of confusion, not by this fragment's.
          *
@@ -1525,7 +1686,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * behind it while the ground receives nothing back, and a hard dark
          * line gets drawn around every lit thing on the stage. That outline
          * was the artefact, not the model. */
-        "    float w = zs < z - 0.02 ? clamp(coc(zs) - dp + 1.0, 0.0, 1.0) : 1.0;",
+        "    float w = mix(1.0, ws, f);",
         "    sum += tap(su) * w;",
         "    wsum += w;",
         "  }",
@@ -1607,7 +1768,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
          * Compared side by side against a gather forced to full resolution,
          * this is the frame that matches. */
         "vec4 blurred() {",
-        "  vec2 o = uBTexel * 0.5;",
+        /* 0.85 of a scratch texel rather than 0.5 (v0.4.1). The gather now
+         * turns its spiral a different way in every fragment, so neighbouring
+         * texels hold independent samplings of the same disc and this tent is
+         * where they average. At half a texel it weights that neighbourhood
+         * 9:3:3:1 and most of the averaging does not happen, which is the fine
+         * speckle left along a bokeh's falloff once the dashes had gone. At
+         * 0.85 the weights are near enough even to take it out, and all it
+         * costs is a fraction of a texel of softness on an image whose entire
+         * content is the absence of detail. */
+        "  vec2 o = uBTexel * 0.85;",
         "  return 0.25 * (texture2D(uBlur, vUv + o)",
         "               + texture2D(uBlur, vUv - o)",
         "               + texture2D(uBlur, vUv + vec2(o.x, -o.y))",
@@ -1677,28 +1847,32 @@ import { JEWELRY } from "./jewelry-manifest.js";
         magFilter: THREE.LinearFilter,
         depthBuffer: true,
         stencilBuffer: false,
-        /* NO MULTISAMPLING, and that is a measurement rather than an
-         * oversight (v0.4.0). `antialias` belongs to the CONTEXT and does not
-         * reach a render target, so on a one-to-one display the film really
-         * does lose its antialiased edges for the quarter of its length this
-         * pass is fitted over. `samples: 4` puts them back exactly: a
-         * passthrough frame then matches `?nolens=1` to the byte. It was
-         * written, measured and taken out again, because what it buys is not
-         * worth what it costs.
+        /* MULTISAMPLED WHEREVER THE CANVAS ITSELF IS, and this is the reader's
+         * "low quality" (v0.4.1). `antialias` belongs to the CONTEXT and does
+         * not reach a render target, so for the quarter of its length this
+         * pass is fitted over, the film was drawing every silhouette in it
+         * without antialiasing and then handing that to the canvas: the ring
+         * chapters had stair-stepped edges on a shank whose whole subject is
+         * a polished curve, and the coda, which draws straight to the canvas,
+         * did not. Put side by side that reads exactly as it was reported,
+         * one stone crisp and the other rough, and no amount of work on the
+         * gather could have touched it, because it is in the frame the gather
+         * is handed.
          *
-         * What it buys, at p 0.45 with the stone in focus: a mean difference
-         * of 0.13 of 255 over the frame, on 1.2% of pixels, which are the
-         * silhouettes. Side by side at three times life size the two stones
-         * are the same picture. What it costs, on this box's own GPU rather
-         * than under the rasteriser: 14.4ms to 19.9ms at p 0.32 and 8.6ms to
-         * 12.9ms at p 0.45, so 38% and 50% of two chapters that were already
-         * the most expensive in the film, on the machine of a reader who has
-         * asked for less of their GPU, not more. Under SwiftShader it is 82ms
-         * to 129ms, though no software rasteriser ever runs this pass.
+         * v0.4.0 measured this and took it out, and the measurement stands:
+         * 14.4ms to 19.9ms at p 0.32 and 8.6ms to 12.9ms at p 0.45 on this
+         * box's own GPU. What was wrong was the conclusion. It was weighed
+         * against a mean difference of 0.13 of 255 over the whole frame,
+         * which is the wrong statistic for an artefact that lives entirely on
+         * the silhouettes: an edge is one percent of the pixels in a frame
+         * and most of what anybody looks at in a photograph of jewelry.
          *
-         * A dense screen never sees any of it: the context turns `antialias`
-         * off above 1.5 device pixels anyway, so on a phone the target and
-         * the canvas already agree. */
+         * It costs nothing on the machines that cannot show it. The same flag
+         * the context uses gates it, so above 1.5 device pixels the target
+         * and the canvas agree at zero samples exactly as they did before,
+         * and the phones this file spent v0.3.9 economising for pay nothing
+         * at all. */
+        samples: MSAA ? 4 : 0,
       });
       /* THREE LINES THAT PUT THE COLOUR PIPELINE BACK, and they only work
        * together (v0.4.0).
@@ -1795,7 +1969,63 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* ------------------------------------------------------------ the gallery */
 
-  /* THE PROCESSION.
+  /* THE FIELD (v0.4.1), asked for as wanting the pieces "all scattered and I
+   * scroll to see them ... with some animation ofc".
+   *
+   * What it replaces is the procession below, and the procession's own note is
+   * kept under this one because everything it learned still binds. It was a
+   * queue: one piece at a time swelling up the middle distance, sweeping past,
+   * and the next resolving behind it. That is a good shot and a poor SHOWCASE,
+   * because at any instant most of the frame is the room. Measured off a
+   * capture at p 0.75 there were seven pieces anywhere on a 1440 frame, five
+   * of them cut by an edge and two of them small enough to be punctuation, and
+   * the middle third of the picture, which is where anybody looks, was empty
+   * white. Seventy-four pieces went past and the reader could not have told
+   * you there were more than a dozen.
+   *
+   * So they are scattered over a BOARD instead: a tall field of pieces at
+   * assorted sizes and assorted places, five or so frames of it, that rises
+   * through the window as the reader scrolls, the way a wall of work goes past
+   * when you walk along it. Fifteen or so are in the frame at once on a
+   * laptop and eight on a phone, they overlap, they are not on a grid, and
+   * every one of them arrives: it comes up from under the bottom edge, fades
+   * in over the first tenth of its climb and settles the last of its size as
+   * it comes, then leaves at the top. Nothing pops.
+   *
+   * Four things hold it together, and each is inherited from the procession
+   * rather than rediscovered.
+   *
+   * SIZE IS RASTERISED ONCE, at the largest the piece will ever be drawn, and
+   * the transform only ever scales DOWN from it. A layer rasterised small and
+   * scaled up is exactly the blur this chapter exists to avoid, and the
+   * ceiling is the 320px the files are actually cut at, so no piece is ever
+   * drawn from more or fewer pixels than it has.
+   *
+   * THE SCATTER IS LOW-DISCREPANCY, NOT RANDOM. A piece's place across the
+   * frame comes off the golden ratio rather than a draw, so consecutive
+   * pieces, which are also vertical neighbours on the board, land as far apart
+   * across the frame as they can. Random x on a board this dense clumps three
+   * pieces into one corner and leaves a hole beside them, every time, and the
+   * hole reads as a mistake rather than as a composition.
+   *
+   * BIGGER IS NEARER, AND NEARER TRAVELS FASTER. Each piece's size doubles as
+   * its depth and scales its speed up the board by a fifth either way, which
+   * is parallax and costs one multiply. It cannot drift out of order or bunch,
+   * because the speed multiplies a term that is zero at the moment the piece
+   * crosses the middle of the frame: whatever its speed, it arrives there at
+   * its own place in the queue.
+   *
+   * AND THE FIELD PARTS AROUND THE WORDS rather than being hidden behind a
+   * panel. A piece whose path would carry it across the copy is pushed sideways
+   * as it passes, by an amount that rises and falls smoothly with how far into
+   * the band of type it has come, so what the eye reads is pieces making room
+   * and closing again. That is the honest fix for what v0.4.0 was reaching for
+   * with `.beat--ink::before`: the reader asked for the panel that was hiding
+   * the rings to go, and the way to stop something standing in front of the
+   * words is to move it, not to bleach it.
+   *
+   * ---------------------------------------------------------------------
+   * THE PROCESSION, which this replaced, and what it was for.
    *
    * Until v0.3.2 this was three bands of small pieces drifting upward at
    * three speeds, and the reader's verdict was that nothing in it could be
@@ -1821,8 +2051,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * exists to remove. And only the pieces actually in flight are written to
    * each frame; the rest are left alone entirely, so a frame of this costs a
    * dozen transforms rather than seventy-four. */
-  const IN_FLIGHT = 12; // pieces between the vanishing point and the frame
-  const PAST = 0.16; // how far past the camera a piece keeps travelling
+
+  /* How tall the board is, in frame heights, at a wide aspect and at a narrow
+   * one. It is the ONE dial for how crowded the chapter is, since the number
+   * of pieces in the frame at any moment is just the manifest length divided
+   * by it: 74 over 4.9 is fifteen on a laptop, 74 over 9.2 is eight on a
+   * phone. A phone gets fewer because a piece is a much larger share of a
+   * narrow frame; the same fifteen there would be a pile rather than a
+   * scatter. */
+  const SPAN_WIDE = 4.9;
+  const SPAN_TALL = 7.4;
   const items = [];
   let galleryArmed = false;
 
@@ -1906,22 +2144,30 @@ import { JEWELRY } from "./jewelry-manifest.js";
       img.height = piece.h;
       el.appendChild(img);
       frag.appendChild(el);
-      /* Its place in the queue, its bearing out of the centre and how far out
-       * it flies. The bearing is the golden angle rather than a random draw:
-       * consecutive pieces then leave in maximally different directions, so
-       * no two neighbours in time are ever neighbours on screen, and the
-       * frame fills evenly without anybody having to check that it does. */
+      /* Where on the board this piece stands, how big it is there, and how
+       * fast it therefore travels.
+       *
+       * `slot` is its place down the board, jittered by up to a third of the
+       * gap to its neighbours so the rows do not read as rows. `lane` is its
+       * place across the frame and comes off the golden ratio rather than a
+       * draw, so the piece after it lands as far across as it can get; that
+       * is what stops a dense scatter clumping. `sz` is both its size and its
+       * depth, and `spd` is read straight off it, because a nearer thing goes
+       * past faster. */
+      const sz = 0.54 + 0.46 * rand();
       items.push({
         el,
         img,
-        slot: (i + 0.5) / n,
-        ang: i * 2.3999632 + rand() * 0.5,
-        // Nothing travels down the middle of the tunnel: the copy does.
-        rad: 0.68 + rand() * 0.6,
+        slot: (i + 0.5 + (rand() - 0.5) * 0.7) / n,
+        lane: 0.08 + 0.84 * ((i * 0.6180339 + rand() * 0.08) % 1),
+        sz,
+        spd: 0.86 + 0.3 * sz,
+        // A sway, so the climb is not seventy-four parallel rails.
+        ph: rand() * 6.283,
         // A piece is only ever as big as its own longest side allows.
         aspect: piece.w / piece.h,
         tall: piece.h >= piece.w,
-        tilt: (rand() * 8 - 4).toFixed(1),
+        tilt: (rand() * 9 - 4.5).toFixed(1),
         live: false,
         w: 0,
       });
@@ -1929,28 +2175,24 @@ import { JEWELRY } from "./jewelry-manifest.js";
     galleryEl.appendChild(frag);
   }
 
-  /* The size a piece is rasterised at: the biggest it will be drawn, which is
-   * the moment it reaches the front of the room. Capped at the shipped file's
-   * own longest side so nothing is ever upscaled. */
+  /* The size a piece is rasterised at: the biggest it will ever be drawn,
+   * which for the field is simply its own size on the board, since the only
+   * scaling in flight is the settle on the way in and that only goes down.
+   * Capped at the shipped file's own longest side so nothing is upscaled. */
   function layoutGallery() {
     const w = pin.clientWidth;
     const h = pin.clientHeight;
-    /* Half the frame's width or getting on for half its height, whichever is
-     * the tighter, capped at the shipped file's own longest side, so nothing
-     * is ever upscaled.
-     *
-     * 0.68, and the ceiling with it from 384 to 320 (v0.4.0). The reader has
-     * now asked twice for these smaller: 0.9 in v0.3.7 and this. A quarter
-     * off again puts a piece at 245px on a 1280-wide laptop and 330 on a
-     * 1080p screen, which is where the ceiling starts binding rather than the
-     * frame, and the ceiling is exactly the resolution the files are now cut
-     * at, so the two agree and no piece is ever drawn from more or fewer
-     * pixels than it has. That agreement is the point: the smaller pieces are
-     * what let the whole set be re-cut at 320 rather than 384, and 320 is
-     * most of where the 27% off its bytes came from. */
-    const base = clamp(Math.min(w * 0.5, h * 0.45) * 0.68, 120, 320);
+    /* The largest piece in the field, from whichever of the two axes is the
+     * tighter, capped at the 320 the files are cut at so the ceiling and the
+     * source agree exactly and no piece is drawn from more or fewer pixels
+     * than it has. The width term is the one that binds on a phone and the
+     * height term on a wide desktop, which is the right way round: a scatter
+     * is limited by how many will fit across a narrow frame and by how many
+     * will fit down a short one. */
+    const base = clamp(Math.min(w * 0.42, h * 0.3), 110, 320);
     for (const it of items) {
-      const wid = Math.round(it.tall ? base * it.aspect : base);
+      const long = Math.round(base * it.sz);
+      const wid = Math.max(48, Math.round(it.tall ? long * it.aspect : long));
       if (wid === it.w) continue;
       it.w = wid;
       it.h = wid / it.aspect;
@@ -2019,6 +2261,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
       a: parseFloat(el.dataset.a),
       b: parseFloat(el.dataset.b),
       hero: el.id === "beat-hero",
+      // The gallery has to know which beats stand IN it, so the field can
+      // make room for them and close again once they have gone.
+      ink: el.classList.contains("beat--ink"),
       k: -1,
       on: null,
     });
@@ -2455,11 +2700,11 @@ import { JEWELRY } from "./jewelry-manifest.js";
         const fade =
           (1 - smooth(seg(p, B.collapse[0], B.collapse[0] + 0.022))) * (1 - winK);
         galleryEl.style.opacity = fade.toFixed(3);
-        driveGallery(ik);
+        driveGallery(ik, p);
         driveBeams(p, aspect, fade);
       } else if (beamsLit) {
         driveBeams(p, aspect, 0);
-        if (galleryLive) driveGallery(-1);
+        if (galleryLive) driveGallery(-1, p);
       }
     }
 
@@ -2473,53 +2718,59 @@ import { JEWELRY } from "./jewelry-manifest.js";
     return teasing;
   }
 
-  /* One frame of the procession.
+  /* One frame of the field.
    *
-   * `ik` is the camera's way down the queue, 0 to 1. Everything a piece does
-   * is a function of `u`, its own distance ahead of that camera: nothing here
-   * accumulates, so the whole thing scrubs backwards exactly as it plays
-   * forwards, which is the same rule the rest of the film obeys.
+   * `ik` is the reader's way down the board, 0 to 1. Everything a piece does
+   * is a function of `u`, its own place relative to the middle of the frame:
+   * nothing here accumulates, so the whole chapter scrubs backwards exactly
+   * as it plays forwards, which is the rule the rest of the film obeys too.
+   * Only the pieces actually in the window are written to, so a frame of this
+   * costs a dozen transforms rather than seventy-four.
    *
    * Pass -1 to retire every piece at once, which is what the frames either
    * side of the chapter want. */
   let galleryLive = false;
-  function driveGallery(ik) {
+  function driveGallery(ik, p) {
     const n = items.length;
-    // The window of the queue in flight, plus the stretch behind the camera a
-    // piece keeps travelling through on its way out of frame.
-    const win = IN_FLIGHT / n;
-    const cx = viewW * 0.5;
-    /* The tunnel's core has to sit where the WORDS are, and on a narrow frame
-     * the words are not in the middle. home.css stacks an ink beat at the TOP
-     * of a portrait screen instead of centring it, so a core held at 50%
-     * leaves the copy outside its own clearing with a ring across it.
-     *
-     * It moved by 0.13 the WRONG WAY from v0.3.2 to v0.4.0: the note said the
-     * core had to follow the type and then sent it thirteen hundredths of a
-     * screen DOWN while home.css was pulling the type up to 34%. Two thirds
-     * of a screen apart, on the only layout where it matters, which is why a
-     * phone kept putting a ring across the eyebrow and why the clearing over
-     * it had to be strong enough to be a panel. It now lands on the 34% the
-     * stylesheet uses, on the same 9/10 line the camera and the beats already
-     * trade layouts at. */
-    const portraitK = clamp((0.9 - viewW / viewH) / 0.45, 0, 1);
-    const cy = viewH * (0.5 - 0.16 * portraitK);
-    /* How far out a piece at full size flies, PER AXIS. One radius taken off
-     * the frame's longest side works on a laptop and falls apart on a phone:
-     * a portrait frame's long side is its height, so the tunnel was built
-     * more than twice as wide as the screen and every piece left through the
-     * sides before it was worth looking at, leaving the middle empty. Sized
-     * to each axis in turn, the same tunnel fills a 16:9 frame and a 9:19.5
-     * one with the same handful of pieces. Slightly past the frame on both,
-     * so the nearest ones leave at an edge rather than piling up. */
-    const spreadX = viewW * 0.6;
-    const spreadY = viewH * 0.52;
+    /* How much copy is actually standing in the room this frame, read off the
+     * ink beats' own windows rather than restated from them. Between the two
+     * beats, and after the second one has gone, there is nothing to make room
+     * for, and a field still parted around words that are not there is a hole
+     * in the middle of the picture. Ramped at both ends of each window so the
+     * pieces close in and open out rather than jumping. */
+    let inkK = 0;
+    for (const beat of beats) {
+      if (!beat.ink) continue;
+      const k = seg(p, beat.a, beat.b);
+      if (k <= 0 || k >= 1) continue;
+      inkK = Math.max(inkK, clamp(k / 0.14, 0, 1) * clamp((1 - k) / 0.16, 0, 1));
+    }
+    const w = viewW;
+    const h = viewH;
+    /* Portrait puts the copy at the top of the frame rather than through its
+     * middle: home.css stacks an ink beat under a 16svh pad at 9/10, which is
+     * the same line the camera trades layouts at, and lands its clearing at
+     * 34%. The band the field has to part around follows it. */
+    const portraitK = clamp((0.9 - w / h) / 0.45, 0, 1);
+    const span = lerp(SPAN_WIDE, SPAN_TALL, portraitK);
+    const tcx = w * 0.5;
+    const tcy = h * (0.5 - 0.16 * portraitK);
+    // The words' own footprint, from the two numbers home.css sizes the
+    // clearing with: min(48rem, 88vw) across and a little over a fifth of the
+    // frame either side of the line.
+    const trx = Math.min(384, w * 0.44);
+    const tryy = h * (0.22 - 0.02 * portraitK);
     let live = false;
     for (let i = 0; i < n; i++) {
       const it = items[i];
-      const u = ik < 0 ? 9 : it.slot - ik;
-      // Behind the camera by more than PAST windows, or not yet in flight.
-      const on = u < win && u > -PAST * win;
+      /* Its distance from the middle of the frame, in frame heights. Zero at
+       * the instant the piece crosses the centre, which is what makes the
+       * per-piece speed a parallax rather than a reordering: however fast it
+       * travels, it arrives in the middle at its own place in the queue. */
+      const u = ik < 0 ? 9 : (it.slot - ik) * span * it.spd;
+      // Its centre, down the frame in pixels.
+      const yc = h * (0.5 + u);
+      const on = yc > -it.h * 0.6 - 40 && yc < h + it.h * 0.6 + 40;
       if (!on) {
         if (it.live) {
           it.live = false;
@@ -2532,70 +2783,52 @@ import { JEWELRY } from "./jewelry-manifest.js";
         it.live = true;
         it.el.style.visibility = "visible";
       }
-      // d runs 1 at the vanishing point to 0 at the front of the room, and
-      // negative once the piece is past the reader.
-      const d = u / win;
-      /* Perspective. A piece's apparent size goes as 1/(1+kd), which is what
-       * a real lens does and what makes the approach ACCELERATE into the
-       * frame instead of creeping in linearly. Past the camera it is allowed
-       * a little over full size and no more: the raster is only as big as
-       * full size, and anything beyond that is enlarging a bitmap. */
-      const s = d >= 0 ? 1 / (1 + d * 3.4) : 1 + Math.min(-d, PAST) * 0.9;
-      /* THE CORE IS KEPT CLEAR, and this one term is what makes the chapter
-       * work. A true fly-through collapses everything to a vanishing point,
-       * and the vanishing point is the exact middle of the frame, which is
-       * where the copy stands: the first cut of this had "Every piece begins
-       * as a drawing" with a ring sitting on the word "drawing". Holding the
-       * radius at a third of its travel even at the far end turns the
-       * procession into a TUNNEL rather than a funnel. The pieces come down
-       * its walls, the words stand in its middle, and neither has to
-       * apologise to the other. */
-      const r = it.rad * (0.58 + 0.42 * s);
-      /* AND EVERY PIECE RISES INTO ITS PLACE. Without this term a piece is
-       * simply nearer each frame than it was the frame before: it grows on
-       * the spot along its own bearing, which at the far end of the tunnel is
-       * barely any travel at all, and what the eye reads is a thing switching
-       * on rather than a thing arriving. The reader put it exactly right,
-       * that they popped from existence.
-       *
-       * So the far end of the procession sits LOWER than where the piece will
-       * come to rest, and closes that gap as it approaches. The whole queue
-       * drifts upward through the frame while the reader scrolls down it,
-       * which is both the honest reading of a camera moving forward and
-       * level, and the motion that makes the arrival a move instead of an
-       * event. It is a pure function of d like everything else here, so it
-       * scrubs backwards without a stray state.
-       *
-       * A tenth of the frame was not enough and the reader said so again
-       * (v0.4.0). A quarter is: at the far end, where the piece is smallest
-       * and its own bearing gives it almost no travel, the rise is now the
-       * only movement it has, and it is a fifth of the screen's height of it.
-       * Squared, so the climb is mostly spent at the far end and the piece is
-       * already settling on its mark by the time it is big enough to read;
-       * linear, the whole queue slid visibly upward under the copy. */
-      const dd = Math.max(d, 0);
-      const rise = dd * dd * viewH * 0.25;
+      // Where it is down the frame, 0 at the top edge and 1 at the bottom.
+      const c = yc / h;
+      /* It arrives and it leaves, and neither is a switch. In over the first
+       * tenth of the climb, out over the last eighth, and a settle on the
+       * size across the first third: a piece is already at rest by the time
+       * it is high enough in the frame to be looked at, which is the lesson
+       * v0.4.0 paid for twice. The fade is short on purpose. Run over the
+       * whole travel it reads as pieces that are never quite there, which was
+       * the reader's next report the one time it was tried. */
+      const inK = clamp((1.04 - c) / 0.16, 0, 1);
+      const outK = clamp((c + 0.1) / 0.2, 0, 1);
+      const s = 0.9 + 0.1 * clamp((1.06 - c) / 0.34, 0, 1);
+      /* Its place across the frame, then pushed aside if it would cross the
+       * copy. The push rises and falls with the square of how far into the
+       * band of type the piece has come, so what the eye reads is the field
+       * opening around the words and closing again behind them, and it is a
+       * pure function of position like everything else here. Clamped to the
+       * frame, because a phone's copy is nearly the whole width and a piece
+       * shoved clear of it would be shoved off the screen. */
+      let xc = it.lane * w + Math.sin(u * 1.9 + it.ph) * w * 0.016;
+      // Measured from the piece's own EDGE, not its centre: a tall piece
+      // centred just below the band still lies across the last line of it,
+      // which is how the sub kept getting a ring through it.
+      const dy = Math.abs(yc - tcy) / (tryy + it.h * 0.42);
+      if (dy < 1 && inkK > 0.002) {
+        /* Full clearance across the middle of the band and a taper at either
+         * end of it, rather than a bell. A bell is the obvious curve and it is
+         * the wrong one: it puts most of the push in the middle of the band
+         * and almost none at its edges, which is exactly where the eyebrow and
+         * the sub line live, so the title got its clearing and the two lines
+         * around it were crossed by a ring apiece. */
+        const k = inkK * (1 - smooth(clamp((dy - 0.42) / 0.58, 0, 1)));
+        const dx = xc - tcx;
+        const need = trx + it.w * 0.4;
+        if (Math.abs(dx) < need) {
+          const dir = dx >= 0 ? 1 : -1;
+          xc = tcx + dir * lerp(Math.abs(dx), need, k * 0.95);
+        }
+      }
+      xc = clamp(xc, it.w * 0.18, w - it.w * 0.18);
       // Offset by half the piece's own box, so the scale (which pivots on
       // that box's centre) grows it about the point it is aimed at.
-      const x = cx + Math.cos(it.ang) * r * spreadX - it.w * 0.5;
-      const y = cy + Math.sin(it.ang) * r * spreadY + rise - it.h * 0.5;
-      /* In from the far distance over most of the approach: this ran from
-       * d 1.0 to 0.82 until v0.3.7 and to 0.55 after it, and it now runs to
-       * 0.45. Squared, so it stays faint at the far end where a piece is a
-       * speck and does its arriving late, where the rise is biggest too.
-       *
-       * It was briefly run over the WHOLE travel, and that was too far: taken
-       * with the rise the pieces were still climbing out of nothing at the
-       * point they are large enough to be worth looking at, and the reader
-       * asked where they had gone. A fade wants to be over BEFORE a piece
-       * arrives, not while it does. The rise is what carries the arrival now,
-       * and it is the better of the two cues because it is movement rather
-       * than an absence. */
-      const inK = clamp((1 - d) / 0.55, 0, 1);
-      const a = inK * inK * (d < 0 ? 1 + d / PAST : 1);
-      it.el.style.opacity = clamp(a, 0, 1).toFixed(3);
+      it.el.style.opacity = (inK * outK).toFixed(3);
       it.el.style.transform =
-        "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" +
+        "translate3d(" + (xc - it.w * 0.5).toFixed(1) + "px," +
+        (yc - it.h * 0.5).toFixed(1) + "px,0) scale(" +
         s.toFixed(4) + ") rotate(" + it.tilt + "deg)";
     }
     galleryLive = live;
