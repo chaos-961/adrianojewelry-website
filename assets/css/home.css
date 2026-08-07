@@ -388,6 +388,19 @@ html.js .journey {
   position: relative;
 }
 
+/* A thumb is not a wheel (v0.4.4, asked for as making the scrolling on
+   mobile "like x3 powerful"). Seventeen screens of road was cut for a
+   scroll wheel's cheap centimetres; on a phone the same road was a long
+   drag of swipes through the same film. Every window in the film is a
+   FRACTION of the track rather than a length, so shortening the road is
+   the entire change: one swipe now advances the story three times as far,
+   and no beat, chapter or beam moves by a thousandth. */
+@media (pointer: coarse) {
+  .journey {
+    height: 567vh;
+  }
+}
+
 .journey__pin {
   position: sticky;
   top: 0;
@@ -823,41 +836,43 @@ html.js .journey {
 
 /* ---------------------------------------------------------------- gallery */
 
-/* Inside the stone: the pieces, in a procession down a tunnel. home.js builds
-   the items from the manifest, sizes each one in pixels at the largest it
-   will ever be drawn, and writes a transform per frame to only the dozen
-   actually in flight; nothing in here is laid out by hand. */
+/* Inside the stone: the pieces, hung in the room as a drifting
+   constellation. home.js derives how many from the viewport's own area,
+   sizes each one in pixels at the largest it will ever be drawn, and
+   writes a transform per frame to the hung set; nothing in here is laid
+   out by hand. */
 .gallery {
   position: absolute;
   inset: 0;
   z-index: 3;
   overflow: hidden;
   visibility: hidden;
-  /* No mask. The old drift needed one because pieces entered and left at the
-     top and bottom edges, where a hard cut would have read as a window
-     scrolling rather than as light passing. A procession leaves the frame the
-     way anything you move past leaves the frame, at the edge and at speed,
-     so there is nothing to soften; and a mask over a viewport-sized layer is
-     a whole extra composite pass to say so. */
+  /* No mask. Nothing enters or leaves at an edge any more: the set is
+     hung for the whole chapter and only sways where it hangs, so there is
+     nothing to soften, and a mask over a viewport-sized layer is a whole
+     extra composite pass to say so. */
 }
 
 .gallery.is-on {
   visibility: visible;
 }
 
-/* Each piece is its own layer now, because each piece moves independently:
-   the procession has no band to promote. That is a layer apiece, but never
-   more than about a dozen of them are visible at once and the rest are
-   `visibility: hidden`, which the compositor does not draw and does not
-   keep a tile for. Width is set once in pixels by home.js at the largest
-   the piece will ever be drawn; the scale in the transform only ever goes
-   DOWN from there, so nothing is a bitmap being enlarged. */
+/* Each piece is its own layer, because each piece sways independently.
+   Membership is decided at layout and only a resize can change it: the
+   hung pieces are made visible once and stay visible for the whole
+   chapter, so nothing pops, and the rest stay `visibility: hidden`, which
+   the compositor does not draw and does not keep a tile for. Width is set
+   once in pixels by home.js at the largest the piece will ever be drawn;
+   the scale in the transform breathes strictly below one, so nothing is a
+   bitmap being enlarged. Opacity is not on the will-change list any more
+   because nothing animates it: the chapter's fade lives on the container
+   and a piece's own opacity never changes at all. */
 .gallery__item {
   position: absolute;
   left: 0;
   top: 0;
   visibility: hidden;
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
 .gallery__item img {

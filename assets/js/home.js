@@ -35,10 +35,12 @@
  * Everything visual is a pure function of one number, the reader's way
  * through the track (0 to 1), so the film runs forward and backward at
  * whatever speed the thumb sets and a deep link can open the page on any
- * frame of it. The only time-driven motions are three politenesses: the
+ * frame of it. The only time-driven motions are four politenesses: the
  * closed box teasing its lid at the top, the lifted stone's slow idle turn,
- * and the loader. Reduced motion stills all three and drops the scroll
- * smoothing, leaving a film you pull through by hand.
+ * the showcase constellation swaying inside the diamond with the room
+ * turning a breath at a time under it, and the loader. Reduced motion
+ * stills all four and drops the scroll smoothing, leaving a film you pull
+ * through by hand.
  *
  * The props come from assets/js/models/ and are placed flat at the top of
  * the scene rather than nested inside each other, because pieces that part
@@ -1523,63 +1525,72 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* ------------------------------------------------------------ the gallery */
 
-  /* THE FIELD (v0.4.1), asked for as wanting the pieces "all scattered and I
-   * scroll to see them ... with some animation ofc".
+  /* THE CONSTELLATION (v0.4.4), asked for as a new way of showing the
+   * jewelry inside the diamond: "make sure they are always there no
+   * animation for them popping out, but them moving kinda like a bubble in
+   * space".
    *
-   * What it replaces is the procession below, and the procession's own note is
-   * kept under this one because everything it learned still binds. It was a
-   * queue: one piece at a time swelling up the middle distance, sweeping past,
-   * and the next resolving behind it. That is a good shot and a poor SHOWCASE,
-   * because at any instant most of the frame is the room. Measured off a
-   * capture at p 0.75 there were seven pieces anywhere on a 1440 frame, five
-   * of them cut by an edge and two of them small enough to be punctuation, and
-   * the middle third of the picture, which is where anybody looks, was empty
-   * white. Seventy-four pieces went past and the reader could not have told
-   * you there were more than a dozen.
+   * What it replaces is the field below, the same way the field replaced
+   * the procession under it, and it inherits their lessons whole. The
+   * field was a BOARD five frames tall that rose through the window as the
+   * reader scrolled, and every piece on it ARRIVED: up from under the
+   * bottom edge with a fade, out at the top. The reader's verdict on that
+   * is the ask above, so membership is now fixed for the whole chapter. A
+   * viewport's worth of pieces hangs in the room from the frame the flash
+   * decays to the frame the room goes down, every one of them on screen
+   * the whole time, and what moves is the pieces themselves: each sways on
+   * its own pair of slow sines, a little off each other's pace so the
+   * path never repeats and never goes anywhere, with a slow rock and a
+   * breath of scale on top, which is a thing floating rather than a thing
+   * travelling.
    *
-   * So they are scattered over a BOARD instead: a tall field of pieces at
-   * assorted sizes and assorted places, five or so frames of it, that rises
-   * through the window as the reader scrolls, the way a wall of work goes past
-   * when you walk along it. Fifteen or so are in the frame at once on a
-   * laptop and eight on a phone, they overlap, they are not on a grid, and
-   * every one of them arrives: it comes up from under the bottom edge, fades
-   * in over the first tenth of its climb and settles the last of its size as
-   * it comes, then leaves at the top. Nothing pops.
+   * THE SWAY IS A CLOCK, and that is a deliberate bend of the film's
+   * purity rule, made exactly where the stone's idle turn already bent it:
+   * a bubble that only moved when the reader's thumb did would be a board
+   * again, just a shorter one, and this chapter is the one place somebody
+   * sits still and looks around. Under ?p= and reduced motion it stands
+   * still with the other clocks, so captures stay deterministic and a
+   * stilled film stays stilled. Scroll is not ignored either: the whole
+   * constellation slides gently with the reader's way down the chapter,
+   * nearer pieces further, and the travel is bounded so small that no
+   * piece's centre can leave the frame, because the one instruction was
+   * that they are always there.
    *
-   * Four things hold it together, and each is inherited from the procession
-   * rather than rediscovered.
-   *
-   * SIZE IS RASTERISED ONCE, at the largest the piece will ever be drawn, and
-   * the transform only ever scales DOWN from it. A layer rasterised small and
-   * scaled up is exactly the blur this chapter exists to avoid, and the
-   * ceiling is the 320px the files are actually cut at, so no piece is ever
-   * drawn from more or fewer pixels than it has.
-   *
-   * THE SCATTER IS LOW-DISCREPANCY, NOT RANDOM. A piece's place across the
-   * frame comes off the golden ratio rather than a draw, so consecutive
-   * pieces, which are also vertical neighbours on the board, land as far apart
-   * across the frame as they can. Random x on a board this dense clumps three
-   * pieces into one corner and leaves a hole beside them, every time, and the
-   * hole reads as a mistake rather than as a composition.
-   *
-   * BIGGER IS NEARER, AND NEARER TRAVELS FASTER. Each piece's size doubles as
-   * its depth and scales its speed up the board by a fifth either way, which
-   * is parallax and costs one multiply. It cannot drift out of order or bunch,
-   * because the speed multiplies a term that is zero at the moment the piece
-   * crosses the middle of the frame: whatever its speed, it arrives there at
-   * its own place in the queue.
-   *
-   * AND THE FIELD PARTS AROUND THE WORDS rather than being hidden behind a
-   * panel. A piece whose path would carry it across the copy is pushed sideways
-   * as it passes, by an amount that rises and falls smoothly with how far into
-   * the band of type it has come, so what the eye reads is pieces making room
-   * and closing again. That is the honest fix for what v0.4.0 was reaching for
-   * with `.beat--ink::before`: the reader asked for the panel that was hiding
-   * the rings to go, and the way to stop something standing in front of the
-   * words is to move it, not to bleach it.
+   * HOW MANY is derived from the viewport's own area with a floor of ten,
+   * and the sizes are derived back from the count so the hung pieces
+   * always sum to about three tenths of the frame: a phone hangs ten at
+   * reading size, a laptop about twenty, a 4K screen clears the whole
+   * manifest. WHICH pieces a given count hangs comes off one seeded
+   * shuffle, so the set is stable across visits and a resize only adds to
+   * or trims from the end of the same order. And only the pieces actually
+   * hung are FETCHED: the board pulled all seventy-four files because all
+   * seventy-four eventually crossed the window, and nothing ever will
+   * again unless it is hung.
    *
    * ---------------------------------------------------------------------
-   * THE PROCESSION, which this replaced, and what it was for.
+   * THE FIELD (v0.4.1), which the constellation replaced, and the four
+   * rules it handed down.
+   *
+   * It was asked for as the pieces "all scattered and I scroll to see
+   * them ... with some animation ofc": a tall low-discrepancy board of
+   * pieces at assorted sizes rising through the window, about fifteen in
+   * frame on a laptop and eight on a phone. Its rules, all of them kept:
+   * SIZE IS RASTERISED ONCE, at the largest the piece will ever be drawn,
+   * and the transform only ever scales DOWN from it, with the ceiling at
+   * the 320px the files are cut at, so no piece is ever drawn from more
+   * or fewer pixels than it has. THE SCATTER IS LOW-DISCREPANCY, NOT
+   * RANDOM, because a random draw on a frame this dense clumps three
+   * pieces into one corner and leaves a hole beside them, every time, and
+   * the hole reads as a mistake rather than as a composition. BIGGER IS
+   * NEARER, and nearness scales every motion a piece makes, which is
+   * parallax and costs one multiply. AND THE PIECES PART AROUND THE
+   * WORDS rather than hiding behind a bleaching panel: anything standing
+   * where the copy stands is pushed aside smoothly and closes back in
+   * behind it, which is the honest fix v0.4.0's clearing was reaching
+   * for.
+   *
+   * ---------------------------------------------------------------------
+   * THE PROCESSION, which the field replaced, and what it was for.
    *
    * Until v0.3.2 this was three bands of small pieces drifting upward at
    * three speeds, and the reader's verdict was that nothing in it could be
@@ -1606,16 +1617,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * each frame; the rest are left alone entirely, so a frame of this costs a
    * dozen transforms rather than seventy-four. */
 
-  /* How tall the board is, in frame heights, at a wide aspect and at a narrow
-   * one. It is the ONE dial for how crowded the chapter is, since the number
-   * of pieces in the frame at any moment is just the manifest length divided
-   * by it: 74 over 4.9 is fifteen on a laptop, 74 over 9.2 is eight on a
-   * phone. A phone gets fewer because a piece is a much larger share of a
-   * narrow frame; the same fifteen there would be a pile rather than a
-   * scatter. */
-  const SPAN_WIDE = 4.9;
-  const SPAN_TALL = 7.4;
+  /* The constellation's three dials. GAL_COVER is the share of the frame
+   * the hung pieces may sum to, and everything else is derived from it:
+   * the count comes off the viewport's area over GAL_AREA, and the sizes
+   * come back off the count, so the chapter reads equally full on a phone
+   * and a cinema display without either being tuned by hand. GAL_PAR is
+   * how far the whole field slides across the chapter, in frame heights
+   * at the nearest depth; small on purpose, because the instruction this
+   * mode exists to obey is that every piece stays on screen. */
+  const GAL_COVER = 0.3;
+  const GAL_AREA = 68000;
+  const GAL_PAR = 0.14;
   const items = [];
+  let galOrder = [];
+  let galT = 0;
   let galleryArmed = false;
 
   /* WHICH OF THE TWO SHIPPED SETS THIS BROWSER CAN READ (v0.4.0).
@@ -1683,7 +1698,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
     if (!galleryEl) return;
     const rand = rng(20260801);
     const frag = document.createDocumentFragment();
-    const n = JEWELRY.length;
     JEWELRY.forEach((piece, i) => {
       const el = document.createElement("div");
       el.className = "gallery__item";
@@ -1698,92 +1712,138 @@ import { JEWELRY } from "./jewelry-manifest.js";
       img.height = piece.h;
       el.appendChild(img);
       frag.appendChild(el);
-      /* Where on the board this piece stands, how big it is there, and how
-       * fast it therefore travels.
-       *
-       * `slot` is its place down the board, jittered by up to a third of the
-       * gap to its neighbours so the rows do not read as rows. `lane` is its
-       * place across the frame and comes off the golden ratio rather than a
-       * draw, so the piece after it lands as far across as it can get; that
-       * is what stops a dense scatter clumping. `sz` is both its size and its
-       * depth, and `spd` is read straight off it, because a nearer thing goes
-       * past faster. */
-      const sz = 0.54 + 0.46 * rand();
+      /* How near this piece is and how it sways; WHERE it hangs is decided
+       * in layoutGallery, off its rank in the hang order rather than off
+       * this manifest index, and the note there says why that distinction
+       * was paid for. `sz` is the piece's nearness, and its size, its
+       * layer order, its share of the parallax and the reach of its sway
+       * all read off that one number, which is what makes the differences
+       * read as depth rather than as assorted styling. The sway itself is
+       * two slow sines a little off each other's pace, so the path never
+       * repeats and never goes anywhere, with a rock and a breath of
+       * scale on their own phases; every rate and phase is seeded, so no
+       * two pieces breathe together and every visit hangs the same room. */
+      const sz = 0.5 + 0.5 * rand();
       items.push({
         el,
         img,
-        slot: (i + 0.5 + (rand() - 0.5) * 0.7) / n,
-        lane: 0.08 + 0.84 * ((i * 0.6180339 + rand() * 0.08) % 1),
+        jx: (rand() - 0.5) * 0.06,
+        jy: (rand() - 0.5) * 0.06,
         sz,
-        spd: 0.86 + 0.3 * sz,
-        // A sway, so the climb is not seventy-four parallel rails.
-        ph: rand() * 6.283,
+        w1: 0.5 + 0.5 * rand(),
+        w2: 0.4 + 0.45 * rand(),
+        w3: 0.3 + 0.3 * rand(),
+        p1: rand() * 6.283,
+        p2: rand() * 6.283,
+        p3: rand() * 6.283,
+        tilt: rand() * 9 - 4.5,
+        // Far pieces rock a little more than near ones: a big piece
+        // swinging reads as heavy, a small one as weightless.
+        rr: 1.1 + 1.7 * (1 - sz),
         // A piece is only ever as big as its own longest side allows.
         aspect: piece.w / piece.h,
         tall: piece.h >= piece.w,
-        tilt: (rand() * 9 - 4.5).toFixed(1),
-        live: false,
+        active: false,
         w: 0,
+        h: 0,
+        cx: 0,
+        cy: 0,
+        ax: 0,
+        ay: 0,
       });
     });
     galleryEl.appendChild(frag);
+    /* One seeded shuffle decides WHICH pieces a given count hangs, so the
+     * membership is stable across visits, and a resize only adds to or
+     * trims from the end of the same order rather than recasting the
+     * room. */
+    galOrder = items.map((_, i) => i);
+    for (let i = galOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      const t = galOrder[i];
+      galOrder[i] = galOrder[j];
+      galOrder[j] = t;
+    }
   }
 
-  /* The size a piece is rasterised at: the biggest it will ever be drawn,
-   * which for the field is simply its own size on the board, since the only
-   * scaling in flight is the settle on the way in and that only goes down.
-   * Capped at the shipped file's own longest side so nothing is upscaled. */
+  /* Hang the room: how many pieces, which ones, how big, and where.
+   *
+   * The count comes off the viewport's area and the sizes come back off
+   * the count, so the hung set always sums to about GAL_COVER of the
+   * frame; the mean size is the square root of the share each piece gets,
+   * spread by nearness so the nearest is a little over twice the size of
+   * the furthest. Rasterised once at that size, capped at the 320 the
+   * files are cut at, and the per-frame scale breathes strictly below
+   * one, so nothing is ever a bitmap being enlarged. Everything a frame
+   * of the drift needs is cached here in pixels, so driveGallery is
+   * arithmetic alone. */
   function layoutGallery() {
     const w = pin.clientWidth;
     const h = pin.clientHeight;
-    /* The largest piece in the field, from whichever of the two axes is the
-     * tighter, capped at the 320 the files are cut at so the ceiling and the
-     * source agree exactly and no piece is drawn from more or fewer pixels
-     * than it has. The width term is the one that binds on a phone and the
-     * height term on a wide desktop, which is the right way round: a scatter
-     * is limited by how many will fit across a narrow frame and by how many
-     * will fit down a short one. */
-    const base = clamp(Math.min(w * 0.42, h * 0.3), 110, 320);
-    for (const it of items) {
-      const long = Math.round(base * it.sz);
+    if (!w || !h) return;
+    const n = Math.min(
+      items.length,
+      Math.max(10, Math.round((w * h) / GAL_AREA))
+    );
+    const mean = Math.sqrt((GAL_COVER * w * h) / n);
+    for (let r = 0; r < galOrder.length; r++) {
+      const it = items[galOrder[r]];
+      const active = r < n;
+      if (active !== it.active) {
+        it.active = active;
+        // Membership only ever changes here, on a resize, never on a
+        // frame of the film: nothing pops while anybody is watching.
+        it.el.style.visibility = active ? "visible" : "hidden";
+        if (active && galleryArmed) armItem(it, "low");
+      }
+      if (!active) continue;
+      /* Where it hangs comes off the R2 sequence BY RANK IN THE HANG
+       * ORDER, not by manifest index, and the difference was visible the
+       * one time it was got wrong: any PREFIX of the R2 sequence is
+       * itself low-discrepancy, so hanging the first n ranks spreads any
+       * count evenly and a resize hangs the next piece in the largest
+       * gap, while indexing by manifest position hands a shuffled subset
+       * of the lattice, which is a random draw again, and the first
+       * capture of it had five pieces in one chain down the left of the
+       * frame. The jitter is a seeded breath so the lattice underneath
+       * never shows. */
+      it.cx = (0.07 + 0.86 * ((r * 0.7548776662466927 + 0.5 + it.jx) % 1)) * w;
+      it.cy = (0.12 + 0.76 * ((r * 0.5698402909980532 + 0.5 + it.jy) % 1)) * h;
+      const long = clamp(Math.round(mean * (0.62 + 0.76 * it.sz)), 64, 320);
       const wid = Math.max(48, Math.round(it.tall ? long * it.aspect : long));
-      if (wid === it.w) continue;
-      it.w = wid;
-      it.h = wid / it.aspect;
-      it.el.style.width = wid + "px";
+      if (wid !== it.w) {
+        it.w = wid;
+        it.h = wid / it.aspect;
+        it.el.style.width = wid + "px";
+        // Nearer pieces stack over farther ones, which is what lets two
+        // bubbles cross without the eye losing which is in front.
+        it.el.style.zIndex = 1 + Math.round(it.sz * 8);
+      }
+      it.ax = it.w * 0.1;
+      it.ay = it.w * 0.13;
     }
   }
 
-  /* ARMED IN TWO WAVES, IN THE ORDER THE READER MEETS THEM.
+  /* ONLY WHAT IS HUNG IS FETCHED.
    *
-   * One call used to set all seventy-four srcs at once, which asks the
-   * connection for 1.5MB in a single burst somewhere around p 0.44, right in
-   * the middle of the ring chapter, and hands the decoder seventy-four images
-   * to unpack while the film is drawing. Where the bytes went instead is the
-   * note above `ext`; what was left after that was WHEN.
+   * The board armed all seventy-four files because all seventy-four
+   * eventually crossed the window; the constellation shows one fixed set,
+   * so the connection is asked for that set and for nothing else, which
+   * on a phone is about an eighth of the old download. They go out
+   * together at high priority, because they arrive on screen together;
+   * there is no order the reader meets them in any more. A piece hung
+   * later by a resize is armed the moment it is hung, at low priority,
+   * since by then it is one straggler behind a room already dressed.
    *
-   * The procession is a queue, and its order is known at build time, so the
-   * first wave is only the pieces that arrive first. Sixteen of them, which
-   * is a little more than the twelve ever in flight at once, fetched early
-   * and marked high priority so they are decoded before the room opens. The
-   * rest follow one frame later at low priority, behind anything the film
-   * still needs. Nothing waits on either: a piece with no pixels yet is an
-   * empty box travelling the same path, and by the time it reaches the front
-   * of the room it has them.
-   *
-   * fetchPriority is set as a property rather than an attribute so a browser
-   * that does not know it simply ignores an unknown property instead of
-   * carrying a dead attribute in the DOM. */
-  const FIRST_WAVE = 16;
-
-  function armFrom(from, to, priority) {
-    for (let i = from; i < to && i < items.length; i++) {
-      const img = items[i].img;
-      if (!img.dataset.src) continue;
-      img.fetchPriority = priority;
-      img.src = img.dataset.src + ext;
-      img.removeAttribute("data-src");
-    }
+   * fetchPriority is set as a property rather than an attribute so a
+   * browser that does not know it simply ignores an unknown property
+   * instead of carrying a dead attribute in the DOM. */
+  function armItem(it, priority) {
+    const img = it.img;
+    if (!img.dataset.src || ext === null) return;
+    img.fetchPriority = priority;
+    img.src = img.dataset.src + ext;
+    img.removeAttribute("data-src");
   }
 
   function armGallery() {
@@ -1795,13 +1855,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       return;
     }
     galleryArmed = true;
-    armFrom(0, FIRST_WAVE, "high");
-    /* The tail goes out on the next frame rather than in this one. Setting
-     * seventy-four srcs is seventy-four synchronous DOM writes plus the
-     * fetches they start, and the frame that calls this is a frame of the
-     * film; handing the browser the first sixteen and then yielding keeps
-     * that cost off it. */
-    requestAnimationFrame(() => armFrom(FIRST_WAVE, items.length, "low"));
+    for (const it of items) if (it.active) armItem(it, "high");
   }
 
   buildGallery();
@@ -2185,8 +2239,21 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // 0 once it has opened around them. The window it used to drive is gone,
     // so this only ramps the gallery in behind the flash now.
     const winK = isInside ? 1 - smooth(seg(p, B.window[0], B.window[1])) : 0;
+    /* The constellation's clock, and the room turning with it. Inside the
+     * chapter the film idles the way the coda does: the pieces sway on
+     * their sines and the crystal turns a breath at a time under them, so
+     * a parked frame is a place rather than a poster. The drift rides uK,
+     * which the page beams read too, so the light in the room and the
+     * light crossing the pieces can never part ways; 0.12 a second is
+     * about a thirtieth of the pace a reader's own scroll turns the room
+     * at. Frozen under ?p= with the other clocks, so captures stay
+     * deterministic, and by reduced motion, so a stilled film stands
+     * still. */
+    const galleryOn = p > B.inside[0] && p < B.collapse[0] + 0.024;
+    if (galleryOn && !held && !reduceMotion.matches) galT += dt;
+    const roomK = p * 34 + galT * 0.12;
     if (isInside) {
-      inside.mat.uniforms.uK.value = p * 34;
+      inside.mat.uniforms.uK.value = roomK;
       inside.mat.uniforms.uOut.value = easeIn3(seg(p, B.collapse[0], B.collapse[1]));
       inside.mat.uniforms.uA.value = aspect;
       inside.draw();
@@ -2200,8 +2267,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     /* The gallery rides the inside stretch. It ramps in behind the flash
      * rather than being at full strength in the frame the room arrives on,
      * and dims out with the collapse rather than hanging over the black
-     * that follows it. */
-    const galleryOn = p > B.inside[0] && p < B.collapse[0] + 0.024;
+     * that follows it; that container fade is the only fade there is, the
+     * pieces themselves never coming or going one by one. */
     if (galleryEl) {
       galleryEl.classList.toggle("is-on", galleryOn);
       if (galleryOn) {
@@ -2209,11 +2276,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
         const fade =
           (1 - smooth(seg(p, B.collapse[0], B.collapse[0] + 0.022))) * (1 - winK);
         galleryEl.style.opacity = fade.toFixed(3);
-        driveGallery(ik, p);
-        driveBeams(p, aspect, fade);
+        driveGallery(ik, p, galT);
+        driveBeams(roomK, aspect, fade);
       } else if (beamsLit) {
-        driveBeams(p, aspect, 0);
-        if (galleryLive) driveGallery(-1, p);
+        driveBeams(roomK, aspect, 0);
       }
     }
 
@@ -2227,20 +2293,18 @@ import { JEWELRY } from "./jewelry-manifest.js";
     return teasing;
   }
 
-  /* One frame of the field.
+  /* One frame of the constellation.
    *
-   * `ik` is the reader's way down the board, 0 to 1. Everything a piece does
-   * is a function of `u`, its own place relative to the middle of the frame:
-   * nothing here accumulates, so the whole chapter scrubs backwards exactly
-   * as it plays forwards, which is the rule the rest of the film obeys too.
-   * Only the pieces actually in the window are written to, so a frame of this
-   * costs a dozen transforms rather than seventy-four.
-   *
-   * Pass -1 to retire every piece at once, which is what the frames either
-   * side of the chapter want. */
-  let galleryLive = false;
-  function driveGallery(ik, p) {
-    const n = items.length;
+   * `ik` is the reader's way down the chapter, 0 to 1, and it drives only
+   * the gentle slide of the whole field; `tg` is the drift clock, seconds,
+   * frozen under ?p= and reduced motion. Nothing per piece accumulates:
+   * every position is a closed function of (ik, tg), so the chapter still
+   * scrubs backwards exactly as it plays forwards and a held frame is one
+   * fixed picture. No opacity is written here at all. The pieces never
+   * fade one by one, which is the whole of the ask this mode answers; the
+   * container carries the chapter's own light and that is the only fade
+   * there is. */
+  function driveGallery(ik, p, tg) {
     /* How much copy is actually standing in the room this frame, read off the
      * ink beats' own windows rather than restated from them. Between the two
      * beats, and after the second one has gone, there is nothing to make room
@@ -2259,9 +2323,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     /* Portrait puts the copy at the top of the frame rather than through its
      * middle: home.css stacks an ink beat under a 16svh pad at 9/10, which is
      * the same line the camera trades layouts at, and lands its clearing at
-     * 34%. The band the field has to part around follows it. */
+     * 34%. The band the constellation parts around follows it. */
     const portraitK = clamp((0.9 - w / h) / 0.45, 0, 1);
-    const span = lerp(SPAN_WIDE, SPAN_TALL, portraitK);
     const tcx = w * 0.5;
     const tcy = h * (0.5 - 0.16 * portraitK);
     // The words' own footprint, from the two numbers home.css sizes the
@@ -2269,54 +2332,28 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // frame either side of the line.
     const trx = Math.min(384, w * 0.44);
     const tryy = h * (0.22 - 0.02 * portraitK);
-    let live = false;
-    for (let i = 0; i < n; i++) {
-      const it = items[i];
-      /* Its distance from the middle of the frame, in frame heights. Zero at
-       * the instant the piece crosses the centre, which is what makes the
-       * per-piece speed a parallax rather than a reordering: however fast it
-       * travels, it arrives in the middle at its own place in the queue. */
-      const u = ik < 0 ? 9 : (it.slot - ik) * span * it.spd;
-      // Its centre, down the frame in pixels.
-      const yc = h * (0.5 + u);
-      const on = yc > -it.h * 0.6 - 40 && yc < h + it.h * 0.6 + 40;
-      if (!on) {
-        if (it.live) {
-          it.live = false;
-          it.el.style.visibility = "hidden";
-        }
-        continue;
-      }
-      live = true;
-      if (!it.live) {
-        it.live = true;
-        it.el.style.visibility = "visible";
-      }
-      // Where it is down the frame, 0 at the top edge and 1 at the bottom.
-      const c = yc / h;
-      /* It arrives and it leaves, and neither is a switch. In over the first
-       * tenth of the climb, out over the last eighth, and a settle on the
-       * size across the first third: a piece is already at rest by the time
-       * it is high enough in the frame to be looked at, which is the lesson
-       * v0.4.0 paid for twice. The fade is short on purpose. Run over the
-       * whole travel it reads as pieces that are never quite there, which was
-       * the reader's next report the one time it was tried. */
-      const inK = clamp((1.04 - c) / 0.16, 0, 1);
-      const outK = clamp((c + 0.1) / 0.2, 0, 1);
-      const s = 0.9 + 0.1 * clamp((1.06 - c) / 0.34, 0, 1);
-      /* Its place across the frame, then pushed aside if it would cross the
-       * copy. The push rises and falls with the square of how far into the
-       * band of type the piece has come, so what the eye reads is the field
-       * opening around the words and closing again behind them, and it is a
-       * pure function of position like everything else here. Clamped to the
-       * frame, because a phone's copy is nearly the whole width and a piece
-       * shoved clear of it would be shoved off the screen. */
-      let xc = it.lane * w + Math.sin(u * 1.9 + it.ph) * w * 0.016;
+    for (const it of items) {
+      if (!it.active) continue;
+      /* The slide is centred on the middle of the chapter, so the beats,
+       * which sit near it, read the room at its hung positions; the sway
+       * rides on top. Nearer pieces take more of both, which is the
+       * parallax that makes a moving frame and a held one feel like the
+       * same place seen from two heights. */
+      const par = (0.5 - ik) * h * GAL_PAR * (0.35 + 0.75 * it.sz);
+      const yc = it.cy + par + Math.sin(tg * it.w2 + it.p2) * it.ay;
+      let xc = it.cx + Math.sin(tg * it.w1 + it.p1) * it.ax;
       // Measured from the piece's own EDGE, not its centre: a tall piece
       // centred just below the band still lies across the last line of it,
       // which is how the sub kept getting a ring through it.
+      /* ONLY THE NEAR PIECES MAKE ROOM. Pushing every piece parked the
+       * whole middle of the constellation on the two clearance rails for
+       * the length of a beat, seven deep on a laptop, which read as
+       * curtains rather than as a room. The far pieces hold their ground
+       * and pass behind the clearing's veil instead, the same arrangement
+       * the phone has always had for its own full-width copy, and a far
+       * piece under the veil is what gives the parted field a back wall. */
       const dy = Math.abs(yc - tcy) / (tryy + it.h * 0.42);
-      if (dy < 1 && inkK > 0.002) {
+      if (dy < 1 && inkK > 0.002 && it.sz >= 0.74) {
         /* Full clearance across the middle of the band and a taper at either
          * end of it, rather than a bell. A bell is the obvious curve and it is
          * the wrong one: it puts most of the push in the middle of the band
@@ -2327,20 +2364,26 @@ import { JEWELRY } from "./jewelry-manifest.js";
         const dx = xc - tcx;
         const need = trx + it.w * 0.4;
         if (Math.abs(dx) < need) {
+          /* The parked position keeps the piece's own share of its
+           * original offset rather than landing every refugee on the same
+           * rail: a fixed target stacked four pieces into one pile at the
+           * clearance line, which read as a jam rather than as room being
+           * made. */
           const dir = dx >= 0 ? 1 : -1;
-          xc = tcx + dir * lerp(Math.abs(dx), need, k * 0.95);
+          xc = tcx + dir * lerp(Math.abs(dx), need + Math.abs(dx) * 0.45, k * 0.95);
         }
       }
       xc = clamp(xc, it.w * 0.18, w - it.w * 0.18);
-      // Offset by half the piece's own box, so the scale (which pivots on
-      // that box's centre) grows it about the point it is aimed at.
-      it.el.style.opacity = (inK * outK).toFixed(3);
+      /* The rock and the breath. The scale stays strictly below one so the
+       * raster is never enlarged, and the transform pivots on the piece's
+       * own centre, so both read as the piece floating where it is. */
+      const rot = it.tilt + Math.sin(tg * it.w3 + it.p3) * it.rr;
+      const s = 0.97 + 0.024 * Math.sin(tg * it.w2 * 0.83 + it.p1 * 1.7);
       it.el.style.transform =
         "translate3d(" + (xc - it.w * 0.5).toFixed(1) + "px," +
         (yc - it.h * 0.5).toFixed(1) + "px,0) scale(" +
-        s.toFixed(4) + ") rotate(" + it.tilt + "deg)";
+        s.toFixed(4) + ") rotate(" + rot.toFixed(2) + "deg)";
     }
-    galleryLive = live;
   }
 
   /* The room's two beams, handed to the page.
@@ -2360,14 +2403,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
     document.querySelector(".beam--0"),
     document.querySelector(".beam--1"),
   ];
-  function driveBeams(p, aspect, level) {
+  // uK arrives from the film rather than being derived here, because since
+  // v0.4.4 it carries the constellation's idle drift on top of the scroll,
+  // and two copies of that sum would be two chances to disagree.
+  function driveBeams(uK, aspect, level) {
     const lit = level > 0.001;
     if (lit !== beamsLit) {
       beamsLit = lit;
       pin.classList.toggle("is-beamed", lit);
     }
     if (!lit) return;
-    const uK = p * 34;
     for (let i = 0; i < 2; i++) {
       const el = beamEls[i];
       if (!el) continue;
@@ -2583,12 +2628,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
       pDrawn > CODA[0] + 0.004 &&
       pDrawn < 1;
     const introLive = !held && introT0 && introK < 1;
+    // Inside the diamond the constellation sways and the room turns on the
+    // clock, so the chapter idles the way the coda does; its window is the
+    // gallery's own, and ?p= and reduced motion still it with the rest.
+    const roomLive =
+      !held &&
+      !reduceMotion.matches &&
+      pDrawn > B.inside[0] &&
+      pDrawn < B.collapse[0] + 0.024;
     /* The tease is the one live state that cannot be known before the film is
      * evaluated, and it is also the one that never belongs here: it plays at
      * a PARKED progress, so it can neither move the motion tier (which asks
      * whether the reader's own hand is moving) nor tell the governor anything
      * about sustained load. Everything else is arithmetic on pDrawn. */
-    const clocked = settling || soloLive || codaLive || introLive;
+    const clocked = settling || soloLive || codaLive || introLive || roomLive;
 
     /* The motion tier. `pDrawn !== before` is the reader's own hand and
      * nothing else: the tease breathing on the lid, the lifted stone's idle
