@@ -5,6 +5,10 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://adrianojewelry.com/book-appointment/</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://adrianojewelry.com/contact-us/</loc>
     <priority>0.6</priority>
   </url>

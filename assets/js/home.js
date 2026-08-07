@@ -1618,15 +1618,21 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * dozen transforms rather than seventy-four. */
 
   /* The constellation's three dials. GAL_COVER is the share of the frame
-   * the hung pieces may sum to, and everything else is derived from it:
-   * the count comes off the viewport's area over GAL_AREA, and the sizes
-   * come back off the count, so the chapter reads equally full on a phone
-   * and a cinema display without either being tuned by hand. GAL_PAR is
-   * how far the whole field slides across the chapter, in frame heights
-   * at the nearest depth; small on purpose, because the instruction this
-   * mode exists to obey is that every piece stays on screen. */
+   * the hung pieces may sum to, and the sizes are derived from it and from
+   * the count, so the chapter reads equally full on a phone and a cinema
+   * display without either being tuned by hand. GAL_FLOOR is the smallest
+   * a hung piece is allowed to raster, and it is what decides HOW MANY:
+   * the reader asked to see all seventy-four, so the whole manifest hangs
+   * wherever the frame can carry every piece at or above the floor, and
+   * only a screen too small for that trims the order. The old dial was a
+   * fixed area per piece, which hung twelve of seventy-four on an ordinary
+   * laptop window and read as a sample of the showcase rather than the
+   * showcase. GAL_PAR is how far the whole field slides across the
+   * chapter, in frame heights at the nearest depth; small on purpose,
+   * because the standing instruction is that every piece stays on
+   * screen. */
   const GAL_COVER = 0.3;
-  const GAL_AREA = 68000;
+  const GAL_FLOOR = 64;
   const GAL_PAR = 0.14;
   const items = [];
   let galOrder = [];
@@ -1781,9 +1787,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const w = pin.clientWidth;
     const h = pin.clientHeight;
     if (!w || !h) return;
+    /* All of them, wherever all of them fit. 0.42 rather than GAL_COVER is
+     * the coverage the frame is allowed AT THE FLOOR, since a set pinned to
+     * its minimum size cannot shrink to make room: at that size a piece
+     * occupies about GAL_FLOOR squared times the mean aspect, so this hangs
+     * the full manifest on anything from a portrait tablet up, and a phone
+     * hangs the twenty-odd the floor allows instead of the ten the old
+     * area dial gave it. */
     const n = Math.min(
       items.length,
-      Math.max(10, Math.round((w * h) / GAL_AREA))
+      Math.max(10, Math.floor((w * h * 0.42) / (GAL_FLOOR * GAL_FLOOR)))
     );
     const mean = Math.sqrt((GAL_COVER * w * h) / n);
     for (let r = 0; r < galOrder.length; r++) {
@@ -1809,7 +1822,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
        * never shows. */
       it.cx = (0.07 + 0.86 * ((r * 0.7548776662466927 + 0.5 + it.jx) % 1)) * w;
       it.cy = (0.12 + 0.76 * ((r * 0.5698402909980532 + 0.5 + it.jy) % 1)) * h;
-      const long = clamp(Math.round(mean * (0.62 + 0.76 * it.sz)), 64, 320);
+      const long = clamp(Math.round(mean * (0.62 + 0.76 * it.sz)), GAL_FLOOR, 320);
       const wid = Math.max(48, Math.round(it.tall ? long * it.aspect : long));
       if (wid !== it.w) {
         it.w = wid;
@@ -1819,8 +1832,14 @@ import { JEWELRY } from "./jewelry-manifest.js";
         // bubbles cross without the eye losing which is in front.
         it.el.style.zIndex = 1 + Math.round(it.sz * 8);
       }
-      it.ax = it.w * 0.1;
-      it.ay = it.w * 0.13;
+      /* The sway keeps a floor in pixels. It used to be a pure fraction of
+       * the piece's width, which was right when twenty pieces averaged a
+       * hundred and forty; with the whole manifest hung the mean piece is
+       * half that, and a seventy-pixel piece drifting seven would read as
+       * parked. Ten pixels of drift is alive at any size and still small
+       * beside the piece itself. */
+      it.ax = Math.max(10, it.w * 0.1);
+      it.ay = Math.max(13, it.w * 0.13);
     }
   }
 
@@ -2321,17 +2340,25 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const w = viewW;
     const h = viewH;
     /* Portrait puts the copy at the top of the frame rather than through its
-     * middle: home.css stacks an ink beat under a 16svh pad at 9/10, which is
-     * the same line the camera trades layouts at, and lands its clearing at
-     * 34%. The band the constellation parts around follows it. */
-    const portraitK = clamp((0.9 - w / h) / 0.45, 0, 1);
+     * middle, and it does so at a MEDIA QUERY, which is binary: home.css
+     * stacks an ink beat under a 16svh pad the moment the aspect crosses
+     * 9/10, and lands its clearing at 26%, the measured centre of the block
+     * that pad produces. The band the constellation parts around must follow
+     * the same line the same way. This used to be a ramp easing from 0.5
+     * to 0.34 across aspects 0.9 to 0.45, which put the band below the words
+     * at every portrait aspect and nowhere near them on a tablet: a ramp
+     * cannot follow a step. */
+    const portrait = w / h < 0.9;
     const tcx = w * 0.5;
-    const tcy = h * (0.5 - 0.16 * portraitK);
+    const tcy = h * (portrait ? 0.26 : 0.5);
     // The words' own footprint, from the two numbers home.css sizes the
-    // clearing with: min(48rem, 88vw) across and a little over a fifth of the
-    // frame either side of the line.
-    const trx = Math.min(384, w * 0.44);
-    const tryy = h * (0.22 - 0.02 * portraitK);
+    // clearing with: min(46rem, 86vw) across and a little over a fifth of the
+    // frame either side of the line. Half of each, so the band and the
+    // clearing are the SAME shape: this constant drifted once (the clearing
+    // was narrowed in v0.4.0 and the band went on parting to the old width),
+    // which is why the numbers are quoted here rather than trusted.
+    const trx = Math.min(368, w * 0.43);
+    const tryy = h * (portrait ? 0.2 : 0.22);
     for (const it of items) {
       if (!it.active) continue;
       /* The slide is centred on the middle of the chapter, so the beats,

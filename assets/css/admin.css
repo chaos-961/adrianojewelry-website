@@ -1,0 +1,533 @@
+/* Adriano Jewelry: the Studio.
+   Loaded only by /admin/, after site.css, which supplies the tokens, the
+   fonts and the silk; nothing here restates a colour the shared sheet
+   already owns. The no-hue rule binds this file exactly as it binds the
+   rest of the site: the Studio is chrome, and chrome is grey. Status is
+   carried by weight, border and case, never by a colour code.
+
+   The page has two states and one of them is encrypted at rest: the gate,
+   which is ordinary markup, and the dashboard, which admin-gate.js decrypts
+   and injects only after the password has proved itself. Both are dressed
+   from here, so the ciphertext carries no styling and the sheet hides
+   nothing worth hiding. */
+
+/* ------------------------------------------------------------------ gate */
+
+.studio-gate {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1.15rem, 5vw, 2rem);
+}
+
+.studio-gate__card {
+  width: 100%;
+  max-width: 23rem;
+  padding: clamp(1.5rem, 5vw, 2.25rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  text-align: center;
+}
+
+.studio-gate__eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--page-muted);
+  font-size: 0.62rem;
+  font-weight: 400;
+}
+
+.studio-gate__title {
+  margin: 0 0 1.5rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 7vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--page-fg);
+}
+
+.studio-gate__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.studio-gate__label {
+  color: var(--page-muted);
+  font-size: 0.64rem;
+  font-weight: 400;
+}
+
+.studio-gate__wrap {
+  position: relative;
+  display: flex;
+}
+
+.studio-gate__wrap .book__input {
+  padding-right: 4.4rem;
+}
+
+.studio-gate__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  appearance: none;
+  border: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--page-muted);
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+.studio-gate__toggle:hover,
+.studio-gate__toggle:focus-visible {
+  color: var(--page-fg);
+}
+
+.studio-gate__submit {
+  width: 100%;
+  margin-top: 1.1rem;
+}
+
+.studio-gate__status {
+  margin: 0.9rem 0 0;
+  min-height: 1.2em;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--page-muted);
+}
+
+.studio-gate__status.is-error {
+  color: var(--page-fg);
+}
+
+.studio-gate__hint {
+  margin: 1.4rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--pewter-deep);
+}
+
+/* -------------------------------------------------------------- dashboard */
+
+.studio {
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem)
+    clamp(3rem, 8vw, 5rem);
+}
+
+.studio__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem 1.25rem;
+  margin-bottom: clamp(1.25rem, 3.5vw, 1.75rem);
+}
+
+.studio__brand {
+  margin: 0;
+}
+
+.studio__name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4.5vw, 1.9rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--page-fg);
+}
+
+.studio__role {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+
+.studio__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.studio-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: calc(0.5rem + var(--caps-drop)) 1.15rem calc(0.5rem - var(--caps-drop));
+  border: 1px solid var(--pewter-dim);
+  border-radius: 999px;
+  color: var(--pewter);
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: var(--caps-track);
+  text-indent: var(--caps-track);
+  text-transform: uppercase;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--pewter-wash);
+  cursor: pointer;
+  transition: border-color 0.25s ease, background-color 0.25s ease,
+    color 0.25s ease, transform 0.25s ease;
+}
+
+.studio-btn:hover,
+.studio-btn:focus-visible {
+  border-color: var(--pewter);
+  color: var(--pewter-strong);
+}
+
+.studio-btn:active {
+  transform: translateY(1px);
+}
+
+/* The one tab. It is a tab bar so the Studio can grow a second room some
+   day without being redrawn; today appointments are the whole house. */
+.studio__tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: clamp(1rem, 3vw, 1.5rem);
+  border-bottom: 1px solid var(--footer-rule);
+}
+
+.studio-tab {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.7rem 0.9rem calc(0.7rem + 2px);
+  background: transparent;
+  color: var(--page-muted);
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.studio-tab.is-active {
+  color: var(--page-fg);
+  border-bottom-color: var(--pewter-strong);
+}
+
+.studio__panel {
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+}
+
+.studio__conn {
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+
+.studio__conn.is-live::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--pewter-strong);
+}
+
+/* Segmented status views, counts riding each label. */
+.studio-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.studio-seg__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 999px;
+  background: var(--pewter-wash);
+  color: var(--page-muted);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.studio-seg__btn:hover {
+  border-color: var(--pewter);
+}
+
+.studio-seg__btn.is-active {
+  border-color: var(--pewter-strong);
+  background: var(--graphite);
+  color: #0a0a0b;
+}
+
+.studio-seg__count {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.studio-toolbar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+@media (min-width: 38em) {
+  .studio-toolbar {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+.studio-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 4px;
+  background: var(--pewter-wash);
+  color: var(--page-fg);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 300;
+  transition: border-color 0.25s ease;
+}
+
+.studio-input:hover,
+.studio-input:focus-visible {
+  border-color: var(--pewter);
+}
+
+/* ----------------------------------------------------------- appointment */
+
+.studio-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.appt {
+  padding: clamp(0.9rem, 2.5vw, 1.25rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: rgba(10, 10, 11, 0.55);
+}
+
+.appt__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 0.9rem;
+}
+
+.appt__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3.5vw, 1.4rem);
+  font-weight: 400;
+  color: var(--page-fg);
+}
+
+/* Status without hue: NEW is lit (solid light chip, the one that must be
+   seen), CONFIRMED holds a bright border, DONE recedes, CANCELLED is
+   crossed out. Four states an eye can tell apart in grey at a glance. */
+.appt__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+
+.appt__badge[data-s="new"] {
+  background: var(--graphite);
+  border-color: var(--graphite);
+  color: #0a0a0b;
+}
+
+.appt__badge[data-s="confirmed"] {
+  border-color: var(--pewter-strong);
+  color: var(--page-fg);
+}
+
+.appt__badge[data-s="done"] {
+  opacity: 0.75;
+}
+
+.appt__badge[data-s="cancelled"] {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.appt__when {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: var(--page-fg);
+}
+
+.appt__service {
+  color: var(--page-muted);
+}
+
+.appt__contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
+}
+
+.appt__contact a {
+  color: var(--pewter);
+  text-decoration: none;
+  border-bottom: 1px solid var(--pewter-dim);
+  overflow-wrap: anywhere;
+}
+
+.appt__contact a:hover,
+.appt__contact a:focus-visible {
+  color: var(--pewter-strong);
+  border-bottom-color: var(--pewter);
+}
+
+.appt__msg {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-left: 2px solid var(--pewter-dim);
+  color: var(--page-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.appt__meta {
+  margin: 0.55rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--pewter-deep);
+}
+
+.appt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.appt-btn {
+  appearance: none;
+  min-height: 38px;
+  padding: 0.3rem 0.9rem;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pewter);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.appt-btn:hover,
+.appt-btn:focus-visible {
+  border-color: var(--pewter);
+  color: var(--pewter-strong);
+}
+
+.appt-btn--primary {
+  border-color: var(--graphite);
+  background: var(--graphite);
+  color: #0a0a0b;
+}
+
+.appt-btn--primary:hover,
+.appt-btn--primary:focus-visible {
+  background: #ffffff;
+  color: #0a0a0b;
+}
+
+.appt-btn--danger:hover,
+.appt-btn--danger:focus-visible {
+  border-color: var(--page-fg);
+  color: var(--page-fg);
+}
+
+.studio-empty {
+  padding: clamp(2rem, 6vw, 3rem) 1rem;
+  border: 1px dashed var(--pewter-dim);
+  border-radius: 4px;
+  text-align: center;
+  color: var(--page-muted);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.studio-empty code {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  color: var(--page-fg);
+}
+
+/* The inactivity warning, one fixed banner. */
+.studio-lock {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  max-width: 92vw;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 4px;
+  background: rgba(10, 10, 11, 0.92);
+  color: var(--page-fg);
+  font-size: 0.85rem;
+}

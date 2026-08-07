@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- The Studio is standalone chrome: no site header, no footer partial,
+         and build.js knows to leave it out of the sitemap and the slot checks.
+         It is the one page on the site a crawler is told to forget. -->
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>Adriano Studio</title>
+    <meta name="theme-color" content="#050506" />
+    <link rel="icon" href="../favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="../assets/img/favicon-192.png" type="image/png" sizes="192x192" />
+
+    <!-- CSP for the Studio, mirrored from the model this page follows.
+         script-src keeps 'unsafe-inline' because the gate injects the
+         DECRYPTED dashboard as an inline script element; a strict script-src
+         would refuse it and the whole admin would be a login form with
+         nothing behind it. gstatic is the Firebase SDK, imported as modules
+         after the gate opens. connect-src is the exact set of Google origins
+         Firestore and Auth actually speak to, plus gstatic for the module
+         fetches themselves; everything else on the page is same-origin.
+         No frames, no objects, no forms leaving the origin. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://www.gstatic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
+    />
+
+    <link rel="stylesheet" href="../assets/css/site.css" />
+    <link rel="stylesheet" href="../assets/css/admin.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="studio-gate" id="studio-gate" aria-labelledby="studio-title">
+        <div class="studio-gate__card">
+          <p class="studio-gate__eyebrow u-caps">Admin access</p>
+          <h1 class="studio-gate__title" id="studio-title">Adriano Studio</h1>
+
+          <form id="gate-form" autocomplete="off">
+            <label class="studio-gate__field">
+              <span class="studio-gate__label u-caps">Password</span>
+              <span class="studio-gate__wrap">
+                <input
+                  class="book__input"
+                  id="gate-pass"
+                  type="password"
+                  required
+                  autocomplete="current-password"
+                  placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+                />
+                <button
+                  type="button"
+                  class="studio-gate__toggle"
+                  id="gate-toggle"
+                  aria-label="Show password"
+                  aria-pressed="false"
+                >
+                  Show
+                </button>
+              </span>
+            </label>
+
+            <button class="book__submit studio-gate__submit u-caps" id="gate-submit" type="submit">
+              Unlock
+            </button>
+
+            <p class="studio-gate__status" id="gate-status" role="status" aria-live="polite"></p>
+          </form>
+
+          <p class="studio-gate__hint">
+            The dashboard is stored encrypted and opens only with the studio
+            password. Locked again after fifteen quiet minutes.
+          </p>
+        </div>
+      </section>
+
+      <div id="studio-mount" hidden></div>
+    </main>
+
+    <!-- The encrypted dashboard. Regenerate with scripts/admin-payload.js
+         after editing anything under scripts/admin-src/. -->
+    <script src="payload.js"></script>
+    <script type="module" src="../assets/js/admin-gate.js"></script>
+
+    <!-- The same ground as every other page, included by hand because the
+         Studio fills no footer slot. -->
+    <div class="velvet" id="velvet" aria-hidden="true"></div>
+    <script src="../assets/js/velvet.js" defer></script>
+  </body>
+</html>

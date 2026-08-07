@@ -1,0 +1,65 @@
+<!-- The Studio dashboard, the plaintext. This fragment never ships as is:
+     scripts/admin-payload.js encrypts it (with dashboard.js beside it) into
+     admin/payload.js, and the gate injects it only after the password has
+     proved itself. Edit here, then rebuild the payload. -->
+<section class="studio" id="studio">
+  <header class="studio__header">
+    <h1 class="studio__brand">
+      <span class="studio__name">Adriano</span>
+      <span class="studio__role">Studio &middot; Appointments</span>
+    </h1>
+    <div class="studio__actions">
+      <a class="studio-btn" href="../">View site</a>
+      <button type="button" class="studio-btn" id="st-lock">Sign out</button>
+    </div>
+  </header>
+
+  <!-- One tab. The bar exists so a second room can be added without
+       redrawing the house; appointments are the whole of the Studio today,
+       which is exactly what was asked for. -->
+  <nav class="studio__tabs" role="tablist" aria-label="Studio sections">
+    <button class="studio-tab is-active" role="tab" aria-selected="true" type="button">
+      Appointments
+    </button>
+  </nav>
+
+  <div class="studio__panel">
+    <p class="studio__conn" id="st-conn">Connecting</p>
+
+    <div class="studio-seg" id="st-views" role="tablist" aria-label="Appointment status">
+      <button class="studio-seg__btn is-active" data-view="new" role="tab" aria-selected="true" type="button">
+        New <span class="studio-seg__count" data-count="new">0</span>
+      </button>
+      <button class="studio-seg__btn" data-view="confirmed" role="tab" aria-selected="false" type="button">
+        Confirmed <span class="studio-seg__count" data-count="confirmed">0</span>
+      </button>
+      <button class="studio-seg__btn" data-view="done" role="tab" aria-selected="false" type="button">
+        Completed <span class="studio-seg__count" data-count="done">0</span>
+      </button>
+      <button class="studio-seg__btn" data-view="cancelled" role="tab" aria-selected="false" type="button">
+        Cancelled <span class="studio-seg__count" data-count="cancelled">0</span>
+      </button>
+      <button class="studio-seg__btn" data-view="all" role="tab" aria-selected="false" type="button">
+        All <span class="studio-seg__count" data-count="all">0</span>
+      </button>
+    </div>
+
+    <div class="studio-toolbar">
+      <input
+        class="studio-input"
+        id="st-search"
+        type="search"
+        placeholder="Search name, phone, email, note"
+        aria-label="Search appointments"
+      />
+      <select class="studio-input" id="st-sort" aria-label="Sort appointments">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="day">By requested day</option>
+      </select>
+    </div>
+
+    <div class="studio-list" id="st-list"></div>
+    <div class="studio-empty" id="st-empty" hidden></div>
+  </div>
+</section>

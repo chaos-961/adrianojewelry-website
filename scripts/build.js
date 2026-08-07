@@ -45,7 +45,15 @@ const VERSION_FILE = path.join(ROOT, "VERSION");
 const ORIGIN = "https://adrianojewelry.com";
 
 /* Pages that exist but must never be offered to a crawler as a destination. */
-const NOT_INDEXABLE = new Set(["404.html"]);
+const NOT_INDEXABLE = new Set(["404.html", "admin/index.html"]);
+
+/* Pages that deliberately carry none of the shared chrome. The Studio is a
+ * standalone tool behind its own gate: no header to navigate away with, no
+ * footer partial (it includes the silk by hand), and no place in the
+ * sitemap, which NOT_INDEXABLE above already guarantees. Without this
+ * exemption every build would warn that the one page designed to have no
+ * chrome has no chrome. */
+const CHROME_FREE = new Set(["admin/index.html"]);
 
 /* Pages served for a miss at any path depth cannot use relative hrefs: a link
  * to "privacy-policy/" from /shop/gone/ resolves to /shop/gone/privacy-policy/.
@@ -180,6 +188,7 @@ function stamp(page, source, partials, version) {
     .map((m) => m[1]);
 
   for (const { slot, variants } of REQUIRED) {
+    if (CHROME_FREE.has(page)) break;
     const filled = variants.filter((v) => declared.includes(v));
     if (filled.length === 0) {
       warnings.push(`${page}: no ${slot} region (expected one of ${variants.join(", ")})`);

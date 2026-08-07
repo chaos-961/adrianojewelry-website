@@ -107,21 +107,21 @@
 
     <!-- The landing chrome: name on the left, the two things a visitor can do
          on the right. It hides when the reader scrolls down into the story
-         and returns the moment they scroll back up. The booking button is
-         deliberately inert for now; the contact pill goes to the page that
-         already exists. -->
+         and returns the moment they scroll back up. Both pills are real
+         destinations: booking goes to the appointment page, contact to the
+         store's own details. -->
     <header class="nav" id="nav">
       <a class="nav__brand" href="./" aria-label="Adriano Jewelry, home">
         Adriano<span class="nav__brand-tail"> Jewelry</span>
       </a>
       <nav class="nav__actions" aria-label="Site">
-        <!-- The space is a non-breaking one on purpose. The button is an
+        <!-- The space is a non-breaking one on purpose. The pill is an
              inline-flex box, so "Book" and this span are two separate flex
              items, and leading white space inside a flex item is stripped:
              an ordinary space here renders as "BOOKAN APPOINTMENT". -->
-        <button type="button" class="nav__btn nav__btn--book u-caps" id="nav-book">
+        <a class="nav__btn nav__btn--book u-caps" id="nav-book" href="book-appointment/">
           Book<span class="nav__btn-tail">&nbsp;an Appointment</span>
-        </button>
+        </a>
         <a class="nav__btn u-caps" href="contact-us/">Contact Us</a>
       </nav>
     </header>
@@ -273,16 +273,16 @@
         <h2 class="finale__title">The next box we close<br />could be yours.</h2>
         <p class="finale__sub">Come tell us the story. We will make the ring.</p>
         <div class="finale__actions">
-          <button type="button" class="finale__btn finale__btn--book u-caps" id="finale-book">
+          <a class="finale__btn finale__btn--book u-caps" id="finale-book" href="book-appointment/">
             Book an Appointment
-          </button>
+          </a>
           <a class="finale__btn u-caps" href="contact-us/">Contact Us</a>
         </div>
         <!-- The one thing a local shop's page should never make a visitor hunt
              for. A tel: link is a tap on the phone every visitor is holding,
              and the number is the store's own, taken from the live site. -->
         <p class="finale__call">
-          Or call the bench directly on
+          Or call the bench directly at
           <a href="tel:+18579911679">857&#8209;991&#8209;1679</a>.
         </p>
       </section>
@@ -348,7 +348,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.4.4</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.4.5</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

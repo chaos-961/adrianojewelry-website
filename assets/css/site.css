@@ -996,6 +996,246 @@ a.legal__eyebrow:focus-visible {
   flex-shrink: 0;
 }
 
+/* --- Booking page ---
+   One measure-limited column like the prose pages, with the form set inside
+   the same sunk translucent card the site already uses, so the weave runs on
+   under it. The inputs follow the pill grammar (sunk ground, hairline border,
+   silver focus) at a 4px radius, which is the cards' radius rather than the
+   pills': a field is a place to write, not a button.
+
+   Every input keeps `font-size: 1rem`. Not taste: iOS zooms the whole page
+   into any focused field set under 16px, and an unrequested zoom on the
+   first tap is the fastest way to make a form feel broken on the phone most
+   visitors are holding. */
+
+.book {
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1.15rem, 5vw, 2rem)
+    clamp(3rem, 9vw, 6rem);
+}
+
+.book__lead {
+  margin: 0 auto clamp(2rem, 5vw, 2.75rem);
+  max-width: 34rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 3.4vw, 1.3rem);
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--page-muted);
+  text-align: center;
+}
+
+.book__form {
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+}
+
+.book__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(0.9rem, 2.5vw, 1.15rem);
+}
+
+/* Two columns only where both fields keep a comfortable measure; below that
+   everything stacks. The wide fields span whichever layout is in force. */
+@media (min-width: 38em) {
+  .book__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .book__field--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.book__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.book__label {
+  color: var(--page-muted);
+  font-size: 0.66rem;
+  font-weight: 400;
+}
+
+.book__opt {
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  color: var(--pewter-deep);
+}
+
+.book__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 4px;
+  background: var(--pewter-wash);
+  color: var(--page-fg);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1.4;
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.book__input:hover {
+  border-color: var(--pewter);
+}
+
+.book__input:focus-visible {
+  outline: 2px solid var(--pewter);
+  outline-offset: 2px;
+  border-color: var(--pewter);
+}
+
+/* The picker glyphs (calendar, select arrow) follow color-scheme: dark from
+   the root, so nothing here needs a bespoke arrow. */
+.book__input--area {
+  resize: vertical;
+  min-height: 7rem;
+}
+
+.book__input::placeholder {
+  color: var(--pewter-deep);
+  opacity: 1;
+}
+
+/* The honeypot is removed from every human channel at once: no paint, no
+   pointer, no tab stop, no accessible name. Only software that reads the raw
+   form ever meets it. */
+.book__hp {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.book__foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: clamp(1.25rem, 4vw, 1.75rem);
+}
+
+.book__submit {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: calc(0.7rem + var(--caps-drop)) 1.8rem calc(0.7rem - var(--caps-drop));
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #0a0a0b;
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 400;
+  background: var(--graphite);
+  cursor: pointer;
+  transition: background-color 0.25s ease, opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.book__submit:hover,
+.book__submit:focus-visible {
+  background: #ffffff;
+}
+
+.book__submit:active {
+  transform: translateY(1px);
+}
+
+.book__submit[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.book__status {
+  margin: 0;
+  min-height: 1.2em;
+  max-width: 30rem;
+  text-align: center;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--page-muted);
+}
+
+.book__status a {
+  color: var(--pewter);
+  text-decoration: none;
+  border-bottom: 1px solid var(--pewter-dim);
+}
+
+.book__status.is-error {
+  color: var(--page-fg);
+}
+
+.book__done {
+  padding: clamp(1.5rem, 4vw, 2rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  text-align: center;
+}
+
+.book__done-title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 5vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--page-fg);
+}
+
+.book__done-copy {
+  margin: 0 auto 0.6rem;
+  max-width: 30rem;
+  color: var(--page-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.book__done-copy:last-child {
+  margin-bottom: 0;
+}
+
+.book__done-copy a,
+.book__alt a {
+  color: var(--pewter);
+  text-decoration: none;
+  border-bottom: 1px solid var(--pewter-dim);
+  overflow-wrap: anywhere;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.book__done-copy a:hover,
+.book__done-copy a:focus-visible,
+.book__alt a:hover,
+.book__alt a:focus-visible {
+  color: var(--pewter-strong);
+  border-bottom-color: var(--pewter);
+}
+
+.book__alt {
+  margin: clamp(1.75rem, 5vw, 2.5rem) auto 0;
+  max-width: 30rem;
+  text-align: center;
+  color: var(--page-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
 :focus-visible {
   outline: 2px solid var(--pewter);
   outline-offset: 3px;

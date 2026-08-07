@@ -1,0 +1,89 @@
+rules_version = '2';
+
+// Adriano Jewelry, the appointment system's entire back end.
+//
+// These rules ARE the security model. The site is static, every client is
+// untrusted by construction, and nothing a browser promises counts for
+// anything here: the server enforces this file whatever the page that wrote
+// the request looked like. Read scripts/firebase-setup.md before deploying;
+// it records the two console settings these rules assume (the admin account
+// exists, and public sign-up is disabled).
+//
+// The model, in one breath: anyone may CREATE exactly one shape of
+// appointment request and may do nothing else, not even read their own
+// submission back; the one signed-in admin may read and work the list. A
+// visitor's browser holds no session, no token and no data, so there is
+// nothing on the client side to steal.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The one identity the system trusts. The account must be created in
+    // the console BEFORE these rules go live: an email that already exists
+    // can never be registered again, which is what makes matching on it
+    // sound, together with sign-up being disabled outright. To pin harder,
+    // swap the email test for the account's UID once it exists:
+    //   return request.auth != null && request.auth.uid == 'PASTE_UID';
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'admin@adrianojewelry.com';
+    }
+
+    match /appointments/{id} {
+      // The admin works the list; nobody else reads a byte. A visitor
+      // cannot even list their own request back, which is deliberate: a
+      // public read of a collection holding names and phone numbers is a
+      // directory of the store's customers.
+      allow get, list: if isAdmin();
+
+      // Public create, of exactly one shape. Every field is present, typed
+      // and capped; unknown keys are refused by hasOnly; the status is born
+      // "new" so nobody books themselves in as confirmed; and createdAt must
+      // be the server's own clock, so the list cannot be reordered by a
+      // client lying about time.
+      allow create: if
+        request.resource.data.keys().hasOnly(
+          ['name', 'phone', 'email', 'service', 'date', 'slot', 'message',
+           'status', 'createdAt'])
+        && request.resource.data.keys().hasAll(
+          ['name', 'phone', 'email', 'service', 'date', 'slot', 'message',
+           'status', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() >= 7
+        && request.resource.data.phone.size() <= 25
+        && request.resource.data.phone.matches('[0-9+()\\-. ]+')
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 120
+        && (request.resource.data.email == ''
+            || request.resource.data.email.matches('[^ ]+@[^ ]+[.][^ ]+'))
+        && request.resource.data.service in
+          ['custom', 'repair', 'restoration', 'consultation', 'other']
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('20[0-9][0-9]-[01][0-9]-[0-3][0-9]')
+        && request.resource.data.slot in ['morning', 'midday', 'afternoon', 'any']
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 600
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time;
+
+      // The admin moves a request through its life and touches nothing
+      // else: the visitor's own words are frozen at creation, so the studio
+      // can never be used to edit what a customer said.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status'])
+        && request.resource.data.status in ['new', 'confirmed', 'done', 'cancelled'];
+
+      allow delete: if isAdmin();
+    }
+
+    // Said out loud rather than left to the default: everything not matched
+    // above is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

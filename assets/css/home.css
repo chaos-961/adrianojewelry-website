@@ -280,11 +280,11 @@ html.js .nav {
    sitting off the top of the screen at zero opacity, and because the bar is
    fixed there was nothing they could scroll to bring it back.
 
-   :focus-visible, not :focus-within. Clicking a button focuses it, and the
-   booking pill is deliberately inert, so :focus-within would pin the bar open
-   for the rest of the film after one ordinary click. :has() carries the
-   specificity of its argument, which makes this (0,2,0), level with
-   .nav.is-hidden, so it has to sit after it to win. */
+   :focus-visible, not :focus-within. Clicking a pill focuses it, and
+   :focus-within would pin the bar open for the rest of the film after one
+   ordinary click that did not navigate. :has() carries the specificity of its
+   argument, which makes this (0,2,0), level with .nav.is-hidden, so it has to
+   sit after it to win. */
 .nav:has(:focus-visible) {
   transform: translateY(0);
   opacity: 1;
@@ -672,6 +672,17 @@ html.js .journey {
   filter: blur(calc(var(--xx) * 5px));
 }
 
+/* THE DARK BEATS CARRY DARK HALOS, the mirror of the white ones the ink
+   beats already wear, and a phone is why (v0.4.5). On a wide frame the words
+   always stand on black silk: the camera's sx slides the prop to the other
+   half, so the type never shares a pixel with it. Portrait stacks the words
+   OVER the prop instead, and there are frames where a bright surface passes
+   straight through the copy: measured at p 0.30 at 320x800, the sub sat on
+   the box's lit rim, fog grey on mid grey, and could not be read. A halo
+   hugs the glyphs, costs the picture nothing on black (black glow on black
+   silk is invisible by construction), and darkens the local backdrop just
+   enough that the same line reads wherever the film happens to be. The ink
+   beats override every one of these with their own white set. */
 .beat__eyebrow {
   margin: 0 0 1rem;
   font-family: var(--font-mono);
@@ -680,6 +691,7 @@ html.js .journey {
   letter-spacing: 0.34em;
   text-indent: 0.34em;
   color: var(--fog);
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.6), 0 1px 5px rgba(0, 0, 0, 0.5);
 }
 
 /* The eyebrow's own entrance: it condenses out of wider tracking as it
@@ -697,6 +709,7 @@ html.js .journey {
   letter-spacing: 0.01em;
   color: var(--pearl);
   text-wrap: balance;
+  text-shadow: 0 0 30px rgba(0, 0, 0, 0.6), 0 1px 8px rgba(0, 0, 0, 0.5);
 }
 
 .beat__sub {
@@ -706,6 +719,7 @@ html.js .journey {
   font-weight: 400;
   line-height: 1.65;
   color: var(--fog);
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.6), 0 1px 6px rgba(0, 0, 0, 0.5);
 }
 
 /* Ink beats stand on the white inside of the stone, over the drifting
@@ -855,6 +869,20 @@ html.js .journey {
 
 .gallery.is-on {
   visibility: visible;
+}
+
+/* THE PIECES MUST NOT OUTLIVE THE CHAPTER, and without this rule they did
+   (v0.4.5, from a reader's screenshot of the hero with the showcase strewn
+   across it). Visibility is inherited, but a descendant's own EXPLICIT value
+   beats a hidden ancestor: home.js hangs a piece by writing
+   `visibility: visible` inline, so once the reader had been inside the
+   diamond and armed the images, scrolling back out left every hung piece
+   rendered over the dark room for the rest of the visit. The container's
+   hidden state has to win over the inline show while the chapter is off,
+   and !important is the one honest way an author rule outranks an inline
+   style. Inside the chapter the inline values work exactly as before. */
+.gallery:not(.is-on) .gallery__item {
+  visibility: hidden !important;
 }
 
 /* Each piece is its own layer, because each piece sways independently.
@@ -1204,10 +1232,32 @@ html.js .finale {
   /* The clearing has to travel with the words. Centred, as it is on a wide
      frame, it sits a third of a screen below type that has just moved to the
      top, which leaves the ink beats reading straight across whatever piece
-     happens to be drifting behind them. */
+     happens to be drifting behind them.
+
+     AND ON PORTRAIT IT IS STRONGER, because it is the only protection there
+     is (v0.4.5). On a wide frame the near pieces PART around the band of
+     type, so 0.52 only ever has to veil the far ones; a phone's copy is most
+     of its width, nothing can be pushed clear of it, and every piece in the
+     band passes straight behind the words. Measured at 320x800: a dark
+     detail in a piece (a leopard's pave shadow, about 40 of 255) under the
+     0.52 veil composites to 152, where the eyebrow's #5c5c5c is 2.5:1 and
+     unreadable; under 0.68 it lands at 186, 3.6:1 before the glyph halos do
+     their work. Wider too, since the portrait sub runs to the walls. */
   .beat--ink::before {
-    top: 34%;
+    /* 26%, measured, not 34%: under the 16svh pad the whole ink block spans
+       about 15% to 35% of the frame on a phone, its centre near 25%, and at
+       34% the veil's strong middle sat BELOW the sub while the eyebrow got
+       the ellipse's last few percent. Photographed at 320x800: the eyebrow
+       line crossed a pave piece at an effective veil of 0.08 and vanished. */
+    top: 26%;
+    width: min(46rem, 92vw);
     height: min(20rem, 44svh);
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 255, 255, 0.68),
+      rgba(255, 255, 255, 0.34) 55%,
+      rgba(255, 255, 255, 0) 100%
+    );
   }
 
   .beat__sub {
