@@ -683,7 +683,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
     ringOut: [0.455, 0.543], // the ring leaves, stage right
     solo: [0.543, 0.604], // the stone alone, turning
     enter: [0.604, 0.66], // the stone swells past the camera
-    focus: [0.3, 0.56], // the shallow lens is fitted, and taken off
+    /* The shallow lens is fitted, and taken off. It used to run to 0.56,
+     * which is most of the ring's exit and all of the camera's move in on
+     * the stone; but the box, which is the only thing on stage that is
+     * MEANT to melt, is gone by 0.397, and every frame the pass touched
+     * after that had nothing in it but jewelry, all of it inside the focus
+     * pocket, so the pass was a quarter of the film's cost buying nothing
+     * and softening the subject at its edges. It now closes on the box's
+     * heels, and from here to the press the film draws straight to the
+     * canvas: the stone-solo close-ups play at exactly the coda's own
+     * quality, which is the consistency the reader asked for (v0.4.2). */
+    focus: [0.3, 0.45],
     press: [0.62, 0.6585], // glass pressed against the eye at the table
     inside: [0.66, 0.852], // the crystal room and the gallery
     window: [0.66, 0.699], // arrival: the gallery ramps in behind the flash
@@ -1339,16 +1349,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * the canvas exactly as it always has, and the target is not even
    * allocated until the first frame that asks for it.
    *
-   * THE RACK FOCUS. Jewelry is photographed with a macro lens wide open,
-   * where the plane of focus is a millimetre or two thick, and a focus PULL
-   * is the most emotional move in the whole vocabulary: it tells you what
-   * to care about without moving the camera an inch. So as the box leaves,
-   * it melts rather than slides; then focus drifts forward onto the near arc
-   * of the band, and is pulled back onto the stone as the stone rises out of
-   * the claws. Depth comes from a real depth texture and the circle of
-   * confusion is the honest |z - f| / z, so what goes soft is what is
-   * actually at the wrong distance: the far side of the shank, the box on
-   * its way off, the ring once it has been carried away.
+   * THE RACK FOCUS. Jewelry is photographed with a macro lens, and a focus
+   * PULL is the most emotional move in the whole vocabulary: it tells you
+   * what to care about without moving the camera an inch. So as the box
+   * leaves, it melts rather than slides. Depth comes from a real depth
+   * texture; the circle of confusion used to be the honest thin-lens
+   * |z - f| / z, and v0.4.2 traded that honesty for the trade's own: a
+   * macro lens wide open has a plane of focus a millimetre or two thick,
+   * which on this stage is thinner than the jewelry, so the "right"
+   * distance never covered more than a slice of the piece and the reader
+   * watched their ring go milky the moment it was lifted. A bench
+   * photographs the piece stopped down until ALL of it is depth of field
+   * and lets the set melt, so the plane is now a POCKET sized to the piece
+   * (see coc below), and what goes soft is only what is genuinely set
+   * dressing: the box on its way off.
    *
    * THE PRESS. The last thousandths before the table are a piece of glass
    * being put against the eye: the frame squeezed toward its centre and
@@ -1445,16 +1459,44 @@ import { JEWELRY } from "./jewelry-manifest.js";
       "  float d = texture2D(uDep, uv).x * 2.0 - 1.0;",
       "  return (2.0 * uNear * uFar) / (uFar + uNear - d * (uFar - uNear));",
       "}",
-      /* The circle of confusion, in pixels: how far off the plane of focus
+      /* The circle of confusion, in pixels: how far off the FOCUS POCKET
        * this fragment is, relative to its own distance. It saturates at a
        * third of a stop rather than running away, and that is a sampling
        * decision, not a photographic one: a fixed budget of taps spread
        * over an unbounded radius stops being a blur and starts being a
        * ring of copies, which is the one artefact that gives a cheap depth
        * of field away. Nothing beyond the subject here is more than a
-       * gradient anyway. */
+       * gradient anyway.
+       *
+       * A POCKET, not a plane, and this is the reader's "weird shader" on
+       * the lifted ring (v0.4.2). The old |z - uFocus| was the honest thin
+       * lens, and what a thin lens honestly does to a ring two units tall,
+       * photographed from six away with the plane laid on its head, is
+       * blur the bottom arc of the band; brought in to d 3.2 on the stone
+       * it blurs the stone's own near rim, five pixels of disc on the one
+       * thing the frame exists to show. The jewelry itself went milky the
+       * moment the pass was fitted and stayed that way for a quarter of
+       * the film, which read exactly as reported: the model changing, then
+       * staying "weirdly shaded".
+       *
+       * The trade photographs jewelry stopped down until the whole piece
+       * is inside the depth of field; only the set does the melting. One
+       * aperture cannot serve both here, because the melt on the departing
+       * box is the shot, so the pocket serves the piece directly: nothing
+       * within it blurs at all, and past its walls the same honest ramp
+       * runs as before. 0.5 toward the camera and 0.95 away covers the
+       * band's full drop behind a head-height focus at the film's own
+       * pitches, the crown above it, and the stone through every frame of
+       * the lift's pull, all measured against the frames that showed the
+       * milk; the box's walls and lid stand a unit and more outside and
+       * melt as they always did. Asymmetric because the subject is: the
+       * focus sits on the head with the whole band hanging behind it, and
+       * the box's near wall is the closest melting thing, so the near
+       * allowance is the one that has to stay small. */
       "float coc(float z) {",
-      "  return clamp(abs(z - uFocus) / max(z, 0.001) * 2.6, 0.0, 1.0) * uAper;",
+      "  float off = z - uFocus;",
+      "  float o = max(max(-0.5 - off, off - 0.95), 0.0);",
+      "  return clamp(o / max(z, 0.001) * 2.6, 0.0, 1.0) * uAper;",
       "}",
     ].join("\n");
 
@@ -2583,20 +2625,24 @@ import { JEWELRY } from "./jewelry-manifest.js";
       " liftK=" + liftK.toFixed(3) + " reveal=" + reveal.toFixed(3) +
       " expo=" + renderer.toneMappingExposure.toFixed(3);
 
-    /* The lens. Focus rides the subject's own axis; the PULL is an offset
-     * along the view: forward onto the near arc of the band as the box
-     * leaves, then drawn back onto the stone as the stone comes up out of
-     * the claws. That is the whole rack focus, and it is why the ring goes
-     * to bokeh at exactly the moment the reader is meant to stop looking at
-     * it. Aperture opens and closes around the stretch so the rest of the
-     * film never pays for the pass. */
+    /* The lens. Focus rides the subject's own axis, and the PULL carries
+     * it up from the ring's head onto the stone as the stone rises, so the
+     * focus pocket stays centred on the piece the reader is being handed.
+     * What the pull no longer does is put the ring to bokeh: the jewelry
+     * sits inside the pocket for every frame the aperture is open, and the
+     * only thing the lens melts is the box on its way off. The reader
+     * reported the model changing as it was lifted and then staying
+     * "weirdly shaded", and that was this pass blurring the subject it was
+     * fitted to flatter (v0.4.2); the piece now looks the same under the
+     * lens as in the box, and the same as the coda, which draws with no
+     * pass at all. Aperture opens with the box's departure and is gone on
+     * its heels, so the rest of the film never pays for the pass. */
     /* The rack focus runs everywhere now, phones included. It used to be cut
      * on a touch device to save the pass's fixed cost, and the trade was a
-     * bad one: it is the most emotional move in the whole vocabulary, it is
-     * what tells the reader to stop looking at the ring and start looking at
-     * the stone, and dropping it is dropping a beat of the film rather than
-     * some resolution. If a device cannot afford it the governor takes the
-     * resolution instead, which is the cheaper thing to lose. */
+     * bad one: the box melting off the stage is a beat of the film, and
+     * dropping it is dropping a beat rather than some resolution. If a
+     * device cannot afford it the governor takes the resolution instead,
+     * which is the cheaper thing to lose. */
     const aperF =
       0.017 *
       smooth(seg(p, B.focus[0], B.focus[0] + 0.052)) *
@@ -3333,8 +3379,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     0.19, // the lamp: a second shadow-caster joins the scene
     0.27, // the ring lit and rising
     0.31, // the rack focus opens: the scene into a render target
-    0.42, // the key's map stands down, the box is gone
-    0.5, // the stone out of the claws, still under the lens
+    0.42, // the box gone, the lens closing: gather and composite compile here
+    0.5, // the stone out of the claws, straight to the canvas since v0.4.2
     0.58, // the stone alone, no post pass at all
     0.6555, // the press: the target again, different uniforms
     0.7, // the crystal room
