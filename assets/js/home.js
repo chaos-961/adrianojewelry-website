@@ -25,12 +25,12 @@
  * Snell's window arriving and as the collapse leaving; the reader asked for
  * that business gone (v0.3.5) and it is gone from both.
  *
- * The rest of the pass is handling and glass: the props move as though a
- * hand had them (moves overlap, a departing piece leans into its travel, a
- * turn arrives past its mark and rocks back), the lid is sprung rather than
- * slid, the stone throws a wheel of its own light down onto the velvet, and
- * a real rack focus pulls from the ring to the stone as one lifts out of the
- * other.
+ * The rest of the pass is handling: the props move as though a hand had
+ * them (moves overlap, a departing piece leans into its travel, a turn
+ * arrives past its mark and rocks back) and the lid is sprung rather than
+ * slid. The rack focus that used to open over the ring chapters is gone
+ * (v0.4.3, at the reader's word), so the jewelry plays every frame at the
+ * canvas's own crispness.
  *
  * Everything visual is a pure function of one number, the reader's way
  * through the track (0 to 1), so the film runs forward and backward at
@@ -57,10 +57,10 @@
  *   ?ledx / ?ledshadow  lamp debug, passed through to the box
  *
  * Rendering only happens while something moves; a held frame costs nothing.
- * The one post-process pass (rack focus, and the squeeze through the table)
- * is allocated lazily and routed around entirely outside the two stretches
- * that ask for it, so the rest of the film draws straight to the canvas as
- * it always has. WebGL2 is required (three r185). Without it the journey
+ * The one post-process pass (the squeeze through the table) is allocated
+ * lazily and routed around entirely outside the one stretch that asks for
+ * it, so the rest of the film draws straight to the canvas as it always
+ * has. WebGL2 is required (three r185). Without it the journey
  * collapses to a quiet fallback card and the page continues as flowing
  * content. With JavaScript off, nothing here exists at all and the page is
  * the footer-only page it has been since v0.2.1.
@@ -109,30 +109,24 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * orders of magnitude slower, and they are the ones least able to afford a
    * full-frame post-process pass.
    *
-   * They also cannot compile one. Measured while landing v0.3.9: under
-   * SwiftShader with a real clock the depth-of-field gather fails to LINK on
-   * four runs out of four, with an empty program log, an empty log on both
-   * shaders, no GL error and the context not lost, and with `getShaderSource`
-   * still returning the whole shader. A five-line vertex shader that reports
-   * COMPILE_STATUS false with nothing to say about why is a rasteriser giving
-   * up, not a shader with a mistake in it; the same source links every time
-   * on real hardware and every time under a virtual clock. Nothing on the
-   * page errors when it happens, the program is simply not runnable, so the
-   * blur target keeps whatever was in it and the composite mixes that in.
-   *
-   * So the rack focus is not offered to a software rasteriser. It is a beat
-   * of the film and losing it is a real loss (see the note on the pass), but
-   * it is the beat that costs 48 of the 61ms in its own chapter, and the
-   * alternative on these machines is not a sharper picture, it is a broken
-   * one. Everything else stands: the crystal room still runs at half
-   * resolution, which is a straight win here, and the governor still has its
-   * resolution to spend.
+   * They also could not compile one. Measured while landing v0.3.9: under
+   * SwiftShader with a real clock the depth-of-field gather this film used
+   * to carry failed to LINK on four runs out of four, with an empty program
+   * log, an empty log on both shaders, no GL error and the context not
+   * lost, and with `getShaderSource` still returning the whole shader. A
+   * five-line vertex shader that reports COMPILE_STATUS false with nothing
+   * to say about why is a rasteriser giving up, not a shader with a mistake
+   * in it. The gather is gone as of v0.4.3, and the lesson keeps the gate:
+   * what the pass still does is render the whole scene into a full-frame
+   * target for the press, and a machine already one to two orders of
+   * magnitude slow does not pay a second full-frame write for a squeeze it
+   * can live without.
    *
    * `?soft=1` forces this path on so it can be checked, and `?lens=1` forces
    * the pass back on in spite of it, which is not a nicety: `scripts/shot.js`
    * runs Chrome with `--disable-gpu`, so every headless capture this repo
    * takes is a SwiftShader capture, and without that knob no screenshot could
-   * ever show the rack focus again. Photograph the lens with `&lens=1`. */
+   * ever show the press. Photograph the press with `&lens=1`. */
   const softGL = (() => {
     if (params.get("soft") === "1") return true;
     try {
@@ -172,23 +166,27 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * on the densest screen in the house. Which is the reader's complaint,
    * exactly, and it was self-inflicted.
    *
-   * So there is one dial now, `quality`, and the governor further down moves
-   * it by watching frames actually land. A touch device simply STARTS lower,
-   * because the opening seconds are the worst time to discover a device is
-   * slow, and climbs within about a second if it can hold the rate. A phone
-   * that can do it gets the whole film at full resolution; a phone that
-   * cannot loses resolution rather than losing the film's look.
+   * v0.3.2 kept one last shaving of that guess, a touch device STARTING the
+   * governor at 0.8, and v0.4.3 retires it, because the reader sent a
+   * screenshot of their phone and the arithmetic of what they were looking
+   * at is not close. The governor can only climb on 45 CONTINUOUS drawn
+   * frames, a parked film draws nothing, and the film is parked exactly
+   * when somebody is looking hard at it: the hero, a held beat, the coda.
+   * So every phone, however fast, opened this page on 0.8 of the resolution
+   * and stayed there until its reader had scrolled for a full second, which
+   * on a dpr-3 panel under the cap below is 53% of the pixels the screen
+   * has. A start guess that softens the first thing every capable phone
+   * shows, to protect the slow ones for the one second the governor needs
+   * to find them anyway, is the wrong side of the trade, and the film is
+   * also a cheaper thing to hold at full resolution than it was when the
+   * guess was made: v0.4.3 deleted the depth-of-field gather outright.
    *
-   * What stays gated on the pointer is only what no phone screen can show:
-   * half the shadow map (one soft shadow of a box on a cushion) and half the
-   * bokeh taps, with the aperture narrowed to match so the sample SPACING is
-   * unchanged and the cost comes off the smoothness rather than showing up
-   * as rings.
-   *
-   * `?lp=1` forces the touch path on so it can be photographed, since
-   * headless Chrome reports a fine pointer whatever size its window is. */
-  const lowPower =
-    params.get("lp") === "1" || matchMedia("(pointer: coarse)").matches;
+   * So there is one dial, `quality`, it starts at 1 for everyone, and the
+   * governor below moves it only on the evidence of frames actually landing.
+   * A phone that holds the rate keeps every pixel from the first frame; one
+   * that cannot loses 0.15 of resolution within a second and a half, which
+   * is the same second the old guess was spending on everybody. `?lp=1` is
+   * retired with it; `(pointer: coarse)` no longer changes a thing. */
   const DPR_CAP = 2;
 
   /* THE GOVERNOR.
@@ -205,7 +203,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * never more than once a second and a half, because the drawing buffer is
    * reallocated when it changes (and the lens's render target with it), and a
    * governor that hunts is worse than no governor at all. */
-  let quality = lowPower ? 0.8 : 1;
+  let quality = 1;
   const QUALITY_MIN = 0.55;
 
   /* THE SECOND MULTIPLIER: WHETHER THE PICTURE IS MOVING (v0.3.9).
@@ -217,10 +215,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * rate is what a governor can see and it is not what a laptop pays.
    *
    * So resolution is also spent on whether it can be SEEN. While the reader
-   * is scrolling, every prop on screen is being carried across the frame,
-   * the depth of field is wide open over most of the stretch, and the whole
-   * picture is under a camera move; a tenth of a millimetre of edge
-   * definition in there is not something an eye has any way to collect. The
+   * is scrolling, every prop on screen is being carried across the frame
+   * and the whole picture is under a camera move; a tenth of a millimetre
+   * of edge definition in there is not something an eye has any way to
+   * collect. The
    * moment the scroll comes to rest, and that is the moment somebody stops
    * to read a beat and look at the stone, the film draws that frame again at
    * every pixel the device has. Sharp where it is looked at, cheap where it
@@ -448,9 +446,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * the site's ground and the film played in a room of its own. Cleared to
    * nothing instead, every pixel the props do not cover is the page
    * underneath, which is the black silk, dimmed by home.js to whatever the
-   * beat wants. The lens pass carries the alpha through with it; see the note
-   * there, because a blur that gathers colour and drops coverage is the one
-   * way this goes wrong.
+   * beat wants. The press pass carries the alpha through with it (its
+   * coverage rides the same middle sample as the green channel), because a
+   * pass that moves colour and drops coverage would hand the canvas a solid
+   * rectangle for exactly the frames it is fitted over.
    *
    * AND NO FLOOR, AND NO FOG, which is the other half of the same idea. There
    * was a 90-unit satin disc under the props carrying a radial fade in its own
@@ -683,17 +682,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
     ringOut: [0.455, 0.543], // the ring leaves, stage right
     solo: [0.543, 0.604], // the stone alone, turning
     enter: [0.604, 0.66], // the stone swells past the camera
-    /* The shallow lens is fitted, and taken off. It used to run to 0.56,
-     * which is most of the ring's exit and all of the camera's move in on
-     * the stone; but the box, which is the only thing on stage that is
-     * MEANT to melt, is gone by 0.397, and every frame the pass touched
-     * after that had nothing in it but jewelry, all of it inside the focus
-     * pocket, so the pass was a quarter of the film's cost buying nothing
-     * and softening the subject at its edges. It now closes on the box's
-     * heels, and from here to the press the film draws straight to the
-     * canvas: the stone-solo close-ups play at exactly the coda's own
-     * quality, which is the consistency the reader asked for (v0.4.2). */
-    focus: [0.3, 0.45],
+    /* `focus` stood here from v0.2.8 to v0.4.2: the window the shallow lens
+     * was fitted over. The rack focus is gone as of v0.4.3 (the story is on
+     * the pass itself), so the only range the lens acts on now is `press`. */
     press: [0.62, 0.6585], // glass pressed against the eye at the table
     inside: [0.66, 0.852], // the crystal room and the gallery
     window: [0.66, 0.699], // arrival: the gallery ramps in behind the flash
@@ -923,27 +914,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
   /* ONE HALF-RESOLUTION SCRATCH FRAME, and the fullscreen triangle that puts
    * anything drawn into it back on the canvas.
    *
-   * This exists because of two measurements, and they are the two largest
+   * This exists because of a measurement, and it is one of the two largest
    * numbers this page has ever produced (v0.3.9, software rasteriser at
-   * 1264x705, `?fps=`). At p 0.45 the frame costs 118ms, and with `?nolens=1`
-   * the SAME frame costs 13.7ms: the depth-of-field pass was 88% of the ring
-   * chapters. At p 0.7 the frame costs 120ms for exactly one triangle: the
-   * crystal room's shader was the whole of that chapter. Between them they
-   * own the middle two thirds of the film, and neither is geometry, neither
-   * is overdraw, and neither can be argued down. They are fragment counts.
-   *
-   * What both have in common is that they are LOW-FREQUENCY BY CONSTRUCTION.
-   * A bokeh's entire content is the absence of detail. The crystal room's
-   * finest feature is a facet seam, and its seams are a soft ramp about ten
-   * pixels wide because that is how two planes of a stone meet. Neither
-   * image has anything in it that a full-resolution grid is required to
-   * carry, so both are drawn at half the width and half the height, a
-   * quarter of the fragments, and scaled back up.
-   *
-   * The scratch frame is shared because the two never coexist: the lens
-   * closes at p 0.6585 and the room opens at 0.66. One allocation, resized
-   * with the canvas, and the governor's own resolution multiplies through it
-   * for free since it is always derived from the drawing buffer.
+   * 1264x705, `?fps=`): at p 0.7 the frame cost 120ms for exactly one
+   * triangle, so the crystal room's shader was the whole of its chapter. Not
+   * geometry, not overdraw: a fragment count. And the room is LOW-FREQUENCY
+   * BY CONSTRUCTION, its finest feature a facet seam drawn as a soft ramp
+   * about ten pixels wide, because that is how two planes of a stone meet.
+   * Nothing in the image needs a full-resolution grid to carry it, so the
+   * room is drawn at half the width and half the height, a quarter of the
+   * fragments, and scaled back up. (The depth-of-field gather shared this
+   * frame for the same reason until v0.4.3 took the gather out; the room is
+   * its one tenant now.) One allocation, resized with the canvas, and the
+   * governor's own resolution multiplies through it for free since it is
+   * always derived from the drawing buffer.
    *
    * UNSIGNED_BYTE tagged sRGB, for the reason the lens found in v0.3.0: three
    * hands an SRGB8_ALPHA8 attachment to WebGL2, the hardware encodes on the
@@ -954,10 +938,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * the encode chunk is a no-op there anyway); the blit below does it. */
   /* `?full=1` runs the scratch frame at 1:1 instead of a quarter of the
    * fragments. It is not a quality setting and it does not ship as one: it is
-   * the reference arm for anything that goes wrong in either pass, since every
-   * artefact this file has chased in the gather has come from the half
-   * resolution rather than from the arithmetic, and the fastest way to tell
-   * the two apart is to take the resolution away. */
+   * the reference arm for anything that goes wrong in the room, since the
+   * artefacts this file has chased in scratch-frame passes have come from the
+   * half resolution rather than from the arithmetic, and the fastest way to
+   * tell the two apart is to take the resolution away. */
   const HALF = params.has("full") ? 1 : 0.5;
   const fx = (() => {
     const geo = new THREE.BufferGeometry();
@@ -1344,25 +1328,31 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* ---------------------------------------------------------------- the lens */
 
-  /* One post-process pass, fitted only for the two stretches that want a
-   * lens rather than a window. Everywhere else the film draws straight to
-   * the canvas exactly as it always has, and the target is not even
-   * allocated until the first frame that asks for it.
+  /* One post-process pass, fitted only for the one stretch that wants a
+   * lens rather than a window: the press through the table. Everywhere else
+   * the film draws straight to the canvas exactly as it always has, and the
+   * target is not even allocated until the first frame that asks for it.
    *
-   * THE RACK FOCUS. Jewelry is photographed with a macro lens, and a focus
-   * PULL is the most emotional move in the whole vocabulary: it tells you
-   * what to care about without moving the camera an inch. So as the box
-   * leaves, it melts rather than slides. Depth comes from a real depth
-   * texture; the circle of confusion used to be the honest thin-lens
-   * |z - f| / z, and v0.4.2 traded that honesty for the trade's own: a
-   * macro lens wide open has a plane of focus a millimetre or two thick,
-   * which on this stage is thinner than the jewelry, so the "right"
-   * distance never covered more than a slice of the piece and the reader
-   * watched their ring go milky the moment it was lifted. A bench
-   * photographs the piece stopped down until ALL of it is depth of field
-   * and lets the set melt, so the plane is now a POCKET sized to the piece
-   * (see coc below), and what goes soft is only what is genuinely set
-   * dressing: the box on its way off.
+   * THE RACK FOCUS IS GONE, and the reader is why (v0.4.3). It arrived in
+   * v0.2.8 as the most emotional move in the vocabulary, the box melting
+   * off the stage while focus was pulled from the ring's head onto the
+   * rising stone, and it then spent five versions being debugged on this
+   * page: untonemapped from v0.3.0 to v0.3.9, a dotted outline in v0.4.0,
+   * a dashed one in v0.4.1, and in v0.4.2 the thing itself, a plane of
+   * focus thinner than the jewelry it was pointed at, reported as a weird
+   * shader that changed the model as it was lifted and then stayed. v0.4.2
+   * answered with a focus pocket sized to the piece, which made the metal
+   * byte-consistent with the no-pass frame and left only the box melting,
+   * and the reader's verdict on what remained was to remove the thing
+   * entirely. That is the honest end of the story: a beat that has to be
+   * defended five times is a beat this film is better without. The jewelry
+   * now plays every frame at the canvas's own native crispness, the box
+   * slides off sharp the way every other prop departs, and the gather, its
+   * depth texture, its sixteen-tap spiral and the focus pull are deleted
+   * rather than left dormant. What they taught is recorded in git history
+   * and in CLAUDE.md, and the standing rule applies: if a depth of field
+   * ever comes back it comes back new, knowing that a plane of focus must
+   * never be thinner than the piece it is pointed at.
    *
    * THE PRESS. The last thousandths before the table are a piece of glass
    * being put against the eye: the frame squeezed toward its centre and
@@ -1371,460 +1361,49 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * white dissolve was an admission that the two shots would not join; this
    * is the join.
    *
-   * COLOUR, which is where all the cost turned out to be, and where the pass
-   * was quietly wrong for four versions. Three renders into a target in the
-   * working (linear) space, so the obvious target is half float: eight bits
-   * of LINEAR light in a room this dark bands on sight. But measured, that
-   * round trip cost more than everything else on the stage put together, and
-   * almost none of it was the taps: it was writing every fragment of the
-   * scene at sixteen bits a channel and reading the whole frame back.
+   * COLOUR. Three renders into a target in the working (linear) space, so
+   * the obvious target is half float: eight bits of LINEAR light in a room
+   * this dark bands on sight. But measured (v0.3.0), that round trip cost
+   * more than everything else on the stage put together, because it was
+   * writing every fragment of the scene at sixteen bits a channel and
+   * reading the whole frame back.
    *
    * So the target is eight bits, and what it stores is the FINISHED PICTURE:
    * ACES already applied, exposure already applied, sRGB already encoded, the
    * exact bytes the canvas would have been handed. See the note on the target
    * below for the three lines that arrange that, and why every one of them is
-   * needed. The gather then decodes each tap back to linear itself, which is
-   * the only place a blur is allowed to happen, and the composite hands a
-   * passthrough frame straight through untouched.
-   *
-   * That is the fix for the oldest bug in this file (v0.4.0). Three DISABLES
-   * tone mapping when it renders into a render target, so from v0.3.0 to
-   * v0.3.9 the whole of the rack focus played with no ACES and no exposure:
-   * measured at a passthrough progress against the same frame under
-   * `?nolens=1`, max 181, mean 9.3, on 78% of pixels. Three's ACES carries
-   * `exposure / 0.6`, so what the reader actually saw was a quarter of the
-   * film about 1.9 stops down with its highlights clipping flat instead of
-   * rolling off: the ring chapters played dark and chalky, and every prop in
-   * them wore a grey halo of lifted black. A passthrough frame now matches
-   * the same frame with the pass switched off to the byte everywhere except
-   * the silhouettes, which is the multisampling note on the target below.
-   *
-   * AND THE GATHER RUNS AT HALF RESOLUTION (v0.3.9), which is where the rest
-   * of the cost turned out to be. Measured at p 0.45: 118ms with the lens,
-   * 13.7ms for the same frame under `?nolens=1`. The pass was 88% of the
-   * film's most expensive chapter, and the reason is arithmetic rather than
-   * anything subtle. Sixteen taps, each of them a colour read AND a depth
-   * read, over every fragment of the frame, is thirty-two dependent texture
-   * fetches per pixel; on a phone at its own resolution that is upwards of a
-   * hundred million fetches for one frame, before the film has drawn a
-   * single prop. It ran at 60fps on a good machine by making that machine's
-   * GPU work most of its clock to do it, which is a thing a frame counter
-   * cannot see and a battery can.
-   *
-   * A bokeh is the one image on this page that is low-frequency BY
-   * DEFINITION: its entire content is the absence of detail. So the disc is
-   * gathered into the shared scratch frame at half the width and half the
-   * height, a quarter of the fragments, and composited back against the
-   * sharp full-resolution frame. The taps are untouched: same count, same
-   * golden-angle spiral, same radius in SOURCE texels, because uTexel still
-   * names the full-resolution frame they read from. What drops is the number
-   * of places the disc is evaluated at, and a disc evaluated every other
-   * pixel and then scaled up is a disc.
-   *
-   * The subject comes out SHARPER for it, which is the part worth keeping. A
-   * fragment in focus now takes the full-resolution frame untouched instead
-   * of a sixteen-tap average of a disc under a pixel across. A defocused
-   * diamond is a dead diamond (v0.3.3), and this is the first change in this
-   * pass's history that makes the plane of focus more exact rather than
-   * less. */
-  const TAPS = lowPower ? 8 : 16;
+   * needed; they are v0.4.0's fix for the oldest bug in this file, which is
+   * that three DISABLES tone mapping when it renders into a render target,
+   * so for nine versions everything the pass touched played about 1.9 stops
+   * down with its highlights clipping flat. The press is a distortion rather
+   * than a blur, so it moves those finished bytes around whole and never
+   * needs to decode one; outside the squeeze the composite is a straight
+   * passthrough, and a passthrough frame matches the same frame with the
+   * pass switched off to the byte everywhere except the silhouettes, which
+   * is the multisampling note on the target below. */
   const lens = (() => {
-    /* sRGB, both ways, written out because the target now holds an encoded
-     * picture rather than linear light. The decode is three's own polynomial
-     * fit rather than a pow: it is three multiplies and two adds, it is
-     * accurate to about a quarter of a level, and the gather runs it
-     * seventeen times per fragment. The encode is exact and runs once. */
-    const SRGB = [
-      "vec3 dec(vec3 c) {",
-      "  return c * (c * (c * 0.305306011 + 0.682171111) + 0.012522878);",
-      "}",
-      "vec3 enc(vec3 c) {",
-      "  vec3 v = clamp(c, 0.0, 1.0);",
-      "  return mix(v * 12.92, 1.055 * pow(v, vec3(0.41666)) - 0.055,",
-      "             step(vec3(0.0031308), v));",
-      "}",
-    ].join("\n");
-
-    /* The shared arithmetic, spliced into both fragment shaders below rather
-     * than written twice, because the composite decides what to show using
-     * the same circle of confusion the gather blurs by, and the day those
-     * two disagree is the day a sharp subject picks up a soft ring. */
-    const DEPTH = [
-      "uniform sampler2D uDep;",
-      "uniform float uNear;",
-      "uniform float uFar;",
-      "uniform float uFocus;",
-      "uniform float uAper;",
-      "float viewZ(vec2 uv) {",
-      "  float d = texture2D(uDep, uv).x * 2.0 - 1.0;",
-      "  return (2.0 * uNear * uFar) / (uFar + uNear - d * (uFar - uNear));",
-      "}",
-      /* The circle of confusion, in pixels: how far off the FOCUS POCKET
-       * this fragment is, relative to its own distance. It saturates at a
-       * third of a stop rather than running away, and that is a sampling
-       * decision, not a photographic one: a fixed budget of taps spread
-       * over an unbounded radius stops being a blur and starts being a
-       * ring of copies, which is the one artefact that gives a cheap depth
-       * of field away. Nothing beyond the subject here is more than a
-       * gradient anyway.
-       *
-       * A POCKET, not a plane, and this is the reader's "weird shader" on
-       * the lifted ring (v0.4.2). The old |z - uFocus| was the honest thin
-       * lens, and what a thin lens honestly does to a ring two units tall,
-       * photographed from six away with the plane laid on its head, is
-       * blur the bottom arc of the band; brought in to d 3.2 on the stone
-       * it blurs the stone's own near rim, five pixels of disc on the one
-       * thing the frame exists to show. The jewelry itself went milky the
-       * moment the pass was fitted and stayed that way for a quarter of
-       * the film, which read exactly as reported: the model changing, then
-       * staying "weirdly shaded".
-       *
-       * The trade photographs jewelry stopped down until the whole piece
-       * is inside the depth of field; only the set does the melting. One
-       * aperture cannot serve both here, because the melt on the departing
-       * box is the shot, so the pocket serves the piece directly: nothing
-       * within it blurs at all, and past its walls the same honest ramp
-       * runs as before. 0.5 toward the camera and 0.95 away covers the
-       * band's full drop behind a head-height focus at the film's own
-       * pitches, the crown above it, and the stone through every frame of
-       * the lift's pull, all measured against the frames that showed the
-       * milk; the box's walls and lid stand a unit and more outside and
-       * melt as they always did. Asymmetric because the subject is: the
-       * focus sits on the head with the whole band hanging behind it, and
-       * the box's near wall is the closest melting thing, so the near
-       * allowance is the one that has to stay small. */
-      "float coc(float z) {",
-      "  float off = z - uFocus;",
-      "  float o = max(max(-0.5 - off, off - 0.95), 0.0);",
-      "  return clamp(o / max(z, 0.001) * 2.6, 0.0, 1.0) * uAper;",
-      "}",
-    ].join("\n");
-
-    const gather = new THREE.ShaderMaterial({
-      depthTest: false,
-      depthWrite: false,
-      uniforms: {
-        uCol: { value: null },
-        uDep: { value: null },
-        uTexel: { value: new THREE.Vector2(1, 1) },
-        uNear: { value: 0.08 },
-        uFar: { value: 80 },
-        uFocus: { value: 6 },
-        uAper: { value: 0 },
-      },
-      vertexShader: fx.VERT,
-      fragmentShader: [
-        "varying vec2 vUv;",
-        "uniform sampler2D uCol;",
-        "uniform vec2 uTexel;",
-        SRGB,
-        DEPTH,
-        // One tap: the frame is stored encoded, the blur belongs in linear.
-        "vec4 tap(vec2 uv) {",
-        "  vec4 c = texture2D(uCol, uv);",
-        "  return vec4(dec(c.rgb), c.a);",
-        "}",
-        /* The four full-resolution depths under this fragment, and how much a
-         * sub-pixel of it is worth to its own blur. Both are read by the
-         * centre and by every tap in the loop; see the two notes in main. */
-        "vec4 zq;",
-        "float own(float zi) {",
-        "  float fr = max(max(step(zi + 0.02, zq.x), step(zi + 0.02, zq.y)),",
-        "                 max(step(zi + 0.02, zq.z), step(zi + 0.02, zq.w)));",
-        "  return mix(1.0, clamp(coc(zi), 0.0, 1.0), fr);",
-        "}",
-        /* EVERYTHING HERE IS RGBA, and that is not tidiness (v0.3.7). The
-         * scene renders into this target over a clear of (0,0,0,0), so the
-         * alpha channel IS the coverage: 1 where a prop or the floor stands,
-         * 0 where the page's silk should show through. A pass that gathered
-         * only .rgb and wrote 1.0 for alpha handed the canvas a solid
-         * rectangle again for exactly the stretch of the film the rack focus
-         * is fitted over, which is most of the ring chapters.
-         *
-         * The gather is correct on premultiplied values, and these are
-         * premultiplied by construction rather than by declaration: opaque
-         * materials draw with blending off, so a covered texel is (colour, 1)
-         * and an uncovered one is the clear, (0,0,0,0). A weighted mean of
-         * those is a premultiplied colour with the right coverage, which is
-         * also the form the canvas wants, since the context is the default
-         * premultipliedAlpha. Gathering straight colour and alpha separately
-         * instead would fringe every bokeh edge toward black. */
-        "void main() {",
-        /* THE WHOLE 2x2 BLOCK IS READ, AND BOTH NUMBERS TAKEN FROM IT, and
-         * this is the outline the reader reported. Twice (v0.4.0, v0.4.1).
-         *
-         * The depth texture is UnsignedInt with a NEAREST sampler, because
-         * that is the only filter WebGL2 offers on one. Read at half
-         * resolution, `viewZ(vUv)` therefore does not average the four
-         * full-resolution texels under this fragment; it PICKS one of them,
-         * and vUv lands exactly on the corner where all four meet, so which
-         * one it picks is decided by rounding. Along a silhouette that is a
-         * coin toss between the object's depth and the empty frame's.
-         *
-         * v0.4.0 saw that and fixed the RADIUS, which is half the story: four
-         * reads at the four full-resolution texel centres, widest disc wins.
-         * The widest is the right one and not merely the safe one, since a
-         * fragment covering any part of the defocused background is showing
-         * that background, and the composite decides per full-res pixel how
-         * much of this frame it wants anyway.
-         *
-         * But `z` itself is the OCCLUSION REFERENCE in the tap loop below,
-         * and it was left on the coin toss, which is where the dots actually
-         * came from. Land on the object's depth and every tap in the disc is
-         * behind you, so the whole disc is gathered and the fragment comes
-         * back bright; land on the empty frame's and the object's own taps
-         * have to earn their way in through their circle of confusion, so the
-         * fragment comes back dark. Alternating bright and dark, texel by
-         * texel, along every silhouette in the frame: scaled back up, a
-         * two-pixel dotted line drawn round the ring and round the stone.
-         *
-         * So z is the FARTHEST of the four. That is the choice that makes the
-         * two cases the film actually plays come out right, rather than
-         * merely the choice that is stable. A sharp object against a
-         * defocused ground: its taps are killed past a pixel, the edge texel
-         * holds the ground alone, and no halo is smeared outward from a thing
-         * that is not scattering. A defocused object against anything: its
-         * own circle of confusion is wide, so its taps pass the same test and
-         * it spreads exactly as it should. Taking the nearest instead would
-         * hand every sharp silhouette in the film a two-pixel glow, which is
-         * the same outline in the other direction. */
-        "  vec2 h = uTexel * 0.5;",
-        "  zq = vec4(viewZ(vUv + h), viewZ(vUv - h),",
-        "            viewZ(vUv + vec2(h.x, -h.y)), viewZ(vUv + vec2(-h.x, h.y)));",
-        "  float rad = max(max(coc(zq.x), coc(zq.y)), max(coc(zq.z), coc(zq.w)));",
-        /* AND THE CENTRE TAP IS THE FOUR PIXELS IT ACTUALLY IS, each admitted
-         * or refused on its own (v0.4.1). This is the last of the outline and
-         * the only part of it that survived multisampling.
-         *
-         * Every other tap in this disc has to earn its way in: one standing
-         * in FRONT of this fragment only arrives if its own blur is wide
-         * enough to scatter this far. The centre was exempt, because at full
-         * resolution the centre IS this fragment and a surface always covers
-         * itself. At half resolution it is four pixels, they need not be the
-         * same surface, and `tap(vUv)` lands on the corner where all four
-         * meet, so a bilinear read hands back a quarter of whatever sharp
-         * thing happens to occupy one of them. Every other trace of that
-         * thing has been refused at w = 0; this one walks in at w = 1.
-         *
-         * On a background fragment beside the sharp ring, the disc is half
-         * killed, so the denominator is small and that quarter comes back as
-         * a couple of percent of a white shank: a faint bright hairline
-         * hugging the metal all the way round, stippled by which sub-pixels
-         * the block happened to straddle. It is the "weird outline" left
-         * after the depth fixes, it is the thing the tent read was papering
-         * over, and it is why the halo followed the silhouette exactly rather
-         * than spreading like a blur.
-         *
-         * So the centre is read four times, at the four full-resolution texel
-         * centres, and each is weighted by the same rule as everything else:
-         * full, unless it stands in front of any of its own neighbours, in
-         * which case it is worth its own circle of confusion, which is zero
-         * for a surface that is sharp and one for a surface that is not. A
-         * sharp edge is then absent from the blur entirely; a defocused one
-         * spreads exactly as it did. Three extra fetches on a quarter of the
-         * frame's fragments, against thirty-two already here, and the
-         * farthest sub-pixel is never in front of anything, so the weight can
-         * never all cancel. */
-        "  float wa = own(zq.x);",
-        "  float wb = own(zq.y);",
-        "  float wc = own(zq.z);",
-        "  float wd = own(zq.w);",
-        "  vec4 sum = tap(vUv + h) * wa + tap(vUv - h) * wb",
-        "           + tap(vUv + vec2(h.x, -h.y)) * wc",
-        "           + tap(vUv + vec2(-h.x, h.y)) * wd;",
-        "  float wsum = wa + wb + wc + wd;",
-        /* AND THE SPIRAL IS TURNED A DIFFERENT WAY IN EVERY FRAGMENT. THIS IS
-         * THE DASHED LINE, and it is not a depth problem at all (v0.4.1).
-         *
-         * Sixteen taps over a disc fifteen pixels across is one sample per
-         * forty-four pixels of it: nowhere near enough to answer "how much of
-         * this disc is ring" on its own. That is the design and it is fine,
-         * because the answer only has to be right ON AVERAGE over the
-         * neighbours an eye reads together. It was not averaging anything.
-         * Every fragment used the same spiral at the same rotation, so
-         * neighbouring fragments read the same picture through the same
-         * stencil shifted by a texel, and along a straight edge the number of
-         * taps that land on the object steps up and down in step with that
-         * shift. Identical error, in phase, the whole length of the
-         * silhouette: a dashed line drawn round the ring and round the stone,
-         * bright where the count runs high, dark where it runs low.
-         *
-         * Turning the spiral by a per-fragment angle breaks the phase, and the
-         * choice of angle is the whole quality of the fix, because what the
-         * dashes become is whatever structure the angles have. A quarter turn
-         * per position in a 2x2 tile was tried first, on the argument that the
-         * composite's tent averages exactly that neighbourhood and would
-         * cancel it: what it actually leaves is a checkerboard, since a spiral
-         * and the same spiral turned half way round are point reflections of
-         * each other and disagree maximally about a straight edge, and the eye
-         * finds a checkerboard faster than it finds a dashed line.
-         *
-         * The R2 sequence instead, which is the two-dimensional golden ratio:
-         * it has no repeating tile at all, so there is no structure to find,
-         * and it is low-discrepancy rather than random, so adjacent fragments
-         * get angles that are far apart rather than merely independent. What
-         * is left is a fine grain in the falloff of a bokeh, at the scale of
-         * one texel, on an image whose whole content is the absence of detail.
-         * It costs a dot, a fract and a multiply.
-         *
-         * Both depth fixes above stay. They are what took the halo off the
-         * stone, which was a real and separate thing. */
-        "  float a0 = 6.2831853 * fract(dot(gl_FragCoord.xy,",
-        "                                  vec2(0.7548776, 0.5698402)));",
-        /* Taps on a golden-angle spiral: an even disc at any radius, and no
-         * ring artefacts, which a square kernel gives away instantly.
-         * Sixteen of them, or eight on a phone, where the aperture is
-         * narrowed to match, so the SPACING between samples stays about the
-         * same and the halved count costs sharpness of the bokeh rather than
-         * introducing the rings a sparser disc would.
-         *
-         * uTexel is the SOURCE frame's texel, not this pass's own, so the
-         * disc covers exactly the picture it always did even though this is
-         * being evaluated at half the density (v0.3.9). */
-        "  for (int i = 0; i < " + TAPS + "; i++) {",
-        "    float fi = float(i);",
-        "    float a = fi * 2.3999632 + a0;",
-        "    float dp = sqrt((fi + 0.5) / " + TAPS + ".0) * rad;",
-        "    vec2 su = vUv + vec2(cos(a), sin(a)) * dp * uTexel;",
-        "    float zs = viewZ(su);",
-        "    float ws = clamp(coc(zs) - dp + 1.0, 0.0, 1.0);",
-        /* AND THE TEST IS RUN AGAINST ALL FOUR SUB-DEPTHS, NOT ONE (v0.4.1).
-         *
-         * This fragment covers four full-resolution pixels, and at a
-         * silhouette they do not agree about what is in front of what. There
-         * is no single depth to test against, and every attempt to name one
-         * draws a line: the reference used to be a NEAREST read at the exact
-         * corner where the four texels meet, so along an edge it was a coin
-         * toss between the object's depth and the empty frame's, and the two
-         * answers are as far apart as the tap loop can be. Land on the
-         * object's and every tap in the disc is behind you, so the whole disc
-         * is gathered and the fragment comes back bright; land on the empty
-         * frame's and the object's own taps have to earn their way in through
-         * their circle of confusion, so it comes back dark. Alternating
-         * bright and dark, texel by texel, along every silhouette in the
-         * frame: scaled back up, the dotted line drawn round the ring.
-         *
-         * Naming one of the four instead of tossing for it is stable, and
-         * still a line, just a continuous one, because the step from "no
-         * sub-pixel here is behind that tap" to "all four are" still happens
-         * inside a single texel. So the fragment does what it is: it answers
-         * the question four times and takes the mean. `f` is the fraction of
-         * this fragment that the tap stands in front of, the weight ramps
-         * across it in five steps instead of two, and the edge comes out as
-         * the two-pixel gradient a full-resolution gather would have given
-         * had it been averaged down. It is four compares and a mix per tap,
-         * against the two texture fetches already in it. */
-        "    float f = 0.25 * dot(step(vec4(zs + 0.02), zq), vec4(1.0));",
-        /* Whether a neighbour reaches this fragment is decided by ITS circle
-         * of confusion, not by this fragment's.
-         *
-         * A neighbour behind is simply gathered. One in front only arrives if
-         * its own blur is wide enough to scatter this far, which is what
-         * stops a sharp foreground smearing across the subject, and, just as
-         * importantly, what lets a DEFOCUSED one spread outward the way real
-         * bokeh does. Weighing a front neighbour against this fragment's
-         * radius instead, as this did until v0.3.0, forbids the spread in
-         * both cases: the object's own edge darkens as it gathers the ground
-         * behind it while the ground receives nothing back, and a hard dark
-         * line gets drawn around every lit thing on the stage. That outline
-         * was the artefact, not the model. */
-        "    float w = mix(1.0, ws, f);",
-        "    sum += tap(su) * w;",
-        "    wsum += w;",
-        "  }",
-        // Linear out. This writes into the scratch frame, whose SRGB8
-        // attachment encodes in hardware and decodes on the way back, so the
-        // composite reads a linear disc at sRGB's own precision.
-        "  gl_FragColor = sum / wsum;",
-        "}",
-      ].join("\n"),
-    });
-
     /* THE COMPOSITE, at the canvas's own resolution, and the only pass that
-     * ever touches it. Three jobs, and they are mutually exclusive in the
-     * film's own timeline: the press (which is a distortion, not a blur, so
-     * it stays sharp and full-resolution and costs three reads), the mix
-     * between the sharp frame and the gathered one, and a straight
-     * passthrough for the frames at either end of the focus window where the
-     * aperture is open but the widest disc in the picture is under a pixel.
-     *
-     * HOW MUCH BLUR A FRAGMENT TAKES IS ITS OWN CIRCLE OF CONFUSION, dilated
-     * by four probes at half the aperture that only count if they are IN
-     * FRONT. That last clause is the whole of it. Undilated, a defocused
-     * thing passing over a sharp one would be cut off at the sharp one's
-     * silhouette, which is the hard outline v0.3.0 spent a version removing.
-     * Dilated without the depth test, the background's own blur would creep
-     * inward over the subject and soften the very edge the pass exists to
-     * keep, since empty space sits at uFar and is therefore as defocused as
-     * this frame gets. In front only, and both hold. */
+     * ever touches it. Two jobs, mutually exclusive on the press's own ramp:
+     * the press (a distortion, not a blur, so it stays sharp and
+     * full-resolution and costs three reads), and a straight passthrough for
+     * the frames at either end of it where the squeeze is still under a
+     * fraction of a pixel. uCol holds the finished, encoded picture, so
+     * neither branch decodes a byte: the press moves bytes around whole and
+     * the passthrough hands them over. */
     const out = new THREE.ShaderMaterial({
       depthTest: false,
       depthWrite: false,
       uniforms: {
         uCol: { value: null },
-        uBlur: { value: null },
-        uDep: { value: null },
-        uTexel: { value: new THREE.Vector2(1, 1) },
-        uBTexel: { value: new THREE.Vector2(1, 1) },
-        uNear: { value: 0.08 },
-        uFar: { value: 80 },
-        uFocus: { value: 6 },
-        uAper: { value: 0 },
         uPress: { value: 0 },
         uA: { value: 1 },
-        uMix: { value: 0 },
       },
       vertexShader: fx.VERT,
       fragmentShader: [
         "varying vec2 vUv;",
         "uniform sampler2D uCol;",
-        "uniform sampler2D uBlur;",
-        "uniform vec2 uTexel;",
-        "uniform vec2 uBTexel;",
         "uniform float uPress;",
         "uniform float uA;",
-        "uniform float uMix;",
-        SRGB,
-        DEPTH,
-        // The dilation probe: a neighbour's blur, but only if the neighbour
-        // stands in front of this fragment.
-        "float front(vec2 uv, float z0) {",
-        "  float z = viewZ(uv);",
-        "  return z < z0 - 0.02 ? coc(z) : 0.0;",
-        "}",
-        /* THE SCRATCH FRAME IS READ THROUGH A TENT, NOT A BILINEAR TAP, and
-         * this is the one line the half-resolution gather actually cost.
-         *
-         * The gather leaves a thin dark rim just outside a defocused object,
-         * where its taps stop reaching and the weighted mean falls back to
-         * the empty frame behind it. That rim has always been there; at full
-         * resolution it is a pixel wide and reads as the edge of a soft
-         * thing, which is what it is. Sampled once and scaled up it is two
-         * pixels of hard 2x2 blocks and reads as a dotted line drawn round
-         * the ring, which was the one visible regression in the whole of
-         * this change.
-         *
-         * Four taps half a scratch texel off centre, each of them already a
-         * bilinear read, is a 3x3 tent for the price of four fetches, and it
-         * puts the rim back to the smooth gradient it is at full resolution.
-         * Compared side by side against a gather forced to full resolution,
-         * this is the frame that matches. */
-        "vec4 blurred() {",
-        /* 0.85 of a scratch texel rather than 0.5 (v0.4.1). The gather now
-         * turns its spiral a different way in every fragment, so neighbouring
-         * texels hold independent samplings of the same disc and this tent is
-         * where they average. At half a texel it weights that neighbourhood
-         * 9:3:3:1 and most of the averaging does not happen, which is the fine
-         * speckle left along a bokeh's falloff once the dashes had gone. At
-         * 0.85 the weights are near enough even to take it out, and all it
-         * costs is a fraction of a texel of softness on an image whose entire
-         * content is the absence of detail. */
-        "  vec2 o = uBTexel * 0.85;",
-        "  return 0.25 * (texture2D(uBlur, vUv + o)",
-        "               + texture2D(uBlur, vUv - o)",
-        "               + texture2D(uBlur, vUv + vec2(o.x, -o.y))",
-        "               + texture2D(uBlur, vUv + vec2(-o.x, o.y)));",
-        "}",
         "void main() {",
         "  vec4 col;",
         "  if (uPress > 0.0005) {",
@@ -1840,29 +1419,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
         // Coverage takes the middle sample: it is the one the green channel
         // is read at, so the shape stays registered with the picture.
         "    col.a = mid.a;",
-        "  } else if (uMix > 0.0) {",
-        "    float z = viewZ(vUv);",
-        "    float rad = coc(z);",
-        "    vec2 d = uAper * 0.5 * uTexel;",
-        "    rad = max(rad, front(vUv + vec2(d.x, 0.0), z));",
-        "    rad = max(rad, front(vUv - vec2(d.x, 0.0), z));",
-        "    rad = max(rad, front(vUv + vec2(0.0, d.y), z));",
-        "    rad = max(rad, front(vUv - vec2(0.0, d.y), z));",
-        /* Under a pixel of disc is not a blur, it is a resample, so the
-         * sharp frame is handed over untouched; past two and a bit the
-         * gathered one has all of the picture there is. Between them the
-         * crossfade is short on purpose, because it is exactly the width of
-         * the plane of focus and a long ramp there reads as a soft subject.
-         *
-         * The crossfade itself happens in LINEAR, which is the whole reason
-         * the sharp frame is decoded here rather than mixed as it is stored:
-         * a half-and-half blend of an encoded highlight against an encoded
-         * black is not half the light, and every silhouette in the frame is
-         * somewhere on that ramp. */
-        "    vec4 sharp = texture2D(uCol, vUv);",
-        "    col = mix(vec4(dec(sharp.rgb), sharp.a), blurred(),",
-        "              uMix * smoothstep(0.9, 2.4, rad));",
-        "    col.rgb = enc(col.rgb);",
         "  } else {",
         // Nothing to do at all: the target already holds the finished,
         // encoded picture, so this hands the canvas exactly the bytes the
@@ -1878,10 +1434,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     const size = new THREE.Vector2();
     function target(w, h) {
       if (rt && rt.width === w && rt.height === h) return rt;
-      if (rt) {
-        rt.depthTexture.dispose();
-        rt.dispose();
-      }
+      if (rt) rt.dispose();
       rt = new THREE.WebGLRenderTarget(w, h, {
         type: THREE.UnsignedByteType,
         colorSpace: THREE.SRGBColorSpace,
@@ -1944,46 +1497,14 @@ import { JEWELRY } from "./jewelry-manifest.js";
       rt.texture.generateMipmaps = false;
       rt.texture.wrapS = THREE.ClampToEdgeWrapping;
       rt.texture.wrapT = THREE.ClampToEdgeWrapping;
-      const dep = new THREE.DepthTexture(w, h);
-      dep.type = THREE.UnsignedIntType;
-      dep.format = THREE.DepthFormat;
-      dep.minFilter = THREE.NearestFilter;
-      dep.magFilter = THREE.NearestFilter;
-      rt.depthTexture = dep;
-      for (const m of [gather, out]) {
-        m.uniforms.uCol.value = rt.texture;
-        m.uniforms.uDep.value = dep;
-        m.uniforms.uTexel.value.set(1 / w, 1 / h);
-      }
+      out.uniforms.uCol.value = rt.texture;
       return rt;
     }
 
     return {
-      /** Blur radius is named as a fraction of frame height, so the lens is
-       * the same lens on a phone as on a monitor and the same on either
-       * pixel ratio. */
-      set(focus, aperFrac, press, aspect) {
-        renderer.getDrawingBufferSize(size);
-        const aper = aperFrac * size.y;
-        for (const m of [gather, out]) {
-          m.uniforms.uFocus.value = focus;
-          m.uniforms.uAper.value = aper;
-          m.uniforms.uNear.value = camera.near;
-          m.uniforms.uFar.value = camera.far;
-        }
+      set(press, aspect) {
         out.uniforms.uPress.value = press;
         out.uniforms.uA.value = aspect;
-        /* Whether the disc is worth gathering at all, and it is a RAMP
-         * rather than a switch. The aperture opens and shuts across a fifth
-         * of the focus window, and at either end of that ramp the widest
-         * circle anywhere in the frame is a pixel or so: a gather there is
-         * sixteen taps landing inside one texel to reproduce it, which is
-         * most of the pass's cost for none of its picture. But a hard cutoff
-         * at any threshold takes some real fraction of a blur off in one
-         * frame, so the composite's mix is scaled to nothing first and the
-         * pass is skipped only once it can no longer show. */
-        out.uniforms.uMix.value =
-          press > 0.0005 ? 0 : clamp((aper - 1.4) / 1.6, 0, 1);
       },
       draw() {
         // Hoisted, not asked per frame: this is the hot loop.
@@ -1994,15 +1515,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
         renderer.getDrawingBufferSize(size);
         renderer.setRenderTarget(target(size.x, size.y));
         renderer.render(scene, camera);
-        // The gather, into the shared scratch frame at a quarter of the
-        // fragments. Skipped whole on the frames that cannot show it.
-        if (out.uniforms.uMix.value > 0) {
-          const bt = fx.half();
-          renderer.setRenderTarget(bt);
-          fx.pass(gather);
-          out.uniforms.uBlur.value = bt.texture;
-          out.uniforms.uBTexel.value.set(1 / bt.width, 1 / bt.height);
-        }
         renderer.setRenderTarget(null);
         fx.pass(out);
       },
@@ -2408,8 +1920,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
   /* --------------------------------------------------------------- the film */
 
   const eyeV = new THREE.Vector3();
-  const focusV = new THREE.Vector3();
-  const camInv = new THREE.Matrix4();
 
   /* Every style write below is guarded on an actual change. A frame of this
    * film writes a dozen of them, and a write that sets a property to the
@@ -2625,60 +2135,13 @@ import { JEWELRY } from "./jewelry-manifest.js";
       " liftK=" + liftK.toFixed(3) + " reveal=" + reveal.toFixed(3) +
       " expo=" + renderer.toneMappingExposure.toFixed(3);
 
-    /* The lens. Focus rides the subject's own axis, and the PULL carries
-     * it up from the ring's head onto the stone as the stone rises, so the
-     * focus pocket stays centred on the piece the reader is being handed.
-     * What the pull no longer does is put the ring to bokeh: the jewelry
-     * sits inside the pocket for every frame the aperture is open, and the
-     * only thing the lens melts is the box on its way off. The reader
-     * reported the model changing as it was lifted and then staying
-     * "weirdly shaded", and that was this pass blurring the subject it was
-     * fitted to flatter (v0.4.2); the piece now looks the same under the
-     * lens as in the box, and the same as the coda, which draws with no
-     * pass at all. Aperture opens with the box's departure and is gone on
-     * its heels, so the rest of the film never pays for the pass. */
-    /* The rack focus runs everywhere now, phones included. It used to be cut
-     * on a touch device to save the pass's fixed cost, and the trade was a
-     * bad one: the box melting off the stage is a beat of the film, and
-     * dropping it is dropping a beat rather than some resolution. If a
-     * device cannot afford it the governor takes the resolution instead,
-     * which is the cheaper thing to lose. */
-    const aperF =
-      0.017 *
-      smooth(seg(p, B.focus[0], B.focus[0] + 0.052)) *
-      (1 - smooth(seg(p, B.focus[1] - 0.048, B.focus[1])));
+    /* The lens is the press now, and nothing else. The rack focus that used
+     * to open here went in v0.4.3 at the reader's word; the story is on the
+     * pass itself. The film draws straight to the canvas until the squeeze
+     * through the table asks for the target, which is the one stretch a
+     * post-process earns its place in this film. */
     const pressK = easeIn3(seg(p, B.press[0], B.press[1]));
-    const lensOn = !inCoda && (aperF > 0.0004 || pressK > 0.0005);
-    let focusZ = 6;
-    if (lensOn && aperF > 0.0004) {
-      camera.updateMatrixWorld();
-      camInv.copy(camera.matrixWorld).invert();
-      // The plane of focus sits on the ring's head, and the pull carries it
-      // up onto the stone, deliberately a beat BEHIND the stone's own rise,
-      // so the brilliant drifts soft on its way out of the claws and comes
-      // sharp as the focus catches it. Both are on the same axis, so the
-      // separation is the height the stone has gained, read through a camera
-      // that is looking down at it; that is small, and it is exactly the
-      // depth a macro lens has to work with on a real ring.
-      /* THE PULL HAS TO LAND INSIDE THE STONE'S OWN BEAT. It used to run to
-       * B.stoneUp[1] + 0.012, i.e. p 0.414 to 0.472, which meant focus was
-       * still only 70% of the way onto the brilliant at p 0.45 with the
-       * aperture wide open. A defocused diamond is not a soft diamond, it is
-       * a DEAD one: every bit of what makes it worth looking at is
-       * high-frequency, the arrows, the flashes, the fire, and a blur is
-       * exactly the operation that removes high frequencies. So the stone
-       * spent most of the beat headed "Lifted clear of its claws, so you can
-       * see what they hold" as a grey lump, which is what read as broken
-       * lighting when the lighting was never touched.
-       *
-       * It still drifts soft on the way out of the claws, because that beat
-       * is right and it is what hands the reader from the metal to the
-       * stone. It just finishes the journey, by 0.438, and is sharp for the
-       * rest of the shot. */
-      const pullK = smooth(seg(p, B.stoneUp[0] + 0.008, B.stoneUp[0] + 0.05));
-      focusV.set(0, lerp(ringY + GIRDLE, stoneY, pullK), 0).applyMatrix4(camInv);
-      focusZ = Math.max(-focusV.z, 0.2);
-    }
+    const lensOn = !inCoda && pressK > 0.0005;
 
     /* Contact, and the vignette handed across with it. Not a dissolve. A
      * hit: dark right up to the table, one frame of bloom off the strike,
@@ -2728,7 +2191,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       inside.mat.uniforms.uA.value = aspect;
       inside.draw();
     } else if (lensOn) {
-      lens.set(focusZ, aperF, pressK, aspect);
+      lens.set(pressK, aspect);
       lens.draw();
     } else {
       renderer.render(scene, camera);
@@ -3378,11 +2841,11 @@ import { JEWELRY } from "./jewelry-manifest.js";
     0, // the closed box and the floor
     0.19, // the lamp: a second shadow-caster joins the scene
     0.27, // the ring lit and rising
-    0.31, // the rack focus opens: the scene into a render target
-    0.42, // the box gone, the lens closing: gather and composite compile here
-    0.5, // the stone out of the claws, straight to the canvas since v0.4.2
-    0.58, // the stone alone, no post pass at all
-    0.6555, // the press: the target again, different uniforms
+    0.31, // the ring high and lit, the box on its way out
+    0.42, // the box gone, the stone rising out of the claws
+    0.5, // the stone out of the claws, the ring leaving
+    0.58, // the stone alone
+    0.6555, // the press: the scene into the render target, the composite compiles
     0.7, // the crystal room
     0.83, // the room folding, the gallery lit
     0.9, // the coda: the stone relit against black

@@ -24,7 +24,7 @@
  * tooling in this repo.
  *
  * --mobile also sets the mobile flag, which is what makes (pointer: coarse)
- * match; the film reads that as lowPower. Without it you get a narrow desktop,
+ * match, exactly as it does on a phone. Without it you get a narrow desktop,
  * which is a different thing and worth being able to capture separately.
  */
 
