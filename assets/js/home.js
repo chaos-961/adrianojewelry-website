@@ -6,7 +6,8 @@
  * frame, lifts the stone out of its claws while the ring leaves the other
  * way, closes right in on the turning brilliant, and then passes through
  * its table into a white crystalline room where the store's finished pieces
- * drift by. Scrolling on folds the white back to black, stands the
+ * hang, gather into a turning halo, stream past in counter-flowing lanes,
+ * and settle into a salon wall of work. Scrolling on folds the white back to black, stands the
  * brilliant back up out of that black, relit and turning, and carries it
  * stage left while the closing words take the right of the frame; then the
  * page hands over to the finale and the footer, which are ordinary flowing
@@ -702,44 +703,52 @@ import { JEWELRY } from "./jewelry-manifest.js";
    *
    * v0.2.8 stretched the track from 1500vh to 1700vh and rescaled every
    * range by 15/17, so each existing chapter still occupies exactly the
-   * scroll length it always had; the two new screens all belong to the
-   * coda at the end. */
+   * scroll length it always had; the two new screens all belonged to the
+   * coda at the end. v0.4.7 plays the same trick again, in the middle:
+   * the track is 2200vh now, every range outside the diamond is scaled
+   * by 17/22 (the dark room, the dive and the coda still play at the
+   * exact scroll pace they were tuned at), and all five new screens
+   * belong to the showcase inside the stone, which the reader asked to
+   * have reworked from A to Z and made long. The chapter that was 3.3
+   * screens of road is 8.3 now, and what fills it is the formation
+   * timeline in the constellation's vertex shader: scatter, halo,
+   * stream, wall, with staggered flights between them. */
   const B = {
-    turn: [0.066, 0.141], // the box comes round to face the reader
-    open: [0.154, 0.229], // the lid stands, the lamp comes up with it
-    ringUp: [0.251, 0.331], // the ring rises out of the slot
-    boxOut: [0.306, 0.397], // the box leaves, stage left
-    stoneUp: [0.388, 0.46], // the stone rises out of the claws
-    ringOut: [0.455, 0.543], // the ring leaves, stage right
-    solo: [0.543, 0.604], // the stone alone, turning
-    enter: [0.604, 0.66], // the stone swells past the camera
+    turn: [0.051, 0.109], // the box comes round to face the reader
+    open: [0.119, 0.177], // the lid stands, the lamp comes up with it
+    ringUp: [0.194, 0.2558], // the ring rises out of the slot
+    boxOut: [0.2364, 0.3068], // the box leaves, stage left
+    stoneUp: [0.2998, 0.3555], // the stone rises out of the claws
+    ringOut: [0.3516, 0.4196], // the ring leaves, stage right
+    solo: [0.4196, 0.4667], // the stone alone, turning
+    enter: [0.4667, 0.51], // the stone swells past the camera
     /* `focus` stood here from v0.2.8 to v0.4.2: the window the shallow lens
      * was fitted over. The rack focus is gone as of v0.4.3 (the story is on
      * the pass itself), so the only range the lens acts on now is `press`. */
-    press: [0.62, 0.6585], // glass pressed against the eye at the table
-    inside: [0.66, 0.852], // the crystal room and the gallery
-    window: [0.66, 0.699], // arrival: the gallery ramps in behind the flash
-    collapse: [0.806, 0.852], // the white goes down to black for the cut
+    press: [0.4791, 0.5088], // glass pressed against the eye at the table
+    inside: [0.51, 0.8856], // the crystal room and the showcase
+    window: [0.51, 0.54], // arrival: the showcase ramps in behind the flash
+    collapse: [0.85, 0.8856], // the white goes down to black for the cut
   };
 
   /* Contact. The old join was a slow white dissolve; this is a hit: the
    * bloom off a single frame of it, up hard and gone. The crystal room takes
    * the canvas at 0.66, under the top of the spike, so the eye is still
    * recovering when the switch happens and no frame shows the seam. */
-  const FLASH = [0.6505, 0.6595, 0.6715];
+  const FLASH = [0.5027, 0.5096, 0.5189];
 
   /* The coda. Out of the black the collapse leaves behind, the brilliant
    * stands back up, relit and turning, and is carried stage left while the
    * closing words take the right of the frame: the film's goodbye, played
    * on the same ground the finale below stands on. */
-  const CODA = [0.858, 1];
+  const CODA = [0.8903, 1];
 
   /* Camera keys: lookAt, orbit, distance, lens, how far the subject slides
    * off centre on a wide screen (sx), and the width of world that must stay
    * in frame however narrow the viewport gets (fitW). The fit is enforced
    * after interpolation, so a phone simply stands further back instead of
    * cropping the story. The last three keys are the coda: nothing between
-   * the dive at 0.66 and the coda's first key is ever rendered (the crystal
+   * the dive at 0.51 and the coda's first key is ever rendered (the crystal
    * room owns that stretch), so the segment that joins them is free to be
    * whatever the interpolation makes of it.
    *
@@ -752,9 +761,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * on its own, so it stays. */
   const KEYS = [
     { p: 0.0, y: 2.15, yaw: 0.62, pit: 0.3, d: 17.5, fov: 30, sx: -2.3, fitW: 8.6 },
-    { p: 0.088, y: 2.2, yaw: 0.3, pit: 0.26, d: 14.2, fov: 30, sx: -1.0, fitW: 8.2 },
-    { p: 0.146, y: 2.25, yaw: 0.02, pit: 0.22, d: 11.6, fov: 30, sx: 0, fitW: 8.2 },
-    { p: 0.238, y: SEAT + GIRDLE + 0.5, yaw: -0.06, pit: 0.38, d: 8.2, fov: 30, sx: 0, fitW: 7.6 },
+    { p: 0.068, y: 2.2, yaw: 0.3, pit: 0.26, d: 14.2, fov: 30, sx: -1.0, fitW: 8.2 },
+    { p: 0.113, y: 2.25, yaw: 0.02, pit: 0.22, d: 11.6, fov: 30, sx: 0, fitW: 8.2 },
+    { p: 0.184, y: SEAT + GIRDLE + 0.5, yaw: -0.06, pit: 0.38, d: 8.2, fov: 30, sx: 0, fitW: 7.6 },
     /* PITCH IS NOT COMPOSITION HERE, IT IS WHETHER THE STONE IS LIT.
      *
      * These three keys used to sit at pit 0.20 to 0.28, which is 11 to 16
@@ -767,8 +776,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * key above sits at 0.38 and the stone reads brilliant at exactly that
      * angle. A solitaire is photographed from a little ABOVE the girdle,
      * always, and these now are. */
-    { p: 0.331, y: RING_Y_UP + 0.28, yaw: 0.1, pit: 0.36, d: 6.2, fov: 30, sx: 0, fitW: 3.6 },
-    { p: 0.388, y: RING_Y_UP + 0.32, yaw: 0.16, pit: 0.38, d: 5.8, fov: 30, sx: 0, fitW: 3.4 },
+    { p: 0.256, y: RING_Y_UP + 0.28, yaw: 0.1, pit: 0.36, d: 6.2, fov: 30, sx: 0, fitW: 3.6 },
+    { p: 0.3, y: RING_Y_UP + 0.32, yaw: 0.16, pit: 0.38, d: 5.8, fov: 30, sx: 0, fitW: 3.4 },
     /* AND THEN THE CAMERA COMES IN ON THE STONE, which is the other half of
      * what the reader meant by the first diamond not being the same quality
      * as the last one (v0.4.1). The pass below fixed the outline; this is the
@@ -798,10 +807,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * ring is on its way out through all three and is allowed to leave past
      * the edge; a thing being carried off does not need to be held in frame
      * to read as leaving. */
-    { p: 0.463, y: STONE_Y - 0.34, yaw: 0.24, pit: 0.6, d: 3.5, fov: 30, sx: -0.4, fitW: 2.2 },
-    { p: 0.503, y: STONE_Y - 0.26, yaw: 0.32, pit: 0.56, d: 3.2, fov: 30, sx: -0.34, fitW: 2.1 },
-    { p: 0.543, y: STONE_Y - 0.18, yaw: 0.4, pit: 0.54, d: 2.9, fov: 31, sx: 0, fitW: 1.9 },
-    { p: 0.574, y: STONE_Y, yaw: 0.46, pit: 0.5, d: 2.35, fov: 32, sx: 0, fitW: 1.6 },
+    { p: 0.358, y: STONE_Y - 0.34, yaw: 0.24, pit: 0.6, d: 3.5, fov: 30, sx: -0.4, fitW: 2.2 },
+    { p: 0.389, y: STONE_Y - 0.26, yaw: 0.32, pit: 0.56, d: 3.2, fov: 30, sx: -0.34, fitW: 2.1 },
+    { p: 0.42, y: STONE_Y - 0.18, yaw: 0.4, pit: 0.54, d: 2.9, fov: 31, sx: 0, fitW: 1.9 },
+    { p: 0.444, y: STONE_Y, yaw: 0.46, pit: 0.5, d: 2.35, fov: 32, sx: 0, fitW: 1.6 },
     /* THE APPROACH, and the rule it now obeys: the stone is never allowed to
      * outgrow its own frame.
      *
@@ -828,21 +837,21 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * out of the frame, and the flash lands inside it. That is also the only
      * version of this cut that is TRUE: you cannot get inside a diamond by
      * approaching it, only by following what it does to light. */
-    { p: 0.616, y: STONE_Y, yaw: 0.56, pit: 0.6, d: 2.1, fov: 31, sx: 0, fitW: 1.85 },
-    { p: 0.64, y: STONE_Y + 0.02, yaw: 0.66, pit: 0.78, d: 1.7, fov: 31, sx: 0, fitW: 1.55 },
-    { p: 0.66, y: STONE_Y + 0.04, yaw: 0.76, pit: 0.98, d: 1.4, fov: 32, sx: 0, fitW: 1.35 },
-    { p: 0.858, y: STONE_Y - 0.02, yaw: 0.0, pit: 1.36, d: 3.5, fov: 30, sx: 0, fitW: 0.9 },
-    { p: 0.892, y: STONE_Y - 0.05, yaw: -0.26, pit: 0.64, d: 3.05, fov: 30, sx: 0, fitW: 1.05 },
+    { p: 0.476, y: STONE_Y, yaw: 0.56, pit: 0.6, d: 2.1, fov: 31, sx: 0, fitW: 1.85 },
+    { p: 0.495, y: STONE_Y + 0.02, yaw: 0.66, pit: 0.78, d: 1.7, fov: 31, sx: 0, fitW: 1.55 },
+    { p: 0.51, y: STONE_Y + 0.04, yaw: 0.76, pit: 0.98, d: 1.4, fov: 32, sx: 0, fitW: 1.35 },
+    { p: 0.8903, y: STONE_Y - 0.02, yaw: 0.0, pit: 1.36, d: 3.5, fov: 30, sx: 0, fitW: 0.9 },
+    { p: 0.9165, y: STONE_Y - 0.05, yaw: -0.26, pit: 0.64, d: 3.05, fov: 30, sx: 0, fitW: 1.05 },
     /* sx 0.3, because at 0 the closing words were written across the stone.
-     * The coda beat opens at data-a 0.91 but this key still said centre, and
-     * the monotone slope at the 0.892 key is forced to zero, so the brilliant
+     * The coda beat opens at data-a 0.93 but this key still said centre, and
+     * the monotone slope at the previous key is forced to zero, so the brilliant
      * sat dead centre for the first half of the beat and did the whole carry
      * in the last 6% of the track. Measured at ?p=0.938: at 1024x768 "Made
      * once." began at x 678 with the lit crown reaching x 763, so the line
      * ran straight over the brightest part of the stone, pearl on white. The
      * frame now opens before the words arrive in it, which is what the film
      * always said it did. */
-    { p: 0.938, y: STONE_Y - 0.06, yaw: 0.04, pit: 0.16, d: 2.35, fov: 30, sx: 0.3, fitW: 1.15 },
+    { p: 0.9521, y: STONE_Y - 0.06, yaw: 0.04, pit: 0.16, d: 2.35, fov: 30, sx: 0.3, fitW: 1.15 },
     { p: 1.0, y: STONE_Y - 0.05, yaw: 0.35, pit: 0.17, d: 2.6, fov: 30, sx: 0.55, fitW: 1.1 },
   ];
 
@@ -1556,7 +1565,30 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* ------------------------------------------------------------ the gallery */
 
-  /* THE CONSTELLATION LIVES INSIDE THE FILM'S OWN FRAME NOW (v0.4.6),
+  /* THE SHOWCASE IS A CHOREOGRAPHY NOW (v0.4.7), asked for as the pieces
+   * shown "in a new way", the whole thing reworked "from A-Z" and made
+   * "very good and long". The chapter grew from 3.3 screens of road to
+   * 8.3 (see the B table), and the one fixed hung set now passes through
+   * FOUR FORMATIONS on the way down: the scatter (v0.4.4's constellation,
+   * kept whole as the arrival), a turning golden-angle HALO around the
+   * second ink beat's words, a STREAM of counter-flowing lanes that
+   * carries the collection past the reader like work going by on a
+   * bench's wheel, and a salon WALL that assembles for the third beat
+   * and opens a seam of rows for its words. Between them the flock
+   * FLIES: per-piece staggered smoothsteps of the chapter's own
+   * progress, each flight bowed along a seeded arc, so the room
+   * reorganises a few pieces at a time and never slides as one sheet.
+   * Nothing pops: membership is still fixed for the chapter, no piece
+   * ever fades alone, and the stream's wrap happens entirely off
+   * screen. All of it is still a closed function of (p, galT, seeds)
+   * evaluated in the vertex shader, so the choreography scrubs
+   * backwards, costs the CPU the same handful of uniforms, and holds
+   * still under ?p= for the captures. The formation standings are laid
+   * per hang in layoutGallery; the blend weights, flights and the
+   * wall's live seam are in the vertex shader; the ellipse, wrap and
+   * clock uniforms are set in galDrawPass.
+   *
+   * THE CONSTELLATION LIVES INSIDE THE FILM'S OWN FRAME (v0.4.6),
    * asked for as the showcase reworked "with optimization", with "new
    * animations", and above all "it doesnt lag on phone".
    *
@@ -1695,8 +1727,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * would prove nothing about them.
    *
    * THE ARMING WAITS FOR IT, and it has to: a decode is a callback, and the
-   * film warms itself at eleven progresses inside the first second, two of
-   * which are past 0.44, so the gallery can be armed before the probe has
+   * film warms itself at a dozen progresses inside the first second, several
+   * of which are past 0.34, so the gallery can be armed before the probe has
    * answered. On the first cut of this it always was, and every visitor got
    * the WebP set while the AVIF set sat on the server unread. So `ext` starts
    * undecided and an arm that arrives early parks; the probe releases it. A
@@ -1793,6 +1825,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
         wp: 0,
         pp: 0,
         seed: 0,
+        haloTh: 0,
+        haloU: 0,
+        strSpeed: 0,
+        strPh: 0,
+        wallX: 0,
+        wallY: 0,
+        wallS: 1,
+        wallR: 0,
+        j3x: 0,
+        j3y: 0,
       });
     });
     /* One seeded shuffle decides WHICH pieces a given count hangs, so the
@@ -1817,6 +1859,22 @@ import { JEWELRY } from "./jewelry-manifest.js";
       it.wp = 0.11 + 0.13 * rand2();
       it.pp = rand2() * 6.283;
       it.seed = rand2();
+    }
+    /* The third stream: the formations (v0.4.7). Same rule as the second
+     * stream, for the same reason: a new era appends a new stream rather
+     * than pulling more from an old one, because every extra pull moves
+     * every later draw and recasts a room the captures have already
+     * signed off. These are the wall's own jitter and lean and the
+     * stream's bob phase; where a piece stands in the halo and how fast
+     * its lane flows come off its RANK in the hang order instead (see
+     * layoutGallery), so a resize that trims the order cannot reshuffle
+     * the survivors. */
+    const rand3 = rng(20260816);
+    for (const it of items) {
+      it.j3x = (rand3() - 0.5) * 0.24;
+      it.j3y = (rand3() - 0.5) * 0.24;
+      it.wallR = (rand3() - 0.5) * 0.07;
+      it.strPh = rand3() * 6.283;
     }
   }
 
@@ -1950,6 +2008,18 @@ import { JEWELRY } from "./jewelry-manifest.js";
     uInk: { value: 0 },
     uFade: { value: 0 },
     uA: { value: 1 },
+    /* The formation dials (v0.4.7). uG is the reader's way down the whole
+     * chapter, 0 at the flash and 1 at the cut, and it is the only clock
+     * the choreography runs on: every weight in the vertex shader is a
+     * smoothstep of it, so the formations scrub backwards exactly as they
+     * play forwards. uHalo is the ring's centre and inner radii, uHalo2
+     * the band's spread beyond them, uStream the river's wrap span,
+     * margin, travel and drift, all in CSS pixels of the frame they were
+     * computed for. */
+    uG: { value: 0 },
+    uHalo: { value: new THREE.Vector4(0, 0, 1, 1) },
+    uHalo2: { value: new THREE.Vector2(0, 0) },
+    uStream: { value: new THREE.Vector4(1, 200, 0, 10) },
   };
 
   const galGeo = new THREE.InstancedBufferGeometry();
@@ -1969,6 +2039,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
     ["aSway2", 4],
     ["aChar", 4],
     ["aTilt", 4],
+    ["aForm1", 4],
+    ["aForm2", 4],
     ["aLoad", 1],
   ]) {
     // Sized off the manifest, not off items: this block runs before
@@ -2012,6 +2084,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
       "in vec4 aSway2;",
       "in vec4 aChar;",
       "in vec4 aTilt;",
+      "in vec4 aForm1;",
+      "in vec4 aForm2;",
       "in float aLoad;",
       "uniform vec2 uView;",
       "uniform vec4 uBand;",
@@ -2019,6 +2093,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
       "uniform float uIk;",
       "uniform float uInk;",
       "uniform float uA;",
+      "uniform float uG;",
+      "uniform vec4 uHalo;",
+      "uniform vec2 uHalo2;",
+      "uniform vec4 uStream;",
       "out vec2 vPuv;",
       "out vec2 vSuv;",
       "out vec2 vQ;",
@@ -2046,39 +2124,117 @@ import { JEWELRY } from "./jewelry-manifest.js";
       "            + sin(uT * aSway1.x * 0.53 + aSway2.y * 2.1) * aChar.y * 0.45;",
       "  float swy = sin(uT * aSway1.z + aSway1.w) * aChar.z",
       "            + cos(uT * aSway1.z * 0.61 + aSway1.y * 1.7) * aChar.z * 0.4;",
-      "  float xc = aPlace.x + swx;",
-      "  float yc = aPlace.y + par + swy;",
-      /* THE PIECES PART AROUND THE WORDS, v0.4.5's arithmetic verbatim:
-       * measured from the piece's own edge, full clearance across the
-       * middle of the band with a taper at either end, near pieces only
-       * (the far ones hold their ground and pass behind the clearing's
-       * veil), and the parked position keeps each piece's own share of
-       * its original offset rather than stacking every refugee on one
-       * rail. */
-      "  float dyb = abs(yc - uBand.y) / (uBand.w + h * 0.42);",
-      "  if (dyb < 1.0 && uInk > 0.002 && sz >= 0.74) {",
-      "    float t = clamp((dyb - 0.42) / 0.58, 0.0, 1.0);",
-      "    float k = uInk * (1.0 - t * t * (3.0 - 2.0 * t));",
-      "    float dx = xc - uBand.x;",
-      "    float need = uBand.z + w * 0.4;",
-      "    if (abs(dx) < need) {",
-      "      float dir = dx >= 0.0 ? 1.0 : -1.0;",
-      "      xc = uBand.x + dir * mix(abs(dx), need + abs(dx) * 0.45, k * 0.95);",
+      /* THE FOUR FORMATIONS (v0.4.7). The chapter is a choreography now,
+       * and this is the whole of it: the hung set opens as the scatter,
+       * gathers into a turning halo around the words, unravels into a
+       * river of counter-flowing lanes, and settles onto a salon wall
+       * for the goodbye, all without a single piece ever fading in or
+       * out. Each formation is a closed position per piece; uG blends
+       * between them through per-piece staggered smoothsteps, so the
+       * flock reorganises a few pieces at a time instead of sliding as
+       * one sheet, and every flight bows along a seeded arc rather than
+       * running the straight rail between two marks. Everything is a
+       * function of (uG, uT, seeds): the film scrubs backwards through
+       * every formation and a held ?p= frame is one fixed picture. */
+      "  vec2 pScat = vec2(aPlace.x + swx, aPlace.y + par + swy);",
+      "  pScat.x = clamp(pScat.x, w * 0.18, uView.x - w * 0.18);",
+      "  float stg = (seed - 0.5) * 0.07;",
+      "  float m1 = smoothstep(0.20 + stg, 0.31 + stg, uG);",
+      "  float m2 = smoothstep(0.46 + stg, 0.57 + stg, uG);",
+      "  float m3 = smoothstep(0.70 + stg, 0.79 + stg, uG);",
+      /* The halo: golden-angle seats around an ellipse fitted to the
+       * frame, each piece in its own radial lane of the band, the whole
+       * wreath turning gently with the scroll and breathing on the
+       * clock. The words of the second ink beat stand in its middle. */
+      "  float th = aForm1.x + uG * 2.2 + uT * 0.016;",
+      "  vec2 pHalo = uHalo.xy + vec2(cos(th), sin(th)) * (uHalo.zw + aForm1.y * uHalo2)",
+      "             + vec2(swx, swy) * 0.35;",
+      /* The stream: horizontal lanes dealt from the scatter's own
+       * latitudes, adjacent lanes flowing opposite ways, each piece
+       * wrapping around a span two margins wider than the frame so the
+       * jump home always happens fully off screen. It flows with the
+       * scroll and keeps a whisper of drift on the clock, so a parked
+       * reader still watches a river rather than a shelf. */
+      "  float sdx = aForm1.z * (uG * uStream.z + uT * uStream.w);",
+      "  float xs = mod(aPlace.x + uStream.y + sdx, uStream.x) - uStream.y;",
+      "  float ys = mix(aPlace.y, uView.y * 0.5, 0.08)",
+      "           + sin(uT * aSway1.x * 0.55 + aForm2.w) * 11.0 + swy * 0.5;",
+      /* The wall: the salon grid laid down in layoutGallery, still
+       * breathing a sixth of the sway so it hangs rather than sticks. */
+      "  vec2 pWall = aForm2.xy + vec2(swx, swy) * 0.16;",
+      /* The flights. Each morph bows sideways along a seeded arc, capped
+       * in pixels so a long crossing swoops without leaving the frame;
+       * sin(PI * m) is zero at both ends, so every flight departs from
+       * and lands on its formation exactly. */
+      "  float b1 = fract(seed * 5.7) - 0.5;",
+      "  float b2 = fract(seed * 8.3) - 0.5;",
+      "  float b3 = fract(seed * 11.9) - 0.5;",
+      "  vec2 pos = pScat;",
+      "  vec2 dd = pHalo - pos;",
+      "  float bk = min(1.0, 560.0 / (length(dd) + 1.0));",
+      "  pos = mix(pos, pHalo, m1) + vec2(-dd.y, dd.x) * (0.6 * b1 * bk * sin(PI * m1));",
+      "  dd = vec2(xs, ys) - pos;",
+      "  bk = min(1.0, 560.0 / (length(dd) + 1.0));",
+      "  pos = mix(pos, vec2(xs, ys), m2) + vec2(-dd.y, dd.x) * (0.6 * b2 * bk * sin(PI * m2));",
+      "  dd = pWall - pos;",
+      "  bk = min(1.0, 560.0 / (length(dd) + 1.0));",
+      "  pos = mix(pos, pWall, m3) + vec2(-dd.y, dd.x) * (0.6 * b3 * bk * sin(PI * m3));",
+      /* THE PIECES STILL PART AROUND THE WORDS, v0.4.5's taper and
+       * measured-from-the-edge arithmetic, applied to the blended
+       * position so a piece mid-flight makes room exactly as a hung one
+       * does. Two modes now. In the scatter, the halo and the stream the
+       * push is horizontal, near pieces only, the far ones passing
+       * behind the clearing's veil as they always have; on the halo it
+       * is what flexes the wreath open at the words' line. On the wall
+       * every piece is the front row, so the wall parts VERTICALLY
+       * instead: the rows above the words rise and the rows below sink,
+       * a seam opening in the hang exactly while the third beat stands,
+       * and closing behind it. */
+      "  float dyb = abs(pos.y - uBand.y) / (uBand.w + h * 0.42);",
+      "  if (dyb < 1.0 && uInk > 0.002) {",
+      "    float tq = clamp((dyb - 0.42) / 0.58, 0.0, 1.0);",
+      "    float kq = uInk * (1.0 - tq * tq * (3.0 - 2.0 * tq));",
+      "    if (m3 > 0.5) {",
+      "      float dy = pos.y - uBand.y;",
+      "      float needY = uBand.w * 0.9 + h * 0.55;",
+      "      if (abs(dy) < needY) {",
+      "        float dir = dy >= 0.0 ? 1.0 : -1.0;",
+      "        pos.y = clamp(uBand.y + dir * mix(abs(dy), needY + abs(dy) * 0.3, kq * 0.9),",
+      "                      h * 0.3, uView.y - h * 0.3);",
+      "      }",
+      "    } else if (sz >= 0.74) {",
+      "      float dx = pos.x - uBand.x;",
+      "      float need = uBand.z + w * 0.4;",
+      "      if (abs(dx) < need) {",
+      "        float dir = dx >= 0.0 ? 1.0 : -1.0;",
+      "        pos.x = clamp(uBand.x + dir * mix(abs(dx), need + abs(dx) * 0.45, kq * 0.95),",
+      "                      w * 0.18, uView.x - w * 0.18);",
+      "      }",
       "    }",
       "  }",
-      "  xc = clamp(xc, w * 0.18, uView.x - w * 0.18);",
       /* The rock and the breath, plus a whisper of scroll-linked lean so
        * a swipe tips the field, far pieces a touch more than near. The
-       * breath stays strictly below one: the raster is never enlarged. */
-      "  float rot = aSway2.z + sin(uT * aSway2.x + aSway2.y) * aSway2.w",
-      "            + (0.5 - uIk) * (seed - 0.5) * 0.14;",
-      "  float s = 0.968 + 0.026 * sin(uT * aSway1.z * 0.83 + aSway1.y * 1.7);",
-      /* THE THIRD DIMENSION, new with the shader: a slow seeded yaw and
-       * pitch, a few degrees each, under a real perspective divide, which
-       * is a card hanging in water rather than a sticker drifting on
-       * glass. Far pieces roll a little more, the same weight rule the
-       * rock follows. */
-      "  float yaw = sin(uT * aTilt.x + aTilt.y) * (0.10 + 0.10 * (1.0 - sz));",
+       * breath stays strictly below one: the raster is never enlarged,
+       * and every formation multiplier below only ever scales DOWN. The
+       * halo half-stills the rock so the wreath reads as set rather than
+       * scattered, the stream leans each piece into its own travel and
+       * doubles the sail of the yaw, and the wall straightens everything
+       * to its own seeded lean at its own fitted size. */
+      "  float rot = (aSway2.z + sin(uT * aSway2.x + aSway2.y) * aSway2.w",
+      "            + (0.5 - uIk) * (seed - 0.5) * 0.14)",
+      "            * (1.0 - 0.45 * m1 * (1.0 - m2) - 0.75 * m3)",
+      "            + aForm2.z * m3",
+      "            - m2 * (1.0 - m3) * sign(aForm1.z) * 0.05;",
+      "  float s = (0.968 + 0.026 * sin(uT * aSway1.z * 0.83 + aSway1.y * 1.7))",
+      "          * (1.0 - 0.05 * m1 * (1.0 - m2)) * mix(1.0, aForm1.w, m3);",
+      /* THE THIRD DIMENSION, from v0.4.6: a slow seeded yaw and pitch, a
+       * few degrees each, under a real perspective divide, which is a
+       * card hanging in water rather than a sticker drifting on glass.
+       * Far pieces roll a little more, the same weight rule the rock
+       * follows; in the stream the roll swells, a card carried by water
+       * rather than hanging in it. */
+      "  float yaw = sin(uT * aTilt.x + aTilt.y) * (0.10 + 0.10 * (1.0 - sz))",
+      "            * (1.0 + 1.1 * m2 * (1.0 - m3));",
       "  float pit = sin(uT * aTilt.z + aTilt.w) * 0.07;",
       /* The quad is padded past the raster so the contact shadow has
        * somewhere to fall; the piece sits centred in it. */
@@ -2097,7 +2253,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       "  float wc = 1.0 + v3.z * 0.0012;",
       "  vec2 Am = vec2(2.0 / uView.x, -2.0 / uView.y);",
       "  vec2 Bm = vec2(-1.0, 1.0);",
-      "  gl_Position = vec4((Am * vec2(xc, yc) + Bm) * wc + Am * v3.xy, 0.0, wc);",
+      "  gl_Position = vec4((Am * pos + Bm) * wc + Am * v3.xy, 0.0, wc);",
       "  vec2 pxy = loc + quad * 0.5;",
       "  vPuv = (pxy - vec2(pad)) / psz;",
       /* The shadow's own frame: an ellipse displaced down the page,
@@ -2106,7 +2262,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       "  vSuv = (pxy - (quad * 0.5 + vec2(0.0, 10.0 + 0.10 * h))) / (psz * vec2(0.62, 0.56));",
       /* Where this fragment stands in the ROOM's own frame, for the
        * beams: the crystal shader's q is ndc with x scaled by aspect. */
-      "  vec2 nd = (Am * vec2(xc, yc) + Bm) + Am * (v3.xy / wc);",
+      "  vec2 nd = (Am * pos + Bm) + Am * (v3.xy / wc);",
       "  vQ = vec2(nd.x * uA, nd.y);",
       /* The glint schedule: each piece throws a small star once in a
        * while, on its own seeded cycle, some cycles skipped so the case
@@ -2262,6 +2418,23 @@ import { JEWELRY } from "./jewelry-manifest.js";
        * never shows. */
       it.cx = (0.07 + 0.86 * ((r * 0.7548776662466927 + 0.5 + it.jx) % 1)) * w;
       it.cy = (0.12 + 0.76 * ((r * 0.5698402909980532 + 0.5 + it.jy) % 1)) * h;
+      /* THE HALO AND THE STREAM STAND ON RANK, NOT ON MANIFEST INDEX,
+       * for the same reason the scatter does: the hang order is one
+       * seeded shuffle, so rank spaces the SIZES around the ring as
+       * evenly as it spaces the pieces, and a resize that trims the
+       * order leaves every survivor exactly where it stood. The angle is
+       * the golden angle by rank (any prefix stays evenly spread), the
+       * radial seat is the golden ratio by rank (same property along
+       * the band's width), and the stream lane is dealt from the
+       * piece's own scatter latitude, so the river inherits the
+       * scatter's even vertical spread instead of inventing one. */
+      it.haloTh = r * 2.399963229728653 + 0.85;
+      it.haloU = (r * 0.6180339887498949 + 0.37) % 1;
+      const lane = clamp(Math.floor(((it.cy / h - 0.12) / 0.76) * 5), 0, 4);
+      it.strSpeed =
+        (lane % 2 ? -1 : 1) *
+        (0.55 + 0.5 * ((r * 0.7548776662466927 + 0.19) % 1)) *
+        (0.7 + 0.5 * it.sz);
       const long = clamp(Math.round(mean * (0.62 + 0.76 * it.sz)), GAL_FLOOR, 320);
       const wid = Math.max(48, Math.round(it.tall ? long * it.aspect : long));
       it.w = wid;
@@ -2275,6 +2448,53 @@ import { JEWELRY } from "./jewelry-manifest.js";
       it.ax = Math.max(10, it.w * 0.1);
       it.ay = Math.max(13, it.w * 0.13);
     }
+    /* THE WALL, laid once per hang: a salon grid over the middle of the
+     * frame, filled in RANK order so the seeded shuffle deals the sizes
+     * through it and no corner collects the big pieces. The column count
+     * comes off the frame's own shape, the last row is centred rather
+     * than left ragged, each piece keeps a seeded breath of jitter and
+     * lean so the grid reads as a wall somebody hung rather than a
+     * spreadsheet, and wallS is the one place in the chapter a piece is
+     * allowed to render under its hang size: the fit into a cell only
+     * ever scales DOWN, so the raster ceiling holds. The words' own row
+     * is not reserved here; the wall opens a seam for them live, in the
+     * vertex shader, exactly while the third ink beat is standing. */
+    {
+      const act = [];
+      for (let r = 0; r < galOrder.length && act.length < n; r++) {
+        const it = items[galOrder[r]];
+        if (it.active) act.push(it);
+      }
+      const portrait = w / h < 0.9;
+      const wallW = w * 0.92;
+      /* Portrait hangs the whole wall BELOW the words. The wide frame
+       * centres the grid and lets the seam open both ways; on a phone
+       * the words live at the top by the same media query everything
+       * else follows, and a row parted upward from there has nowhere to
+       * go but behind the nav, which the first capture of this grid
+       * showed. Started under the band instead, the only row the seam
+       * ever touches is the first, and it dodges down. */
+      const wallH = h * (portrait ? 0.54 : 0.72);
+      const cols = Math.max(
+        2,
+        Math.round(Math.sqrt(((act.length * wallW) / wallH) * (portrait ? 1.05 : 0.8)))
+      );
+      const rows = Math.max(1, Math.ceil(act.length / cols));
+      const cw = wallW / cols;
+      const ch = wallH / rows;
+      const x0 = (w - wallW) / 2;
+      const y0 = h * (portrait ? 0.67 : 0.52) - wallH / 2;
+      const lastN = act.length - cols * (rows - 1);
+      for (let j = 0; j < act.length; j++) {
+        const it = act[j];
+        const row = Math.floor(j / cols);
+        const col = j % cols;
+        const off = row === rows - 1 ? ((cols - lastN) / 2) * cw : 0;
+        it.wallX = x0 + off + (col + 0.5 + it.j3x) * cw;
+        it.wallY = y0 + (row + 0.5 + it.j3y) * ch;
+        it.wallS = Math.min(1, (Math.min(cw, ch) * 0.92) / Math.max(it.w, it.h));
+      }
+    }
     /* Far to near, once: instances rasterise in order, so the sort IS the
      * stacking, and two bubbles cross without the eye losing which is in
      * front. */
@@ -2287,6 +2507,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
       galAttr.aSway2.array.set([it.w3, it.p3, it.tilt, it.rr], i * 4);
       galAttr.aChar.array.set([it.sz, it.ax, it.ay, it.seed], i * 4);
       galAttr.aTilt.array.set([it.wy, it.py, it.wp, it.pp], i * 4);
+      galAttr.aForm1.array.set([it.haloTh, it.haloU, it.strSpeed, it.wallS], i * 4);
+      galAttr.aForm2.array.set([it.wallX, it.wallY, it.wallR, it.strPh], i * 4);
       galAttr.aLoad.array[i] = it.loaded ? it.loadT : -1;
       galRect(it);
     }
@@ -2366,7 +2588,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
   function armGallery() {
     if (galleryArmed) return;
     // Which of the two sets this browser gets is not known on the frame the
-    // film first crosses 0.44. Park; the probe calls back.
+    // film first crosses 0.34. Park; the probe calls back.
     if (ext === null) {
       armPending = true;
       return;
@@ -2426,6 +2648,47 @@ import { JEWELRY } from "./jewelry-manifest.js";
       Math.min(368, w * 0.43),
       h * (portrait ? 0.2 : 0.22)
     );
+    /* The choreography's own clock: 0 at the flash, 1 at the cut, the
+     * scatter's hold, the three flights and the two other holds all
+     * smoothsteps of this one number in the vertex shader. */
+    galU.uG.value = seg(p, B.inside[0], B.inside[1]);
+    /* The halo's ellipse, refitted to the frame every pass because it is
+     * four multiplies and a stale ellipse after a rotate is a wreath
+     * standing off centre. On a wide frame it rings the words: the inner
+     * radius clears the ink band's own width (quoted from uBand's
+     * numbers above) so the second beat stands in real empty room, and
+     * the band reaches toward the frame's edge with room kept for a
+     * piece's own half width. Portrait cannot ring words that span most
+     * of the frame, so the words keep the top of the screen, where the
+     * media query stacks them, and the wreath hangs whole beneath,
+     * turning under the copy rather than around it. */
+    if (portrait) {
+      galU.uHalo.value.set(w * 0.5, h * 0.62, w * 0.22, h * 0.165);
+      galU.uHalo2.value.set(w * 0.165, h * 0.155);
+    } else {
+      const rx0 = Math.min(Math.min(368, w * 0.43) * 1.12 + 40, w * 0.34);
+      const ry0 = Math.max(h * 0.245, h * 0.231 + 40);
+      galU.uHalo.value.set(w * 0.5, h * 0.5, rx0, ry0);
+      galU.uHalo2.value.set(
+        Math.max(40, w * 0.46 - rx0),
+        Math.max(36, h * 0.42 - ry0)
+      );
+    }
+    /* The stream's wrap: the span is the frame plus two margins sized
+     * past the largest hung piece, so the jump from one edge's overshoot
+     * back to the other always happens with the piece entirely off
+     * screen, which is what keeps the river honest about nothing ever
+     * popping. Travel is pitched so the fastest lane crosses about one
+     * frame width across the stream's own hold; the last number is the
+     * parked drift in pixels a second, gentle enough that an hour of
+     * staring costs no piece its place in the room. */
+    /* The margin scales with the frame, capped where it started: a flat
+     * 200 was measured on the first phone capture as HALF the collection
+     * off screen at any instant, because 400 extra pixels of road on a
+     * 320 frame is more road than frame. A fifth of the width still
+     * clears the widest piece a phone hangs before the wrap jumps it. */
+    const strM = Math.min(200, w * 0.22);
+    galU.uStream.value.set(w + 2 * strM, strM, w * 7.0, 10.0);
     const a0 = 0.9 + roomK * 0.05;
     const a1 = 3.1 - roomK * 0.08;
     galU.uBeam0.value.set(
@@ -2609,7 +2872,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       const tt = (now - teaseT0) / TEASE_LEN;
       if (tt < 1) {
         const env = Math.sin(Math.PI * tt);
-        const heroW = 1 - seg(p, 0.008, 0.03);
+        const heroW = 1 - seg(p, 0.0062, 0.0232);
         teaseOpen = 0.042 * env * heroW;
         teaseLit = 0.55 * env * heroW;
         teasing = true;
@@ -2637,7 +2900,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * Still clamped, because the sprung hinge is allowed to overshoot its
      * stop and a lamp brighter than lit has no meaning. */
     const lit = clamp(
-      Math.max(1 - seg(p, B.boxOut[1] - 0.02, B.boxOut[1] + 0.03), teaseLit),
+      Math.max(1 - seg(p, B.boxOut[1] - 0.0155, B.boxOut[1] + 0.0232), teaseLit),
       0,
       1
     );
@@ -2672,7 +2935,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // The relight is already under way at the cut (the range opens before
     // CODA does), so the stone arrives lit rather than climbing out of the
     // black the collapse leaves behind.
-    const codaIn = smooth(seg(p, CODA[0] - 0.008, CODA[0] + 0.034));
+    const codaIn = smooth(seg(p, CODA[0] - 0.0062, CODA[0] + 0.0263));
     const stoneY = ringY + GIRDLE + S_LIFT * liftK;
     stone.root.position.set(0, stoneY, 0);
 
@@ -2758,7 +3021,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       ringY * 13.7 + ringOutK * 29.3 + ringYaw * 3.9;
     const moved = renderer.shadowMap.needsUpdate && rigSig !== rigSigLast;
     rigSigLast = rigSig;
-    key.shadow.needsUpdate = moved && p < B.boxOut[1] + 0.02;
+    key.shadow.needsUpdate = moved && p < B.boxOut[1] + 0.0155;
 
     /* THE GROUND USED TO BE FADED OUT HERE, from the ring's exit to the
      * solo, and the reasoning is worth keeping even though the code is not.
@@ -2846,7 +3109,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * at. Frozen under ?p= with the other clocks, so captures stay
      * deterministic, and by reduced motion, so a stilled film stands
      * still. */
-    const galleryOn = p > B.inside[0] && p < B.collapse[0] + 0.024;
+    const galleryOn = p > B.inside[0] && p < B.collapse[0] + 0.0185;
     if (galleryOn && !held && !reduceMotion.matches) galT += dt;
     const roomK = p * 34 + galT * 0.12;
     if (isInside) {
@@ -2870,9 +3133,9 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * pass simply is not run, which is the whole of the old visibility
      * machinery: there is no layer left anywhere to outlive the chapter. */
     if (galleryOn) {
-      const ik = seg(p, B.inside[0] + 0.03, B.collapse[0] + 0.02);
+      const ik = seg(p, B.inside[0] + 0.0232, B.collapse[0] + 0.0155);
       const fade =
-        (1 - smooth(seg(p, B.collapse[0], B.collapse[0] + 0.022))) * (1 - winK);
+        (1 - smooth(seg(p, B.collapse[0], B.collapse[0] + 0.017))) * (1 - winK);
       galDrawPass(ik, p, galT, fade, roomK, aspect);
     }
 
@@ -2880,7 +3143,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // around the reader to the moment the crystal folds away.
     nav.classList.toggle(
       "nav--ink",
-      p > B.inside[0] + 0.022 && p < B.collapse[0] + 0.028
+      p > B.inside[0] + 0.017 && p < B.collapse[0] + 0.0216
     );
 
     return teasing;
@@ -3100,7 +3363,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
       !held &&
       !reduceMotion.matches &&
       pDrawn > B.inside[0] &&
-      pDrawn < B.collapse[0] + 0.024;
+      pDrawn < B.collapse[0] + 0.0185;
     /* The tease is the one live state that cannot be known before the film is
      * evaluated, and it is also the one that never belongs here: it plays at
      * a PARKED progress, so it can neither move the motion tier (which asks
@@ -3254,7 +3517,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // renderer is left asleep.
     if (next === pTarget) return;
     pTarget = next;
-    if (pTarget >= 0.44) armGallery();
+    if (pTarget >= 0.34) armGallery();
     wake();
   }
 
@@ -3280,7 +3543,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
     // clocks stand down for the life of the page. The camera is the reader.
     loaderDone = true;
     retireLoader();
-    if (heldP >= 0.44) armGallery();
+    if (heldP >= 0.34) armGallery();
     document.documentElement.style.overflow = "hidden";
   }
 
@@ -3357,16 +3620,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * it, which is what a loading bar is supposed to be. */
   const WARM = [
     0, // the closed box and the floor
-    0.19, // the lamp: a second shadow-caster joins the scene
-    0.27, // the ring lit and rising
-    0.31, // the ring high and lit, the box on its way out
-    0.42, // the box gone, the stone rising out of the claws
-    0.5, // the stone out of the claws, the ring leaving
-    0.58, // the stone alone
-    0.6555, // the press: the scene into the render target, the composite compiles
-    0.7, // the crystal room
-    0.83, // the room folding, the gallery lit
-    0.9, // the coda: the stone relit against black
+    0.147, // the lamp: a second shadow-caster joins the scene
+    0.209, // the ring lit and rising
+    0.24, // the ring high and lit, the box on its way out
+    0.325, // the box gone, the stone rising out of the claws
+    0.386, // the stone out of the claws, the ring leaving
+    0.448, // the stone alone
+    0.5065, // the press: the scene into the render target, the composite compiles
+    0.55, // the crystal room, the constellation's pass compiles over it
+    0.72, // the stream mid-chapter, same programs at a second formation
+    0.86, // the room folding, the wall lit
+    0.93, // the coda: the stone relit against black
   ];
   let warmI = 0;
 
@@ -3428,7 +3692,7 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * before the load event, which is what --dump-dom waits for. */
   if (params.has("fps")) {
     const at = clamp(parseFloat(params.get("fps")) || 0, 0, 1);
-    if (at >= 0.44) armGallery();
+    if (at >= 0.34) armGallery();
     // The harness measures a warm film, not a cold one: a compile landing in
     // the loop would be reported as the cost of drawing, which it is not.
     warmChunk(WARM.length);

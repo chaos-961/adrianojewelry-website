@@ -381,23 +381,26 @@ html.js .journey {
 }
 
 .journey {
-  /* The scroll track: seventeen screens of story (the last two are the
-     coda, where the brilliant returns out of the black). Everything visible
-     lives in the sticky pin; this element only supplies the road. */
-  height: 1700vh;
+  /* The scroll track: twenty-two screens of story (v0.4.7; seventeen until
+     the showcase inside the diamond was reworked and made long, and the
+     five new screens all belong to that one chapter, every range outside
+     it rescaled by 17/22 so the rest of the film plays at the exact pace
+     it was tuned at). Everything visible lives in the sticky pin; this
+     element only supplies the road. */
+  height: 2200vh;
   position: relative;
 }
 
 /* A thumb is not a wheel (v0.4.4, asked for as making the scrolling on
-   mobile "like x3 powerful"). Seventeen screens of road was cut for a
+   mobile "like x3 powerful"). Twenty-two screens of road is cut for a
    scroll wheel's cheap centimetres; on a phone the same road was a long
    drag of swipes through the same film. Every window in the film is a
    FRACTION of the track rather than a length, so shortening the road is
-   the entire change: one swipe now advances the story three times as far,
+   the entire change: one swipe advances the story three times as far,
    and no beat, chapter or beam moves by a thousandth. */
 @media (pointer: coarse) {
   .journey {
-    height: 567vh;
+    height: 733vh;
   }
 }
 
