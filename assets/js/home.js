@@ -57,6 +57,7 @@
  *   ?turn=-30      with ?prop: orbit the standalone prop (degrees)
  *   ?flat=1        the box's three paintings, flat, on one sheet
  *   ?ledx / ?ledshadow  lamp debug, passed through to the box
+ *   ?nogal=1       stand the constellation's draw down, cost isolation
  *
  * Rendering only happens while something moves; a held frame costs nothing.
  * The one post-process pass (the squeeze through the table) is allocated
@@ -81,7 +82,6 @@ import { JEWELRY } from "./jewelry-manifest.js";
   const pin = document.getElementById("journey-pin");
   const canvas = document.getElementById("stage-canvas");
   const veil = document.getElementById("veil");
-  const galleryEl = document.getElementById("gallery");
   const loaderEl = document.getElementById("loader");
   const loaderFill = document.getElementById("loader-fill");
   const nav = document.getElementById("nav");
@@ -176,20 +176,40 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * when somebody is looking hard at it: the hero, a held beat, the coda.
    * So every phone, however fast, opened this page on 0.8 of the resolution
    * and stayed there until its reader had scrolled for a full second, which
-   * on a dpr-3 panel under the cap below is 53% of the pixels the screen
-   * has. A start guess that softens the first thing every capable phone
-   * shows, to protect the slow ones for the one second the governor needs
-   * to find them anyway, is the wrong side of the trade, and the film is
-   * also a cheaper thing to hold at full resolution than it was when the
-   * guess was made: v0.4.3 deleted the depth-of-field gather outright.
+   * on a dpr-3 panel under the dpr cap of 2 this page had then is 53% of
+   * the pixels the screen has. A start guess that softens the first thing
+   * every capable phone shows, to protect the slow ones for the one second
+   * the governor needs to find them anyway, is the wrong side of the trade,
+   * and the film is also a cheaper thing to hold at full resolution than it
+   * was when the guess was made: v0.4.3 deleted the depth-of-field gather
+   * outright.
    *
    * So there is one dial, `quality`, it starts at 1 for everyone, and the
    * governor below moves it only on the evidence of frames actually landing.
    * A phone that holds the rate keeps every pixel from the first frame; one
    * that cannot loses 0.15 of resolution within a second and a half, which
    * is the same second the old guess was spending on everybody. `?lp=1` is
-   * retired with it; `(pointer: coarse)` no longer changes a thing. */
-  const DPR_CAP = 2;
+   * retired with it; `(pointer: coarse)` no longer changes a thing.
+   *
+   * THE CAP ITSELF WAS THE LAST OF THOSE GUESSES. Two device pixels per CSS
+   * pixel was defended here as the trade every heavy canvas makes, and on a
+   * dpr-3 phone it is a permanent one-third cut of linear resolution: every
+   * frame drawn at 2/3 scale and stretched, on the densest panel in the
+   * house, beside DOM text the browser renders at native 3x. That contrast
+   * is exactly what the reader reported as the phone looking blurry against
+   * the desktop, whose ordinary panels sit at dpr 1 and 2 and were never
+   * touched by the cap at all. So the cap is 3: every panel up to three
+   * device pixels per CSS pixel now renders 1:1, which covers the iPhone
+   * and nearly every Android there is. It stays a cap rather than going
+   * away, because fragment cost rises with the SQUARE of this number and
+   * the few dpr-3.5..4 panels would pay double for detail finer than an eye
+   * at a phone's distance can resolve; at a buffer of 3 they sit within 86%
+   * of native, which is not a findable shortfall. The machines where the
+   * extra pixels do not land still belong to the governor: it starts
+   * everyone at 1 and steps down only on dropped frames, and QUALITY_MIN
+   * below scales so its floor is the same absolute buffer the old cap
+   * allowed. The ceiling rises; the floor does not move. */
+  const DPR_CAP = 3;
 
   /* THE GOVERNOR.
    *
@@ -206,7 +226,16 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * reallocated when it changes (and the lens's render target with it), and a
    * governor that hunts is worse than no governor at all. */
   let quality = 1;
-  const QUALITY_MIN = 0.55;
+  /* The floor is an ABSOLUTE buffer, not a fraction of the ceiling: 0.55 of
+   * the old cap of 2, so 1.1 buffer pixels per CSS pixel at the bottom.
+   * When the cap rose to 3 a flat 0.55 would have lifted the worst-case
+   * floor by half on exactly the machines the floor exists for; dividing by
+   * the device's own capped ratio keeps the bottom of the governor's range
+   * where it has always been and spends the whole change on the top. */
+  const QUALITY_MIN = Math.min(
+    0.55,
+    1.1 / Math.min(window.devicePixelRatio || 1, DPR_CAP)
+  );
 
   /* THE SECOND MULTIPLIER: WHETHER THE PICTURE IS MOVING (v0.3.9).
    *
@@ -1311,9 +1340,11 @@ import { JEWELRY } from "./jewelry-manifest.js";
        * to read as specks in a stone rather than as dots on a screen, and a
        * touch of softness is on the right side of that.
        *
-       * The gallery, the beams and the ink beats are all DOM standing over
-       * this, so every photograph and every word in the chapter stays at the
-       * device's own resolution. What is halved is the wall behind them. */
+       * The constellation draws AFTER the blit at the canvas's own full
+       * resolution (see galDrawPass), and the ink beats are DOM over it
+       * all, so every photograph and every word in the chapter stays at
+       * the device's own resolution. What is halved is the wall behind
+       * them. */
       draw() {
         // The exposure this chapter rides, handed over explicitly because
         // three does not apply its own inside a render target. See the note
@@ -1525,117 +1556,116 @@ import { JEWELRY } from "./jewelry-manifest.js";
 
   /* ------------------------------------------------------------ the gallery */
 
-  /* THE CONSTELLATION (v0.4.4), asked for as a new way of showing the
-   * jewelry inside the diamond: "make sure they are always there no
-   * animation for them popping out, but them moving kinda like a bubble in
-   * space".
+  /* THE CONSTELLATION LIVES INSIDE THE FILM'S OWN FRAME NOW (v0.4.6),
+   * asked for as the showcase reworked "with optimization", with "new
+   * animations", and above all "it doesnt lag on phone".
    *
-   * What it replaces is the field below, the same way the field replaced
-   * the procession under it, and it inherits their lessons whole. The
-   * field was a BOARD five frames tall that rose through the window as the
-   * reader scrolled, and every piece on it ARRIVED: up from under the
-   * bottom edge with a fade, out at the top. The reader's verdict on that
-   * is the ask above, so membership is now fixed for the whole chapter. A
-   * viewport's worth of pieces hangs in the room from the frame the flash
-   * decays to the frame the room goes down, every one of them on screen
-   * the whole time, and what moves is the pieces themselves: each sways on
-   * its own pair of slow sines, a little off each other's pace so the
-   * path never repeats and never goes anywhere, with a slow rock and a
-   * breath of scale on top, which is a thing floating rather than a thing
-   * travelling.
+   * What moved is the machinery, not the constellation. The constellation
+   * itself is the reader's own ask from v0.4.4 ("always there ... moving
+   * kinda like a bubble in space") and every rule of it is kept whole:
+   * membership fixed for the chapter, nothing arriving or leaving on a
+   * frame of the film, the same seeded hang in the same R2 scatter at the
+   * same sizes, the sway a clock frozen under ?p= and reduced motion, the
+   * near pieces parting around the words. What is gone is the DOM. The
+   * pieces used to be seventy-four elements, each promoted to its own
+   * compositor layer with a transform string written per frame, under two
+   * more full-viewport screen-blended layers carrying the room's beams out
+   * of the canvas. The film's own chapter is one half-resolution triangle;
+   * the machine's real bill was compositing a hundred layers over it, and
+   * that bill was heaviest exactly where the reader reported it, on a
+   * phone.
    *
-   * THE SWAY IS A CLOCK, and that is a deliberate bend of the film's
-   * purity rule, made exactly where the stone's idle turn already bent it:
-   * a bubble that only moved when the reader's thumb did would be a board
-   * again, just a shorter one, and this chapter is the one place somebody
-   * sits still and looks around. Under ?p= and reduced motion it stands
-   * still with the other clocks, so captures stay deterministic and a
-   * stilled film stays stilled. Scroll is not ignored either: the whole
-   * constellation slides gently with the reader's way down the chapter,
-   * nearer pieces further, and the travel is bounded so small that no
-   * piece's centre can leave the frame, because the one instruction was
-   * that they are always there.
+   * Now the pieces are ONE INSTANCED DRAW inside the film's frame. The
+   * images live in a shelf-packed canvas atlas uploaded as one mipmapped
+   * texture; every piece is a quad whose entire life (slide, sway, rock,
+   * breath, parting, the new tilt) is derived in the vertex shader from
+   * seeds that ride the instance buffer, so a frame of the constellation
+   * costs the CPU about fifteen uniform floats and the compositor nothing
+   * at all. A frame used to cost seventy-four style writes and a
+   * hundred-layer composite; the same motion now costs one draw call.
    *
-   * HOW MANY is derived from the viewport's own area with a floor of ten,
-   * and the sizes are derived back from the count so the hung pieces
-   * always sum to about three tenths of the frame: a phone hangs ten at
-   * reading size, a laptop about twenty, a 4K screen clears the whole
-   * manifest. WHICH pieces a given count hangs comes off one seeded
-   * shuffle, so the set is stable across visits and a resize only adds to
-   * or trims from the end of the same order. And only the pieces actually
-   * hung are FETCHED: the board pulled all seventy-four files because all
-   * seventy-four eventually crossed the window, and nothing ever will
-   * again unless it is hung.
+   * WHAT THE SHADER BUYS BEYOND THE OLD MOTION, since a fragment program
+   * can light a photograph in ways the compositor never could. The room's
+   * two beams now cross the pieces INSIDE the same pass, computed from the
+   * same sum the room shader reads (they screen, exactly as the old DOM
+   * beams did, so a piece flares as the light passes and the room's white
+   * is untouched). Each piece hangs with a third dimension: a slow seeded
+   * yaw and pitch under a real perspective divide, the way a card hangs in
+   * water, and as it rolls a soft sheen glides across it, which is what a
+   * polished surface does under a moving light. And once in a long while a
+   * piece throws a four-ray star glint, seeded and scheduled off the same
+   * clock as the sway, so a parked reader sees the case twinkle the way a
+   * lit case actually does. All of it is deterministic: every rate and
+   * phase is seeded, the clock is the constellation's own galT, and a held
+   * frame under ?p= is one fixed picture.
    *
-   * ---------------------------------------------------------------------
-   * THE FIELD (v0.4.1), which the constellation replaced, and the four
-   * rules it handed down.
-   *
-   * It was asked for as the pieces "all scattered and I scroll to see
-   * them ... with some animation ofc": a tall low-discrepancy board of
-   * pieces at assorted sizes rising through the window, about fifteen in
-   * frame on a laptop and eight on a phone. Its rules, all of them kept:
-   * SIZE IS RASTERISED ONCE, at the largest the piece will ever be drawn,
-   * and the transform only ever scales DOWN from it, with the ceiling at
-   * the 320px the files are cut at, so no piece is ever drawn from more
-   * or fewer pixels than it has. THE SCATTER IS LOW-DISCREPANCY, NOT
-   * RANDOM, because a random draw on a frame this dense clumps three
-   * pieces into one corner and leaves a hole beside them, every time, and
-   * the hole reads as a mistake rather than as a composition. BIGGER IS
-   * NEARER, and nearness scales every motion a piece makes, which is
-   * parallax and costs one multiply. AND THE PIECES PART AROUND THE
-   * WORDS rather than hiding behind a bleaching panel: anything standing
-   * where the copy stands is pushed aside smoothly and closes back in
-   * behind it, which is the honest fix v0.4.0's clearing was reaching
-   * for.
+   * THE PIECES STILL NEVER POP. Membership changes only on a resize;
+   * loading is the one honest exception (it always was: the DOM version
+   * popped a piece the frame its file decoded), and a piece whose file
+   * lands while the chapter is on screen now eases in over half a second
+   * instead. The contact shadow that separated each piece from the white
+   * room survives as an analytic soft ellipse composited under the piece
+   * in the same fragment, so it costs no second pass and no atlas bytes.
    *
    * ---------------------------------------------------------------------
-   * THE PROCESSION, which the field replaced, and what it was for.
+   * THE INHERITED RULES, all of them still binding, and where they live
+   * now.
    *
-   * Until v0.3.2 this was three bands of small pieces drifting upward at
-   * three speeds, and the reader's verdict was that nothing in it could be
-   * seen clearly. That was right, and it was structural rather than a matter
-   * of tuning: seventy-four pieces spread over three screens, all at roughly
-   * the same size, a third of them deliberately blurred, is a texture. A
-   * texture is a fine thing for a background and a poor way to show somebody
-   * the work a bench has spent years on.
+   * From the field (v0.4.1): SIZE IS RASTERISED ONCE at the largest the
+   * piece will ever be drawn, and the transform only ever scales DOWN.
+   * The atlas packs each piece at its hang size times the device ratio
+   * (capped at the file's own 320), and the breath in the vertex shader
+   * stays strictly below one, so no piece is ever drawn from more pixels
+   * than its raster holds; the atlas is mipmapped so the governor's
+   * whole-frame downscales stay clean. THE SCATTER IS LOW-DISCREPANCY,
+   * NOT RANDOM (a random draw clumps three pieces into a corner and
+   * leaves a hole, every time), and it is the R2 sequence BY RANK IN THE
+   * HANG ORDER, because any prefix of R2 is itself low-discrepancy while
+   * a shuffled subset of a lattice is a random draw again. BIGGER IS
+   * NEARER: sz is one number a piece's size, draw order, parallax share,
+   * sway reach and rock all read off, so the differences read as depth.
+   * Near pieces make room for the words, far ones hold their ground and
+   * pass behind the clearing's veil, which is what gives the parted field
+   * a back wall.
    *
-   * So the pieces are laid out in DEPTH instead of across a plane. Each one
-   * has a slot in the procession and a direction out from the centre; the
-   * reader's scroll is a camera moving down it. A piece appears small near
-   * the vanishing point, swells along its own radius as it approaches, comes
-   * to the front of the room at its full size and full sharpness, and sweeps
-   * out past the frame while the next is already resolving behind it. About
-   * a dozen are in flight at once and three or four of those are large, so
-   * there is always something being READ rather than merely passing.
+   * From the procession (v0.3.2): depth is carried by SIZE and never by
+   * blur, because a blurred showcase is a third of the work made
+   * unlookable; and nothing off screen may cost anything, which the
+   * instanced form gives by construction (the draw is skipped outside the
+   * chapter, and there is no layer anywhere to keep alive).
    *
-   * Two consequences worth knowing before touching it. The pieces are sized
-   * ONCE, in pixels, at the largest they will ever be drawn, and perspective
-   * is a transform scale that only ever goes DOWN from there: a layer
-   * rasterised small and then scaled up is exactly the blur this rework
-   * exists to remove. And only the pieces actually in flight are written to
-   * each frame; the rest are left alone entirely, so a frame of this costs a
-   * dozen transforms rather than seventy-four. */
+   * HOW MANY / WHICH / HOW BIG are v0.4.5's rules verbatim, checked
+   * against the same captures: the whole manifest hangs wherever every
+   * piece clears GAL_FLOOR, only a phone trims the order, sizes come back
+   * off the count so the set covers about GAL_COVER of the frame, and one
+   * seeded shuffle fixes membership across visits. The seed streams are
+   * untouched, so this build hangs the exact room v0.4.5 hung. */
 
-  /* The constellation's three dials. GAL_COVER is the share of the frame
-   * the hung pieces may sum to, and the sizes are derived from it and from
-   * the count, so the chapter reads equally full on a phone and a cinema
-   * display without either being tuned by hand. GAL_FLOOR is the smallest
-   * a hung piece is allowed to raster, and it is what decides HOW MANY:
-   * the reader asked to see all seventy-four, so the whole manifest hangs
-   * wherever the frame can carry every piece at or above the floor, and
-   * only a screen too small for that trims the order. The old dial was a
-   * fixed area per piece, which hung twelve of seventy-four on an ordinary
-   * laptop window and read as a sample of the showcase rather than the
-   * showcase. GAL_PAR is how far the whole field slides across the
-   * chapter, in frame heights at the nearest depth; small on purpose,
-   * because the standing instruction is that every piece stays on
-   * screen. */
+  /* The constellation's dials, v0.4.5's numbers untouched. GAL_COVER is
+   * the share of the frame the hung pieces may sum to, and the sizes are
+   * derived from it and from the count, so the chapter reads equally full
+   * on a phone and a cinema display without either being tuned by hand.
+   * GAL_FLOOR is the smallest a hung piece is allowed to raster, and it
+   * is what decides HOW MANY: the reader asked to see all seventy-four,
+   * so the whole manifest hangs wherever the frame can carry every piece
+   * at or above the floor, and only a screen too small for that trims the
+   * order. The old dial was a fixed area per piece, which hung twelve of
+   * seventy-four on an ordinary laptop window and read as a sample of the
+   * showcase rather than the showcase. The field's slide across the
+   * chapter (0.14 frame heights at the nearest depth, small because the
+   * standing instruction is that every piece stays on screen) lives in
+   * the vertex shader now, beside the rest of the motion. ATLAS_PAD is
+   * the transparent guard around each packed entry: the piece pass reads
+   * mip levels a couple deep during governor downscales and the shadow
+   * spills past the raster, and both stop at the guard instead of
+   * bleeding into a neighbour. */
   const GAL_COVER = 0.3;
   const GAL_FLOOR = 64;
-  const GAL_PAR = 0.14;
+  const ATLAS_PAD = 10;
+  const NO_GAL = params.has("nogal");
   const items = [];
   let galOrder = [];
+  let galDraw = [];
   let galT = 0;
   let galleryArmed = false;
 
@@ -1701,38 +1731,30 @@ import { JEWELRY } from "./jewelry-manifest.js";
   }
 
   function buildGallery() {
-    if (!galleryEl) return;
     const rand = rng(20260801);
-    const frag = document.createDocumentFragment();
-    JEWELRY.forEach((piece, i) => {
-      const el = document.createElement("div");
-      el.className = "gallery__item";
-      const img = document.createElement("img");
-      img.alt = "";
-      img.decoding = "async";
-      // The extension is decided at arm time, not here: the manifest carries
-      // the stem alone, and which of the two shipped sets this browser gets
-      // is not known yet on the frame the DOM is built.
-      img.dataset.src = "assets/img/jewelry/" + piece.f;
-      img.width = piece.w;
-      img.height = piece.h;
-      el.appendChild(img);
-      frag.appendChild(el);
+    JEWELRY.forEach((piece) => {
       /* How near this piece is and how it sways; WHERE it hangs is decided
        * in layoutGallery, off its rank in the hang order rather than off
        * this manifest index, and the note there says why that distinction
        * was paid for. `sz` is the piece's nearness, and its size, its
-       * layer order, its share of the parallax and the reach of its sway
+       * draw order, its share of the parallax and the reach of its sway
        * all read off that one number, which is what makes the differences
        * read as depth rather than as assorted styling. The sway itself is
        * two slow sines a little off each other's pace, so the path never
        * repeats and never goes anywhere, with a rock and a breath of
        * scale on their own phases; every rate and phase is seeded, so no
-       * two pieces breathe together and every visit hangs the same room. */
+       * two pieces breathe together and every visit hangs the same room.
+       *
+       * THIS STREAM IS v0.4.5'S, DRAW FOR DRAW: ten pulls per piece in
+       * the same order, then the shuffle off the same stream, so the
+       * rework hangs the exact room the DOM version hung and a capture
+       * diffs against the old one on light and motion alone. Everything
+       * the shader era added draws from the second stream below, which
+       * is why it is a second stream. */
       const sz = 0.5 + 0.5 * rand();
       items.push({
-        el,
-        img,
+        f: piece.f,
+        nw: piece.w,
         jx: (rand() - 0.5) * 0.06,
         jy: (rand() - 0.5) * 0.06,
         sz,
@@ -1742,23 +1764,37 @@ import { JEWELRY } from "./jewelry-manifest.js";
         p1: rand() * 6.283,
         p2: rand() * 6.283,
         p3: rand() * 6.283,
-        tilt: rand() * 9 - 4.5,
+        // Radians now: the rock lives in the vertex shader.
+        tilt: ((rand() * 9 - 4.5) * Math.PI) / 180,
         // Far pieces rock a little more than near ones: a big piece
         // swinging reads as heavy, a small one as weightless.
-        rr: 1.1 + 1.7 * (1 - sz),
+        rr: ((1.1 + 1.7 * (1 - sz)) * Math.PI) / 180,
         // A piece is only ever as big as its own longest side allows.
         aspect: piece.w / piece.h,
         tall: piece.h >= piece.w,
         active: false,
+        slot: -1,
+        img: null,
+        loaded: false,
+        failed: false,
+        loadT: -1,
+        rx: 0,
+        ry: 0,
+        rw: 0,
+        rh: 0,
         w: 0,
         h: 0,
         cx: 0,
         cy: 0,
         ax: 0,
         ay: 0,
+        wy: 0,
+        py: 0,
+        wp: 0,
+        pp: 0,
+        seed: 0,
       });
     });
-    galleryEl.appendChild(frag);
     /* One seeded shuffle decides WHICH pieces a given count hangs, so the
      * membership is stable across visits, and a resize only adds to or
      * trims from the end of the same order rather than recasting the
@@ -1770,7 +1806,404 @@ import { JEWELRY } from "./jewelry-manifest.js";
       galOrder[i] = galOrder[j];
       galOrder[j] = t;
     }
+    /* The second stream: the third dimension and the glints. Appending
+     * these to the first stream would have moved every draw the shuffle
+     * makes and recast the whole room, which is exactly the kind of
+     * invisible regression the captures would have paid for. */
+    const rand2 = rng(20260808);
+    for (const it of items) {
+      it.wy = 0.14 + 0.16 * rand2();
+      it.py = rand2() * 6.283;
+      it.wp = 0.11 + 0.13 * rand2();
+      it.pp = rand2() * 6.283;
+      it.seed = rand2();
+    }
   }
+
+  /* THE ATLAS. Every hung piece rasterised once into one canvas, uploaded
+   * as one mipmapped texture, so the whole constellation is a single
+   * bind. Entries are packed at hang size times the device ratio (capped
+   * at the file's own pixels, so nothing is an upscale), shelf-packed by
+   * height, each inside ATLAS_PAD of transparent guard. Premultiplied on
+   * upload, because these files are alpha cut-outs and a linear filter
+   * walking a straight-alpha edge drags whatever colour hides under the
+   * transparent pixels into the fringe; premultiplied, the fringe is
+   * simply fainter piece. flipY stays off so the atlas's own row order is
+   * the texture's, and the shader measures v from the top like everything
+   * else that touches the canvas. */
+  const galAtlas = (() => {
+    const cv = document.createElement("canvas");
+    cv.width = 4;
+    cv.height = 4;
+    const c2d = cv.getContext("2d");
+    const tex = new THREE.CanvasTexture(cv);
+    tex.flipY = false;
+    tex.premultiplyAlpha = true;
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return { cv, c2d, tex, w: 4, h: 4, packed: false, timer: 0 };
+  })();
+
+  /* Draws into the atlas CANVAS only. The texture upload is marked by the
+   * batch timer in galWake and by galPack, never here: an upload means
+   * re-sending the whole atlas and regenerating its mip chain, and doing
+   * that once per landed file turned seventy-four arrivals into
+   * seventy-four uploads, which under a software rasteriser stretched the
+   * boot by whole seconds. One batch, one upload. */
+  function galBlit(it) {
+    if (!it.loaded || !it.rw) return;
+    const c = galAtlas.c2d;
+    // The 2d context forgets these whenever the canvas is resized.
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    c.clearRect(it.rx, it.ry, it.rw, it.rh);
+    c.drawImage(it.img, it.rx, it.ry, it.rw, it.rh);
+  }
+
+  function galRect(it) {
+    if (it.slot < 0) return;
+    const a = galAttr.aRect;
+    a.array[it.slot * 4] = it.rx / galAtlas.w;
+    a.array[it.slot * 4 + 1] = it.ry / galAtlas.h;
+    a.array[it.slot * 4 + 2] = it.rw / galAtlas.w;
+    a.array[it.slot * 4 + 3] = it.rh / galAtlas.h;
+    a.needsUpdate = true;
+  }
+
+  function galPack() {
+    const list = items.filter((it) => it.active);
+    if (!list.length) return;
+    const maxTex = Math.min(renderer.capabilities.maxTextureSize || 4096, 8192);
+    let dprA = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+    for (;;) {
+      const ent = list.map((it) => {
+        const pw = Math.max(8, Math.min(Math.round(it.w * dprA), it.nw));
+        const ph = Math.max(8, Math.round(pw / it.aspect));
+        return { it, pw, ph, w: pw + 2 * ATLAS_PAD, h: ph + 2 * ATLAS_PAD, x: 0, y: 0 };
+      });
+      // Shelves want even heights; sorted, the tallest row is the first
+      // and every later shelf is tighter than the one above it.
+      ent.sort((a, b) => b.h - a.h);
+      const area = ent.reduce((s, e) => s + e.w * e.h, 0);
+      let W = 1024;
+      while (W < maxTex && W * W < area * 1.25) W *= 2;
+      let x = 0;
+      let y = 0;
+      let rowH = 0;
+      for (const e of ent) {
+        if (x + e.w > W) {
+          x = 0;
+          y += rowH;
+          rowH = 0;
+        }
+        e.x = x;
+        e.y = y;
+        x += e.w;
+        if (e.h > rowH) rowH = e.h;
+      }
+      const H = y + rowH;
+      // A screen big enough to overflow the texture unit gets the same
+      // room at a slightly lower density instead of a lost chapter.
+      if (H > maxTex) {
+        dprA *= 0.8;
+        continue;
+      }
+      galAtlas.w = W;
+      galAtlas.h = H;
+      // Assigning the size clears the canvas, which is the reset the
+      // repack wants anyway.
+      galAtlas.cv.width = W;
+      galAtlas.cv.height = H;
+      for (const e of ent) {
+        e.it.rx = e.x + ATLAS_PAD;
+        e.it.ry = e.y + ATLAS_PAD;
+        e.it.rw = e.pw;
+        e.it.rh = e.ph;
+        galBlit(e.it);
+      }
+      galAtlas.tex.needsUpdate = true;
+      galAtlas.packed = true;
+      for (const it of list) galRect(it);
+      return;
+    }
+  }
+
+  /* THE PASS. One quad, instanced over the hung set, drawn over the
+   * room's blit with the same premultiplied-over blend the compositor
+   * used to apply to the DOM pieces. The vertex shader is the whole of
+   * driveGallery's per-frame arithmetic plus the motion the DOM could
+   * never afford; the fragment is one atlas read plus the light. The
+   * instances are sorted far to near once at hang time (instances raster
+   * in order, so draw order is depth order), which is what the DOM
+   * version spent z-index on. */
+  const galU = {
+    uTex: { value: galAtlas.tex },
+    uView: { value: new THREE.Vector2(1, 1) },
+    uBand: { value: new THREE.Vector4(0, 0, 1, 1) },
+    uBeam0: { value: new THREE.Vector4(1, 0, 0, 0) },
+    uBeam1: { value: new THREE.Vector4(1, 0, 0, 0) },
+    uT: { value: 0 },
+    uIk: { value: 0 },
+    uInk: { value: 0 },
+    uFade: { value: 0 },
+    uA: { value: 1 },
+  };
+
+  const galGeo = new THREE.InstancedBufferGeometry();
+  galGeo.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      [-0.5, -0.5, 0, 0.5, -0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0],
+      3
+    )
+  );
+  galGeo.setIndex([0, 1, 2, 2, 1, 3]);
+  const galAttr = {};
+  for (const [name, size] of [
+    ["aRect", 4],
+    ["aPlace", 4],
+    ["aSway1", 4],
+    ["aSway2", 4],
+    ["aChar", 4],
+    ["aTilt", 4],
+    ["aLoad", 1],
+  ]) {
+    // Sized off the manifest, not off items: this block runs before
+    // buildGallery() has filled the item list, and a zero-length buffer
+    // here is an out-of-bounds throw at the first hang.
+    const a = new THREE.InstancedBufferAttribute(
+      new Float32Array(JEWELRY.length * size),
+      size
+    );
+    a.setUsage(THREE.DynamicDrawUsage);
+    galAttr[name] = a;
+    galGeo.setAttribute(name, a);
+  }
+  galGeo.instanceCount = 0;
+
+  const galMat = new THREE.RawShaderMaterial({
+    glslVersion: THREE.GLSL3,
+    uniforms: galU,
+    depthTest: false,
+    depthWrite: false,
+    transparent: true,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+    blending: THREE.CustomBlending,
+    blendSrc: THREE.OneFactor,
+    blendDst: THREE.OneMinusSrcAlphaFactor,
+    blendSrcAlpha: THREE.OneFactor,
+    blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
+    vertexShader: [
+      /* Everything a piece does in a frame, from seeds. The clock and the
+       * scroll arrive as uniforms; nothing per piece is computed on the
+       * CPU at all. All of it is highp on purpose: galT grows for as long
+       * as a reader stays inside the chapter, and sin() of a large
+       * argument in mediump is the kind of bug that only ever shows on
+       * somebody else's phone. */
+      "precision highp float;",
+      "in vec3 position;",
+      "in vec4 aRect;",
+      "in vec4 aPlace;",
+      "in vec4 aSway1;",
+      "in vec4 aSway2;",
+      "in vec4 aChar;",
+      "in vec4 aTilt;",
+      "in float aLoad;",
+      "uniform vec2 uView;",
+      "uniform vec4 uBand;",
+      "uniform float uT;",
+      "uniform float uIk;",
+      "uniform float uInk;",
+      "uniform float uA;",
+      "out vec2 vPuv;",
+      "out vec2 vSuv;",
+      "out vec2 vQ;",
+      "out vec4 vAux;",
+      "out vec3 vSpk;",
+      "flat out vec4 vRect;",
+      "flat out vec2 vPsz;",
+      "flat out float vLoad;",
+      "const float PI = 3.141592653589793;",
+      "void main() {",
+      "  float sz = aChar.x;",
+      "  float seed = aChar.w;",
+      "  float w = aPlace.z;",
+      "  float h = aPlace.w;",
+      /* The slide is centred on the middle of the chapter, so the beats,
+       * which sit near it, read the room at its hung positions; the sway
+       * rides on top. Nearer pieces take more of both, which is the
+       * parallax that makes a moving frame and a held one feel like the
+       * same place seen from two heights. The 0.14 is the old GAL_PAR. */
+      "  float par = (0.5 - uIk) * uView.y * 0.14 * (0.35 + 0.75 * sz);",
+      /* The sway: v0.4.4's two slow sines, with a second, smaller pair a
+       * little off their pace underneath, so the path is a slow loop that
+       * never quite repeats instead of a figure the eye can learn. */
+      "  float swx = sin(uT * aSway1.x + aSway1.y) * aChar.y",
+      "            + sin(uT * aSway1.x * 0.53 + aSway2.y * 2.1) * aChar.y * 0.45;",
+      "  float swy = sin(uT * aSway1.z + aSway1.w) * aChar.z",
+      "            + cos(uT * aSway1.z * 0.61 + aSway1.y * 1.7) * aChar.z * 0.4;",
+      "  float xc = aPlace.x + swx;",
+      "  float yc = aPlace.y + par + swy;",
+      /* THE PIECES PART AROUND THE WORDS, v0.4.5's arithmetic verbatim:
+       * measured from the piece's own edge, full clearance across the
+       * middle of the band with a taper at either end, near pieces only
+       * (the far ones hold their ground and pass behind the clearing's
+       * veil), and the parked position keeps each piece's own share of
+       * its original offset rather than stacking every refugee on one
+       * rail. */
+      "  float dyb = abs(yc - uBand.y) / (uBand.w + h * 0.42);",
+      "  if (dyb < 1.0 && uInk > 0.002 && sz >= 0.74) {",
+      "    float t = clamp((dyb - 0.42) / 0.58, 0.0, 1.0);",
+      "    float k = uInk * (1.0 - t * t * (3.0 - 2.0 * t));",
+      "    float dx = xc - uBand.x;",
+      "    float need = uBand.z + w * 0.4;",
+      "    if (abs(dx) < need) {",
+      "      float dir = dx >= 0.0 ? 1.0 : -1.0;",
+      "      xc = uBand.x + dir * mix(abs(dx), need + abs(dx) * 0.45, k * 0.95);",
+      "    }",
+      "  }",
+      "  xc = clamp(xc, w * 0.18, uView.x - w * 0.18);",
+      /* The rock and the breath, plus a whisper of scroll-linked lean so
+       * a swipe tips the field, far pieces a touch more than near. The
+       * breath stays strictly below one: the raster is never enlarged. */
+      "  float rot = aSway2.z + sin(uT * aSway2.x + aSway2.y) * aSway2.w",
+      "            + (0.5 - uIk) * (seed - 0.5) * 0.14;",
+      "  float s = 0.968 + 0.026 * sin(uT * aSway1.z * 0.83 + aSway1.y * 1.7);",
+      /* THE THIRD DIMENSION, new with the shader: a slow seeded yaw and
+       * pitch, a few degrees each, under a real perspective divide, which
+       * is a card hanging in water rather than a sticker drifting on
+       * glass. Far pieces roll a little more, the same weight rule the
+       * rock follows. */
+      "  float yaw = sin(uT * aTilt.x + aTilt.y) * (0.10 + 0.10 * (1.0 - sz));",
+      "  float pit = sin(uT * aTilt.z + aTilt.w) * 0.07;",
+      /* The quad is padded past the raster so the contact shadow has
+       * somewhere to fall; the piece sits centred in it. */
+      "  float pad = 0.30 * min(w, h) + 14.0;",
+      "  vec2 psz = vec2(w, h) * s;",
+      "  vec2 quad = psz + 2.0 * pad;",
+      "  vec2 loc = position.xy * quad;",
+      "  float cr = cos(rot);",
+      "  float sr = sin(rot);",
+      "  vec2 lr = vec2(loc.x * cr - loc.y * sr, loc.x * sr + loc.y * cr);",
+      "  vec3 v3 = vec3(lr.x * cos(yaw), lr.y * cos(pit), lr.x * sin(yaw) + lr.y * sin(pit));",
+      /* An honest w, so the varyings interpolate perspective-correct and
+       * the near edge of a tilted piece genuinely grows. Focal length
+       * about 830 css px, far enough that the tilt reads as air rather
+       * than as a card trick. */
+      "  float wc = 1.0 + v3.z * 0.0012;",
+      "  vec2 Am = vec2(2.0 / uView.x, -2.0 / uView.y);",
+      "  vec2 Bm = vec2(-1.0, 1.0);",
+      "  gl_Position = vec4((Am * vec2(xc, yc) + Bm) * wc + Am * v3.xy, 0.0, wc);",
+      "  vec2 pxy = loc + quad * 0.5;",
+      "  vPuv = (pxy - vec2(pad)) / psz;",
+      /* The shadow's own frame: an ellipse displaced down the page,
+       * radii a little over the piece's half sizes, so the falloff in
+       * the fragment lands where the DOM's drop-shadow used to. */
+      "  vSuv = (pxy - (quad * 0.5 + vec2(0.0, 10.0 + 0.10 * h))) / (psz * vec2(0.62, 0.56));",
+      /* Where this fragment stands in the ROOM's own frame, for the
+       * beams: the crystal shader's q is ndc with x scaled by aspect. */
+      "  vec2 nd = (Am * vec2(xc, yc) + Bm) + Am * (v3.xy / wc);",
+      "  vQ = vec2(nd.x * uA, nd.y);",
+      /* The glint schedule: each piece throws a small star once in a
+       * while, on its own seeded cycle, some cycles skipped so the case
+       * twinkles instead of blinking. Everything is a function of uT and
+       * the seed, so a held frame holds its glints too. */
+      "  float cyc = uT * (0.030 + 0.025 * fract(seed * 13.7)) + seed * 29.0;",
+      "  float ph = fract(cyc);",
+      "  float env = ph < 0.06 ? sin(PI * ph / 0.06) : 0.0;",
+      "  env *= step(0.35, fract(seed * 7.31 + floor(cyc) * 0.618));",
+      "  vSpk = vec3(0.30 + 0.40 * fract(seed * 5.1 + floor(cyc) * 0.377),",
+      "              0.28 + 0.40 * fract(seed * 9.7 + floor(cyc) * 0.711),",
+      "              env);",
+      /* The sheen rides the yaw: position from the roll itself, strength
+       * from its velocity, so the light glides across the face exactly
+       * while the face is turning and rests when it rests. */
+      "  vAux = vec4(yaw * 3.2, sin(uT * aTilt.x + aTilt.y + PI * 0.5), seed, sz);",
+      "  vRect = aRect;",
+      "  vPsz = psz;",
+      /* Loading is the one honest pop the DOM version had; eased here.
+       * loadT is the clock's value when the file landed: at or before
+       * zero means it landed before the chapter ever ran, so it simply
+       * is there, exactly as a held ?p= frame wants. */
+      "  vLoad = aLoad < -0.5 ? 0.0",
+      "        : (aLoad <= 0.0 ? 1.0 : clamp((uT - aLoad) / 0.5, 0.0, 1.0));",
+      "}",
+    ].join("\n"),
+    fragmentShader: [
+      "precision mediump float;",
+      "uniform sampler2D uTex;",
+      "uniform vec4 uBeam0;",
+      "uniform vec4 uBeam1;",
+      "uniform float uFade;",
+      "in vec2 vPuv;",
+      "in vec2 vSuv;",
+      "in vec2 vQ;",
+      "in vec4 vAux;",
+      "in vec3 vSpk;",
+      "flat in vec4 vRect;",
+      "flat in vec2 vPsz;",
+      "flat in float vLoad;",
+      "out vec4 outCol;",
+      "void main() {",
+      /* The piece: one premultiplied sRGB read, clamped to its own atlas
+       * entry and zeroed outside it, so the pad and the neighbours can
+       * never leak in whatever the derivatives do at the quad's edge. */
+      "  vec2 cu = clamp(vPuv, 0.0, 1.0);",
+      "  float inP = step(abs(vPuv.x - 0.5), 0.5) * step(abs(vPuv.y - 0.5), 0.5);",
+      "  vec4 piece = texture(uTex, vRect.xy + cu * vRect.zw) * inP;",
+      /* The contact shadow, composited UNDER the piece in the same
+       * fragment: the separation from the white room that the DOM spent
+       * a rasterised drop-shadow filter on, as one smooth ellipse. */
+      "  float rs = length(vSuv);",
+      "  float sh = 0.20 * pow(clamp(1.0 - rs, 0.0, 1.0), 1.6);",
+      "  vec3 rgb = piece.rgb + vec3(0.102) * sh * (1.0 - piece.a);",
+      "  float a = piece.a + sh * (1.0 - piece.a);",
+      /* THE ROOM'S BEAMS CROSS THE PIECES HERE, the same two beams the
+       * crystal shader sweeps, from the same sum (the cos, sin and offset
+       * arrive precomputed off roomK). They screen, exactly as the DOM
+       * layers did: on white nothing happens, on a photographed piece the
+       * light passes across it, and the amplitudes land almost entirely
+       * on mid-tones and shadows, which is what a light crossing a
+       * photograph actually does. */
+      "  float b0 = dot(vQ, uBeam0.xy) - uBeam0.z;",
+      "  float b1 = dot(vQ, uBeam1.xy) - uBeam1.z;",
+      "  float g = exp(-b0 * b0 * 3.0) * uBeam0.w + exp(-b1 * b1 * 3.0) * uBeam1.w;",
+      /* The sheen: a soft band gliding across the face while the piece
+       * rolls, gone when it rests. */
+      "  float band = dot(vPuv - 0.5, vec2(0.778, 0.628));",
+      "  float dsh = band - vAux.x * 0.21;",
+      "  g += exp(-dsh * dsh * 26.0) * 0.14 * abs(vAux.y) * piece.a;",
+      "  rgb += clamp(g, 0.0, 1.0) * (vec3(a) - rgb);",
+      /* The star glint: a core and four rays, masked to the piece's own
+       * bright pixels so it reads as a facet catching the room rather
+       * than a sprite over it. */
+      "  if (vSpk.z > 0.001) {",
+      "    vec2 sp = (vPuv - vSpk.xy) * vPsz;",
+      "    float R = 0.14 * min(vPsz.x, vPsz.y);",
+      "    float rn = dot(sp, sp) / (R * R);",
+      "    float star = exp(-rn * 3.0) * 1.15",
+      "               + exp(-abs(sp.x) / (R * 0.85)) * exp(-abs(sp.y) / (R * 0.14)) * 0.85",
+      "               + exp(-abs(sp.y) / (R * 0.85)) * exp(-abs(sp.x) / (R * 0.14)) * 0.85;",
+      "    float lum = piece.g / max(piece.a, 0.001);",
+      "    star *= vSpk.z * smoothstep(0.35, 0.75, piece.a) * (0.30 + 0.70 * lum);",
+      "    rgb += clamp(star, 0.0, 1.5) * (vec3(a) - rgb);",
+      "  }",
+      /* uFade is the chapter's own light (the old container opacity) and
+       * vLoad the ease-in of a file that landed mid-chapter; both scale
+       * the whole premultiplied colour, which is what opacity means. */
+      "  outCol = vec4(rgb, a) * (uFade * vLoad);",
+      "}",
+    ].join("\n"),
+  });
+  const galMesh = new THREE.Mesh(galGeo, galMat);
+  galMesh.frustumCulled = false;
+  const galScn = new THREE.Scene();
+  galScn.add(galMesh);
+  const galCam = new THREE.Camera();
 
   /* Hang the room: how many pieces, which ones, how big, and where.
    *
@@ -1781,8 +2214,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * the furthest. Rasterised once at that size, capped at the 320 the
    * files are cut at, and the per-frame scale breathes strictly below
    * one, so nothing is ever a bitmap being enlarged. Everything a frame
-   * of the drift needs is cached here in pixels, so driveGallery is
-   * arithmetic alone. */
+   * needs rides the instance buffer from here; the film's own per-frame
+   * share of the constellation is a handful of uniforms. */
   function layoutGallery() {
     const w = pin.clientWidth;
     const h = pin.clientHeight;
@@ -1803,13 +2236,20 @@ import { JEWELRY } from "./jewelry-manifest.js";
       const it = items[galOrder[r]];
       const active = r < n;
       if (active !== it.active) {
-        it.active = active;
         // Membership only ever changes here, on a resize, never on a
         // frame of the film: nothing pops while anybody is watching.
-        it.el.style.visibility = active ? "visible" : "hidden";
+        it.active = active;
         if (active && galleryArmed) armItem(it, "low");
       }
-      if (!active) continue;
+      if (!active) {
+        it.slot = -1;
+        // And no atlas rect either: a file still in flight for a piece
+        // trimmed here would otherwise land, after the repack, on a rect
+        // the packer has since handed to somebody else, and stamp itself
+        // across another piece's raster.
+        it.rw = 0;
+        continue;
+      }
       /* Where it hangs comes off the R2 sequence BY RANK IN THE HANG
        * ORDER, not by manifest index, and the difference was visible the
        * one time it was got wrong: any PREFIX of the R2 sequence is
@@ -1824,14 +2264,8 @@ import { JEWELRY } from "./jewelry-manifest.js";
       it.cy = (0.12 + 0.76 * ((r * 0.5698402909980532 + 0.5 + it.jy) % 1)) * h;
       const long = clamp(Math.round(mean * (0.62 + 0.76 * it.sz)), GAL_FLOOR, 320);
       const wid = Math.max(48, Math.round(it.tall ? long * it.aspect : long));
-      if (wid !== it.w) {
-        it.w = wid;
-        it.h = wid / it.aspect;
-        it.el.style.width = wid + "px";
-        // Nearer pieces stack over farther ones, which is what lets two
-        // bubbles cross without the eye losing which is in front.
-        it.el.style.zIndex = 1 + Math.round(it.sz * 8);
-      }
+      it.w = wid;
+      it.h = wid / it.aspect;
       /* The sway keeps a floor in pixels. It used to be a pure fraction of
        * the piece's width, which was right when twenty pieces averaged a
        * hundred and forty; with the whole manifest hung the mean piece is
@@ -1841,6 +2275,33 @@ import { JEWELRY } from "./jewelry-manifest.js";
       it.ax = Math.max(10, it.w * 0.1);
       it.ay = Math.max(13, it.w * 0.13);
     }
+    /* Far to near, once: instances rasterise in order, so the sort IS the
+     * stacking, and two bubbles cross without the eye losing which is in
+     * front. */
+    galDraw = items.filter((it) => it.active).sort((a, b) => a.sz - b.sz);
+    for (let i = 0; i < galDraw.length; i++) {
+      const it = galDraw[i];
+      it.slot = i;
+      galAttr.aPlace.array.set([it.cx, it.cy, it.w, it.h], i * 4);
+      galAttr.aSway1.array.set([it.w1, it.p1, it.w2, it.p2], i * 4);
+      galAttr.aSway2.array.set([it.w3, it.p3, it.tilt, it.rr], i * 4);
+      galAttr.aChar.array.set([it.sz, it.ax, it.ay, it.seed], i * 4);
+      galAttr.aTilt.array.set([it.wy, it.py, it.wp, it.pp], i * 4);
+      galAttr.aLoad.array[i] = it.loaded ? it.loadT : -1;
+      galRect(it);
+    }
+    galGeo.instanceCount = galDraw.length;
+    for (const k in galAttr) galAttr[k].needsUpdate = true;
+    galU.uView.value.set(w, h);
+    /* Repacking redraws every loaded piece and re-uploads the whole
+     * atlas, so a live window-edge drag is debounced; the first hang
+     * packs now, because there is nothing to draw from until it has. In
+     * the gap between a resize and its repack the pieces render at their
+     * new sizes from the old rects, which is a fifth of a second of
+     * fractionally soft sampling, not a wrong picture. */
+    clearTimeout(galAtlas.timer);
+    if (!galAtlas.packed) galPack();
+    else galAtlas.timer = setTimeout(galPack, 180);
   }
 
   /* ONLY WHAT IS HUNG IS FETCHED.
@@ -1854,15 +2315,52 @@ import { JEWELRY } from "./jewelry-manifest.js";
    * later by a resize is armed the moment it is hung, at low priority,
    * since by then it is one straggler behind a room already dressed.
    *
+   * An Image is created only for a piece that is actually hung, decoded
+   * off the main thread where the browser allows it, and drawn into the
+   * atlas the moment it lands. The batched wake below matters more than
+   * it looks: the canvas repaints nothing on its own, so without it a
+   * held ?p= frame would sit forever showing the room with no pieces.
+   *
    * fetchPriority is set as a property rather than an attribute so a
-   * browser that does not know it simply ignores an unknown property
-   * instead of carrying a dead attribute in the DOM. */
+   * browser that does not know it simply ignores an unknown property. */
+  /* One repaint per BATCH of landed files, not one per file: the whole
+   * hung set arrives shoulder to shoulder off one connection, and a wake
+   * per landing drew the full film once per image, which under a software
+   * rasteriser stretched the boot's warm by seconds and on any machine is
+   * seventy draws where one would do. A held frame repaints at most a
+   * beat after the last file of a batch lands. */
+  let galWakeTimer = 0;
+  function galWake() {
+    clearTimeout(galWakeTimer);
+    galWakeTimer = setTimeout(() => {
+      galAtlas.tex.needsUpdate = true;
+      wake();
+    }, 120);
+  }
+
   function armItem(it, priority) {
-    const img = it.img;
-    if (!img.dataset.src || ext === null) return;
+    if (it.img || it.failed || ext === null) return;
+    const img = new Image();
+    img.decoding = "async";
     img.fetchPriority = priority;
-    img.src = img.dataset.src + ext;
-    img.removeAttribute("data-src");
+    img.onload = () => {
+      it.loaded = true;
+      it.loadT = galT;
+      galBlit(it);
+      if (it.slot >= 0) {
+        galAttr.aLoad.array[it.slot] = it.loadT;
+        galAttr.aLoad.needsUpdate = true;
+      }
+      galWake();
+    };
+    // A file that never comes is a hole the room closes over: the slot
+    // stays transparent and the piece simply is not hung this visit.
+    img.onerror = () => {
+      it.failed = true;
+    };
+    img.src = "assets/img/jewelry/" + it.f + ext;
+    it.img = img;
+    if (img.decode) img.decode().catch(() => {});
   }
 
   function armGallery() {
@@ -1875,6 +2373,84 @@ import { JEWELRY } from "./jewelry-manifest.js";
     }
     galleryArmed = true;
     for (const it of items) if (it.active) armItem(it, "high");
+  }
+
+  /* One frame of the constellation: the uniforms, then one draw over the
+   * room's blit.
+   *
+   * `ik` is the reader's way down the chapter and drives only the gentle
+   * slide; `tg` is the drift clock, frozen under ?p= and reduced motion.
+   * Nothing per piece accumulates anywhere: every position is a closed
+   * function of (ik, tg) evaluated in the vertex shader, so the chapter
+   * scrubs backwards exactly as it plays forwards and a held frame is one
+   * fixed picture. The pieces never fade one by one; uFade carries the
+   * chapter's own light (in behind the flash, out with the collapse) and
+   * that is the only fade there is.
+   *
+   * The band the near pieces part around is the ink beats' own footprint,
+   * from the two numbers home.css sizes the clearing with: min(46rem,
+   * 86vw) across and a little over a fifth of the frame either side of
+   * the line, half of each so band and clearing are the SAME shape (this
+   * constant drifted once, which is why the numbers are quoted here
+   * rather than trusted). Portrait stacks the copy at the top at a MEDIA
+   * QUERY, which is binary: the band lands at 26% the moment aspect
+   * crosses 9/10, the measured centre of the stacked block, because a
+   * ramp cannot follow a step.
+   *
+   * The beams arrive as cos, sin and offset precomputed off roomK, which
+   * is the same sum the crystal shader reads (p * 34 + galT * 0.12), so
+   * the light in the room and the light crossing the pieces cannot part
+   * ways; precomputed, because roomK grows for as long as a reader stays
+   * parked inside and a mediump sin() of a large angle is garbage on
+   * exactly the phones this rework is for. */
+  function galDrawPass(ik, p, tg, fade, roomK, aspect) {
+    if (NO_GAL || !galAtlas.packed || !galGeo.instanceCount) return;
+    /* How much copy is actually standing in the room this frame, read off
+     * the ink beats' own windows rather than restated from them. Between
+     * the two beats, and after the second one has gone, there is nothing
+     * to make room for, and a field still parted around words that are
+     * not there is a hole in the middle of the picture. */
+    let inkK = 0;
+    for (const beat of beats) {
+      if (!beat.ink) continue;
+      const k = seg(p, beat.a, beat.b);
+      if (k <= 0 || k >= 1) continue;
+      inkK = Math.max(inkK, clamp(k / 0.14, 0, 1) * clamp((1 - k) / 0.16, 0, 1));
+    }
+    const w = viewW;
+    const h = viewH;
+    const portrait = w / h < 0.9;
+    galU.uBand.value.set(
+      w * 0.5,
+      h * (portrait ? 0.26 : 0.5),
+      Math.min(368, w * 0.43),
+      h * (portrait ? 0.2 : 0.22)
+    );
+    const a0 = 0.9 + roomK * 0.05;
+    const a1 = 3.1 - roomK * 0.08;
+    galU.uBeam0.value.set(
+      Math.cos(a0),
+      Math.sin(a0),
+      Math.sin(roomK * 0.22) * 0.4,
+      0.42
+    );
+    galU.uBeam1.value.set(
+      Math.cos(a1),
+      Math.sin(a1),
+      Math.sin(roomK * 0.22 + 2.7) * 0.4,
+      0.28
+    );
+    galU.uT.value = tg;
+    galU.uIk.value = ik;
+    galU.uInk.value = inkK;
+    galU.uFade.value = fade;
+    galU.uA.value = aspect;
+    // Over the blit, not instead of it: autoClear would wipe the room the
+    // pieces are supposed to hang in.
+    const ac = renderer.autoClear;
+    renderer.autoClear = false;
+    renderer.render(galScn, galCam);
+    renderer.autoClear = ac;
   }
 
   buildGallery();
@@ -2262,8 +2838,10 @@ import { JEWELRY } from "./jewelry-manifest.js";
      * chapter the film idles the way the coda does: the pieces sway on
      * their sines and the crystal turns a breath at a time under them, so
      * a parked frame is a place rather than a poster. The drift rides uK,
-     * which the page beams read too, so the light in the room and the
-     * light crossing the pieces can never part ways; 0.12 a second is
+     * which the constellation's beam uniforms read too, so the light in
+     * the room and the light crossing the pieces can never part ways
+     * (galDrawPass derives its cos and sin from this same sum); 0.12 a
+     * second is
      * about a thirtieth of the pace a reader's own scroll turns the room
      * at. Frozen under ?p= with the other clocks, so captures stay
      * deterministic, and by reduced motion, so a stilled film stands
@@ -2283,23 +2861,19 @@ import { JEWELRY } from "./jewelry-manifest.js";
       renderer.render(scene, camera);
     }
 
-    /* The gallery rides the inside stretch. It ramps in behind the flash
-     * rather than being at full strength in the frame the room arrives on,
-     * and dims out with the collapse rather than hanging over the black
-     * that follows it; that container fade is the only fade there is, the
-     * pieces themselves never coming or going one by one. */
-    if (galleryEl) {
-      galleryEl.classList.toggle("is-on", galleryOn);
-      if (galleryOn) {
-        const ik = seg(p, B.inside[0] + 0.03, B.collapse[0] + 0.02);
-        const fade =
-          (1 - smooth(seg(p, B.collapse[0], B.collapse[0] + 0.022))) * (1 - winK);
-        galleryEl.style.opacity = fade.toFixed(3);
-        driveGallery(ik, p, galT);
-        driveBeams(roomK, aspect, fade);
-      } else if (beamsLit) {
-        driveBeams(roomK, aspect, 0);
-      }
+    /* The constellation rides the inside stretch, drawn straight over the
+     * room's blit in the same frame. It ramps in behind the flash rather
+     * than being at full strength in the frame the room arrives on, and
+     * dims out with the collapse rather than hanging over the black that
+     * follows it; that fade is the only fade there is, the pieces
+     * themselves never coming or going one by one. Outside the window the
+     * pass simply is not run, which is the whole of the old visibility
+     * machinery: there is no layer left anywhere to outlive the chapter. */
+    if (galleryOn) {
+      const ik = seg(p, B.inside[0] + 0.03, B.collapse[0] + 0.02);
+      const fade =
+        (1 - smooth(seg(p, B.collapse[0], B.collapse[0] + 0.022))) * (1 - winK);
+      galDrawPass(ik, p, galT, fade, roomK, aspect);
     }
 
     // The chrome that answers the film: ink from the moment the room opens
@@ -2312,153 +2886,17 @@ import { JEWELRY } from "./jewelry-manifest.js";
     return teasing;
   }
 
-  /* One frame of the constellation.
-   *
-   * `ik` is the reader's way down the chapter, 0 to 1, and it drives only
-   * the gentle slide of the whole field; `tg` is the drift clock, seconds,
-   * frozen under ?p= and reduced motion. Nothing per piece accumulates:
-   * every position is a closed function of (ik, tg), so the chapter still
-   * scrubs backwards exactly as it plays forwards and a held frame is one
-   * fixed picture. No opacity is written here at all. The pieces never
-   * fade one by one, which is the whole of the ask this mode answers; the
-   * container carries the chapter's own light and that is the only fade
-   * there is. */
-  function driveGallery(ik, p, tg) {
-    /* How much copy is actually standing in the room this frame, read off the
-     * ink beats' own windows rather than restated from them. Between the two
-     * beats, and after the second one has gone, there is nothing to make room
-     * for, and a field still parted around words that are not there is a hole
-     * in the middle of the picture. Ramped at both ends of each window so the
-     * pieces close in and open out rather than jumping. */
-    let inkK = 0;
-    for (const beat of beats) {
-      if (!beat.ink) continue;
-      const k = seg(p, beat.a, beat.b);
-      if (k <= 0 || k >= 1) continue;
-      inkK = Math.max(inkK, clamp(k / 0.14, 0, 1) * clamp((1 - k) / 0.16, 0, 1));
-    }
-    const w = viewW;
-    const h = viewH;
-    /* Portrait puts the copy at the top of the frame rather than through its
-     * middle, and it does so at a MEDIA QUERY, which is binary: home.css
-     * stacks an ink beat under a 16svh pad the moment the aspect crosses
-     * 9/10, and lands its clearing at 26%, the measured centre of the block
-     * that pad produces. The band the constellation parts around must follow
-     * the same line the same way. This used to be a ramp easing from 0.5
-     * to 0.34 across aspects 0.9 to 0.45, which put the band below the words
-     * at every portrait aspect and nowhere near them on a tablet: a ramp
-     * cannot follow a step. */
-    const portrait = w / h < 0.9;
-    const tcx = w * 0.5;
-    const tcy = h * (portrait ? 0.26 : 0.5);
-    // The words' own footprint, from the two numbers home.css sizes the
-    // clearing with: min(46rem, 86vw) across and a little over a fifth of the
-    // frame either side of the line. Half of each, so the band and the
-    // clearing are the SAME shape: this constant drifted once (the clearing
-    // was narrowed in v0.4.0 and the band went on parting to the old width),
-    // which is why the numbers are quoted here rather than trusted.
-    const trx = Math.min(368, w * 0.43);
-    const tryy = h * (portrait ? 0.2 : 0.22);
-    for (const it of items) {
-      if (!it.active) continue;
-      /* The slide is centred on the middle of the chapter, so the beats,
-       * which sit near it, read the room at its hung positions; the sway
-       * rides on top. Nearer pieces take more of both, which is the
-       * parallax that makes a moving frame and a held one feel like the
-       * same place seen from two heights. */
-      const par = (0.5 - ik) * h * GAL_PAR * (0.35 + 0.75 * it.sz);
-      const yc = it.cy + par + Math.sin(tg * it.w2 + it.p2) * it.ay;
-      let xc = it.cx + Math.sin(tg * it.w1 + it.p1) * it.ax;
-      // Measured from the piece's own EDGE, not its centre: a tall piece
-      // centred just below the band still lies across the last line of it,
-      // which is how the sub kept getting a ring through it.
-      /* ONLY THE NEAR PIECES MAKE ROOM. Pushing every piece parked the
-       * whole middle of the constellation on the two clearance rails for
-       * the length of a beat, seven deep on a laptop, which read as
-       * curtains rather than as a room. The far pieces hold their ground
-       * and pass behind the clearing's veil instead, the same arrangement
-       * the phone has always had for its own full-width copy, and a far
-       * piece under the veil is what gives the parted field a back wall. */
-      const dy = Math.abs(yc - tcy) / (tryy + it.h * 0.42);
-      if (dy < 1 && inkK > 0.002 && it.sz >= 0.74) {
-        /* Full clearance across the middle of the band and a taper at either
-         * end of it, rather than a bell. A bell is the obvious curve and it is
-         * the wrong one: it puts most of the push in the middle of the band
-         * and almost none at its edges, which is exactly where the eyebrow and
-         * the sub line live, so the title got its clearing and the two lines
-         * around it were crossed by a ring apiece. */
-        const k = inkK * (1 - smooth(clamp((dy - 0.42) / 0.58, 0, 1)));
-        const dx = xc - tcx;
-        const need = trx + it.w * 0.4;
-        if (Math.abs(dx) < need) {
-          /* The parked position keeps the piece's own share of its
-           * original offset rather than landing every refugee on the same
-           * rail: a fixed target stacked four pieces into one pile at the
-           * clearance line, which read as a jam rather than as room being
-           * made. */
-          const dir = dx >= 0 ? 1 : -1;
-          xc = tcx + dir * lerp(Math.abs(dx), need + Math.abs(dx) * 0.45, k * 0.95);
-        }
-      }
-      xc = clamp(xc, it.w * 0.18, w - it.w * 0.18);
-      /* The rock and the breath. The scale stays strictly below one so the
-       * raster is never enlarged, and the transform pivots on the piece's
-       * own centre, so both read as the piece floating where it is. */
-      const rot = it.tilt + Math.sin(tg * it.w3 + it.p3) * it.rr;
-      const s = 0.97 + 0.024 * Math.sin(tg * it.w2 * 0.83 + it.p1 * 1.7);
-      it.el.style.transform =
-        "translate3d(" + (xc - it.w * 0.5).toFixed(1) + "px," +
-        (yc - it.h * 0.5).toFixed(1) + "px,0) scale(" +
-        s.toFixed(4) + ") rotate(" + rot.toFixed(2) + "deg)";
-    }
-  }
-
-  /* The room's two beams, handed to the page.
-   *
-   * The shader sweeps them across the crystal; the pieces drifting through
-   * it and the words standing in it are DOM, and light that stops dead at
-   * the edge of the canvas is what makes an overlay read as subtitles rather
-   * than as type inside a place. So the same two beams are computed here
-   * with the same arithmetic (they have to be the SAME beams, or the eye
-   * catches the lie immediately) and published as position and angle for
-   * two elements that screen over the gallery. Screen, because on the room's
-   * white it changes nothing at all and on a photographed piece it flares:
-   * the light lands on the world without ever touching the contrast the ink
-   * beats are measured against. */
-  let beamsLit = false;
-  const beamEls = [
-    document.querySelector(".beam--0"),
-    document.querySelector(".beam--1"),
-  ];
-  // uK arrives from the film rather than being derived here, because since
-  // v0.4.4 it carries the constellation's idle drift on top of the scroll,
-  // and two copies of that sum would be two chances to disagree.
-  function driveBeams(uK, aspect, level) {
-    const lit = level > 0.001;
-    if (lit !== beamsLit) {
-      beamsLit = lit;
-      pin.classList.toggle("is-beamed", lit);
-    }
-    if (!lit) return;
-    for (let i = 0; i < 2; i++) {
-      const el = beamEls[i];
-      if (!el) continue;
-      const ang = 0.9 + i * 2.2 + uK * (0.05 + 0.03 * i) * (i ? -1 : 1);
-      const off = Math.sin(uK * 0.22 + i * 2.7) * 0.4;
-      // The shader works in a frame whose y runs -1 to 1 and whose x is
-      // scaled by the aspect; undo that to land back in pixels of the pin.
-      const x = (((off * Math.cos(ang)) / aspect) * 0.5 + 0.5) * viewW;
-      const y = (0.5 - off * Math.sin(ang) * 0.5) * viewH;
-      // Along the band the aspect cancels between the two conversions, so
-      // the screen angle is the plain perpendicular of the beam's normal.
-      const rot = (Math.atan2(-Math.cos(ang), -Math.sin(ang)) * 180) / Math.PI;
-      // On the element, not on the pin: see the note beside .beam--0.
-      el.style.setProperty("--beam", level.toFixed(3));
-      el.style.setProperty("--x", x.toFixed(1) + "px");
-      el.style.setProperty("--y", y.toFixed(1) + "px");
-      el.style.setProperty("--r", rot.toFixed(2) + "deg");
-    }
-  }
+  /* THE DOM BEAMS ARE GONE, and the note that stood here is why the
+   * shader ones are the same beams. The room's beams used to stop dead at
+   * the edge of the canvas, so v0.4.4 computed them again in JS and
+   * published centre and angle to two full-viewport screen-blended
+   * elements standing over the gallery. With the pieces inside the
+   * canvas, the light reaches them inside the fragment instead (see
+   * galDrawPass), from the same roomK sum, and the two biggest blended
+   * layers on the page retire with their per-frame style writes. Screen
+   * blending survives in the shader, and so does the rule that made it
+   * safe: on the room's white it changes nothing, on a photographed piece
+   * it flares, so the ink beats' measured contrast can only improve. */
 
   /* ------------------------------------------------------------- the loop */
 

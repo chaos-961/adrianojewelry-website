@@ -22,7 +22,9 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const PORT = Number(process.argv[2]) || 4319;
+// An explicit argument wins; otherwise honor a launcher-assigned PORT (the
+// Browser pane's autoPort hands one over the environment), then the default.
+const PORT = Number(process.argv[2]) || Number(process.env.PORT) || 4319;
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",

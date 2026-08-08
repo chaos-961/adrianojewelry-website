@@ -9,7 +9,14 @@
    which is ordinary markup, and the dashboard, which admin-gate.js decrypts
    and injects only after the password has proved itself. Both are dressed
    from here, so the ciphertext carries no styling and the sheet hides
-   nothing worth hiding. */
+   nothing worth hiding.
+
+   MOTION POLICY, the booking page's and the landing page's: decoration
+   moves only for readers who have not asked it to stop. Every keyframe in
+   this file sits inside the prefers-reduced-motion: no-preference fence;
+   a reduced reader gets each finished state in one paint. Transitions on
+   hover are kept (they are feedback, not decoration) but the travel is
+   removed under the fence where it matters. */
 
 /* ------------------------------------------------------------------ gate */
 
@@ -20,6 +27,79 @@
   align-items: center;
   justify-content: center;
   padding: clamp(1.5rem, 5vw, 3rem) clamp(1.15rem, 5vw, 2rem);
+}
+
+/* The gate steps aside rather than blinking off: admin-gate.js adds
+   .is-open the moment the studio is injected and drops the hidden
+   attribute a breath later, so the two states actually crossfade. */
+.studio-gate.is-open {
+  opacity: 0;
+  transform: scale(0.985);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .studio-gate {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  @keyframes gate-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .studio-gate__card {
+    animation: gate-in 0.7s cubic-bezier(0.22, 0.7, 0.25, 1) both;
+  }
+
+  /* The wrong-password answer the eye cannot miss: the card refuses,
+     physically, alongside the status line's words. */
+  @keyframes gate-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    15% {
+      transform: translateX(-9px);
+    }
+    35% {
+      transform: translateX(7px);
+    }
+    55% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(3px);
+    }
+    90% {
+      transform: translateX(-1px);
+    }
+  }
+
+  .studio-gate__card.is-shake {
+    animation: gate-shake 0.5s ease both;
+  }
+
+  /* The quiet heartbeat while 600,000 rounds of PBKDF2 do their work. */
+  @keyframes gate-busy {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  .studio-gate__submit.is-busy[disabled] {
+    animation: gate-busy 1.1s ease-in-out infinite;
+  }
 }
 
 .studio-gate__card {
@@ -122,10 +202,55 @@
 
 .studio {
   width: 100%;
-  max-width: 64rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: clamp(1.25rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem)
     clamp(3rem, 8vw, 5rem);
+}
+
+/* Focused programmatically by the gate after injection; the ring belongs
+   to keyboard travel, not to a hand-off. */
+.studio:focus {
+  outline: none;
+}
+
+/* The studio walks in behind the departing gate, each block a beat after
+   the one above it. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes studio-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  #studio-mount.is-in .studio > * {
+    animation: studio-in 0.55s cubic-bezier(0.22, 0.7, 0.25, 1) both;
+  }
+
+  #studio-mount.is-in .studio > :nth-child(2) {
+    animation-delay: 0.06s;
+  }
+
+  #studio-mount.is-in .studio > :nth-child(3) {
+    animation-delay: 0.12s;
+  }
+
+  #studio-mount.is-in .studio > :nth-child(4) {
+    animation-delay: 0.18s;
+  }
+
+  #studio-mount.is-in .studio > :nth-child(5) {
+    animation-delay: 0.24s;
+  }
+
+  #studio-mount.is-in .studio > :nth-child(n + 6) {
+    animation-delay: 0.3s;
+  }
 }
 
 .studio__header {
@@ -232,15 +357,8 @@
   border-bottom-color: var(--pewter-strong);
 }
 
-.studio__panel {
-  padding: clamp(1rem, 3vw, 1.75rem);
-  border: 1px solid var(--footer-rule);
-  border-radius: 4px;
-  background: var(--paper-raised);
-}
-
 .studio__conn {
-  margin: 0 0 1rem;
+  margin: 0 0 0.9rem;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   letter-spacing: 0.14em;
@@ -258,12 +376,110 @@
   background: var(--pewter-strong);
 }
 
-/* Segmented status views, counts riding each label. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes conn-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  .studio__conn.is-live::before {
+    animation: conn-breathe 2.6s ease-in-out infinite;
+  }
+}
+
+/* The connection's honest voice: why the diary is empty, in words, when
+   the reason is a switch and not a quiet week. */
+.studio-banner {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--pewter-dim);
+  border-left: 2px solid var(--pewter-strong);
+  border-radius: 4px;
+  background: rgba(236, 236, 236, 0.05);
+}
+
+.studio-banner__title {
+  margin: 0 0 0.3rem;
+  color: var(--page-fg);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.studio-banner__copy {
+  margin: 0;
+  color: var(--page-muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+/* ---------------------------------------------------------------- stats */
+
+.studio-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+
+.studio-stat {
+  padding: 0.8rem 0.5rem 0.7rem;
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  text-align: center;
+}
+
+.studio-stat__n {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4.5vw, 2rem);
+  line-height: 1.1;
+  color: var(--page-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.studio-stat__l {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--page-muted);
+  font-size: 0.58rem;
+  font-weight: 400;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes stat-tick {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.16);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .studio-stat__n.is-tick {
+    animation: stat-tick 0.45s ease both;
+  }
+}
+
+/* ------------------------------------------------------------- segments */
+
 .studio-seg {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-bottom: 0.9rem;
+}
+
+.studio-seg--mode {
+  margin-bottom: clamp(1rem, 3vw, 1.4rem);
 }
 
 .studio-seg__btn {
@@ -333,6 +549,367 @@
   border-color: var(--pewter);
 }
 
+/* ------------------------------------------------------------ the views */
+
+/* The diary view takes display: grid on wide screens, and a display rule
+   on a [hidden] element beats the UA's display: none. Said explicitly so
+   switching views can never show both. */
+.studio-view[hidden] {
+  display: none !important;
+}
+
+@media (min-width: 60em) {
+  #st-view-diary {
+    display: grid;
+    grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+    gap: clamp(1rem, 2.5vw, 1.75rem);
+    align-items: start;
+  }
+}
+
+/* ------------------------------------------------------------- calendar */
+
+.studio-cal {
+  padding: clamp(0.9rem, 2.5vw, 1.25rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+}
+
+.studio-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.studio-cal__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3.5vw, 1.4rem);
+  font-weight: 400;
+  color: var(--page-fg);
+}
+
+.studio-cal__tools {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.studio-cal__nav {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 50%;
+  background: var(--pewter-wash);
+  color: var(--pewter);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease;
+}
+
+.studio-cal__nav:hover,
+.studio-cal__nav:focus-visible {
+  border-color: var(--pewter);
+  color: var(--pewter-strong);
+}
+
+.studio-cal__todaybtn {
+  appearance: none;
+  min-height: 40px;
+  padding: calc(0.3rem + var(--caps-drop)) 0.8rem calc(0.3rem - var(--caps-drop));
+  border: 1px solid var(--pewter-dim);
+  border-radius: 999px;
+  background: var(--pewter-wash);
+  color: var(--pewter);
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease;
+}
+
+.studio-cal__todaybtn:hover,
+.studio-cal__todaybtn:focus-visible {
+  border-color: var(--pewter);
+  color: var(--pewter-strong);
+}
+
+.studio-cal__dow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(3px, 0.8vw, 6px);
+  margin-bottom: clamp(3px, 0.8vw, 6px);
+}
+
+.studio-cal__dow span {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pewter-deep);
+}
+
+.studio-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(3px, 0.8vw, 6px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes cal-turn-next {
+    from {
+      opacity: 0;
+      transform: translateX(22px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes cal-turn-prev {
+    from {
+      opacity: 0;
+      transform: translateX(-22px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .studio-cal__grid.is-turn[data-dir="next"] {
+    animation: cal-turn-next 0.35s ease both;
+  }
+
+  .studio-cal__grid.is-turn[data-dir="prev"] {
+    animation: cal-turn-prev 0.35s ease both;
+  }
+}
+
+.studio-cal__cell {
+  appearance: none;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: clamp(44px, 8vw, 62px);
+  padding: 0.3rem 0.35rem;
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--page-muted);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.studio-cal__cell:hover,
+.studio-cal__cell:focus-visible {
+  border-color: var(--pewter);
+  color: var(--page-fg);
+}
+
+.studio-cal__cell.is-out {
+  opacity: 0.35;
+}
+
+.studio-cal__cell.is-today {
+  box-shadow: inset 0 0 0 1px var(--pewter);
+}
+
+.studio-cal__cell.is-sel {
+  background: var(--graphite);
+  border-color: var(--graphite);
+  color: #0a0a0b;
+}
+
+.studio-cal__num {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The day's load, worn at the corner: a solid chip means at least one NEW
+   request is waiting on that day, an outlined one means the day is booked
+   and answered. Weight, not colour, exactly as the badges do it. */
+.studio-cal__chip {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--pewter);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--page-fg);
+  background: transparent;
+}
+
+.studio-cal__cell.has-new .studio-cal__chip {
+  background: var(--graphite);
+  border-color: var(--graphite);
+  color: #0a0a0b;
+}
+
+.studio-cal__cell.is-sel .studio-cal__chip {
+  background: #0a0a0b;
+  border-color: #0a0a0b;
+  color: var(--graphite);
+}
+
+.studio-cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0.7rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--pewter-deep);
+}
+
+.studio-cal__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.studio-cal__key::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--pewter);
+  border-radius: 999px;
+}
+
+.studio-cal__key--new::before {
+  background: var(--graphite);
+  border-color: var(--graphite);
+}
+
+/* ------------------------------------------------------------- the day */
+
+.studio-day {
+  margin-top: clamp(1rem, 3vw, 0rem);
+  padding: clamp(0.9rem, 2.5vw, 1.25rem);
+  border: 1px solid var(--footer-rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+}
+
+@media (min-width: 60em) {
+  .studio-day {
+    margin-top: 0;
+  }
+}
+
+.studio-day__head {
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--footer-rule);
+}
+
+.studio-day__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3.5vw, 1.45rem);
+  font-weight: 400;
+  color: var(--page-fg);
+}
+
+.studio-day__sub {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+
+.studio-day__slots {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One row per half hour. Free rows stay thin so the booked ones read as
+   the day's shape at a glance. */
+.studio-slot {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--footer-rule);
+  align-items: baseline;
+}
+
+.studio-slot:first-child {
+  border-top: 0;
+}
+
+.studio-slot.has-items {
+  padding: 0.65rem 0;
+  align-items: start;
+}
+
+.studio-slot__time {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--pewter-deep);
+  white-space: nowrap;
+}
+
+.studio-slot.has-items .studio-slot__time {
+  color: var(--page-fg);
+}
+
+/* The waiting slot wears the same weight the calendar chip does: a solid
+   mark beside the time whose request has not been answered. */
+.studio-slot.has-new .studio-slot__time::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  background: var(--graphite);
+}
+
+.studio-slot__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.studio-slot__free {
+  font-size: 0.72rem;
+  color: var(--pewter-deep);
+}
+
+@media (max-width: 22.49em) {
+  .studio-slot {
+    grid-template-columns: 3.6rem minmax(0, 1fr);
+    gap: 0.45rem;
+  }
+}
+
 /* ----------------------------------------------------------- appointment */
 
 .studio-list {
@@ -345,6 +922,48 @@
   border: 1px solid var(--footer-rule);
   border-radius: 4px;
   background: rgba(10, 10, 11, 0.55);
+  transition: border-color 0.25s ease;
+}
+
+.appt:hover {
+  border-color: var(--pewter-dim);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes appt-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .appt {
+    animation: appt-in 0.45s cubic-bezier(0.22, 0.7, 0.25, 1) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+}
+
+/* The diary's cut of the same card: the slot row already names the day
+   and the time, so it carries only the person. */
+.appt--slot {
+  padding: 0.75rem 0.9rem;
+}
+
+.appt--slot .appt__name {
+  font-size: 1.05rem;
+}
+
+.appt.is-cancelled {
+  opacity: 0.6;
+}
+
+.appt.is-cancelled .appt__name {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .appt__head {
@@ -404,6 +1023,11 @@
   margin: 0.5rem 0 0;
   font-size: 0.95rem;
   color: var(--page-fg);
+}
+
+.appt--slot .appt__when {
+  font-size: 0.85rem;
+  color: var(--page-muted);
 }
 
 .appt__service {
@@ -497,6 +1121,14 @@
   color: var(--page-fg);
 }
 
+/* The armed half of the two-tap delete: the button itself turns lit so the
+   second press knows exactly what it is agreeing to. */
+.appt-btn--danger.is-armed {
+  border-color: var(--page-fg);
+  background: var(--page-fg);
+  color: #0a0a0b;
+}
+
 .studio-empty {
   padding: clamp(2rem, 6vw, 3rem) 1rem;
   border: 1px dashed var(--pewter-dim);
@@ -511,6 +1143,42 @@
   font-family: var(--font-mono);
   font-size: 0.8em;
   color: var(--page-fg);
+}
+
+/* ---------------------------------------------------- toast and warning */
+
+/* One quiet voice for refused writes; replaces window.alert. */
+.studio-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 70;
+  max-width: min(92vw, 30rem);
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--pewter-dim);
+  border-radius: 4px;
+  background: rgba(10, 10, 11, 0.94);
+  color: var(--page-fg);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.studio-toast.is-on {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-toast {
+    transition: none;
+    transform: translateX(-50%);
+  }
 }
 
 /* The inactivity warning, one fixed banner. */

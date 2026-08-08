@@ -13,10 +13,19 @@
  * Two locks turn on one key. The password that decrypts the payload is
  * also the Firebase admin account's password, so unlocking the STUDIO and
  * signing into the DATA are the same gesture, exactly the model this page
- * borrows from the Pavia studio it was asked to follow. Decrypting the
- * dashboard without the sign-in would show an empty shell (the rules
- * refuse every read to anybody else); signing in without the payload
- * would show nothing at all. Fifteen quiet minutes lock both again.
+ * borrows from the Pavia studio it was asked to follow. Fifteen quiet
+ * minutes lock both again.
+ *
+ * THE PASSWORD DECIDES THE DOOR; FIREBASE ONLY DECIDES THE DATA. Once the
+ * payload decrypts, the studio OPENS, whatever the network or the auth
+ * backend has to say: a sign-in failure becomes a banner inside the studio
+ * naming what to fix, never a silent bounce back to the gate. The first
+ * build refused the whole unlock when Firebase refused the sign-in, and
+ * what the admin experienced was typing the correct password into a page
+ * that appeared to do nothing, which is indistinguishable from a broken
+ * password and was reported as exactly that. The data is not exposed by
+ * opening the shell: the rules refuse every read to a session that did not
+ * sign in, so a disconnected studio is an empty diary with a diagnosis.
  *
  * What a failed guess costs: nothing readable. AES-GCM authenticates, so a
  * wrong password is indistinguishable from corrupt ciphertext; the gate
@@ -34,6 +43,7 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
   const WARN_SECONDS = 60;
 
   const gate = document.getElementById("studio-gate");
+  const card = gate?.querySelector(".studio-gate__card");
   const mount = document.getElementById("studio-mount");
   const form = document.getElementById("gate-form");
   const pass = document.getElementById("gate-pass");
@@ -47,10 +57,12 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
     unlocked: false,
     fails: 0,
     fb: null,
+    issue: null,
     inactivityTimer: 0,
     warnTimer: 0,
     warnInterval: 0,
     injected: null,
+    swapTimer: 0,
   };
 
   const b64 = (v) => Uint8Array.from(atob(v || ""), (c) => c.charCodeAt(0));
@@ -64,6 +76,15 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
   function busy(on) {
     submit.disabled = on;
     pass.disabled = on;
+    submit.classList.toggle("is-busy", on);
+    submit.textContent = on ? "Unlocking" : "Unlock";
+  }
+
+  function shake() {
+    if (!card) return;
+    card.classList.remove("is-shake");
+    void card.offsetWidth;
+    card.classList.add("is-shake");
   }
 
   function resetToggle() {
@@ -136,7 +157,6 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
   /* ------------------------------------------------------------ firebase */
 
   async function connect(password) {
-    if (!FIREBASE_CONFIG) return null;
     const [appM, authM, fsM] = await Promise.all([
       import(FIREBASE_SDK + "firebase-app.js"),
       import(FIREBASE_SDK + "firebase-auth.js"),
@@ -153,7 +173,7 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
      * quiet degradation: a dashboard that silently stopped being allowed to
      * read would look exactly like an empty diary. */
     authM.onAuthStateChanged(auth, (user) => {
-      if (state.unlocked && !user) {
+      if (state.unlocked && state.fb && !user) {
         lock("The Firebase session ended. Unlock again to continue.");
       }
     });
@@ -161,12 +181,16 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
   }
 
   /* The context the decrypted dashboard runs against. It never touches the
-   * SDK directly; these four verbs are the whole of its authority, and they
-   * are only as strong as the signed-in account behind them. */
+   * SDK directly; these verbs are the whole of its authority, and they are
+   * only as strong as the signed-in account behind them. `issue` is how the
+   * dashboard explains a missing connection instead of showing an empty
+   * diary: null when live, else "unconfigured" | "network" | "auth" |
+   * "failed". */
   function buildCtx() {
     const fb = state.fb;
     return Object.freeze({
-      configured: !!fb,
+      connected: !!fb,
+      issue: state.issue,
       email: ADMIN_EMAIL,
       watch(cb) {
         if (!fb) {
@@ -191,7 +215,7 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
                 email: String(d.email || ""),
                 service: String(d.service || "other"),
                 date: String(d.date || ""),
-                slot: String(d.slot || "any"),
+                slot: String(d.slot || ""),
                 message: String(d.message || ""),
                 status: String(d.status || "new"),
                 createdAt: d.createdAt?.toMillis ? d.createdAt.toMillis() : 0,
@@ -203,11 +227,11 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
         );
       },
       setStatus(id, status) {
-        if (!fb) return Promise.reject(new Error("not-configured"));
+        if (!fb) return Promise.reject(new Error("not-connected"));
         return fb.fsM.updateDoc(fb.fsM.doc(fb.db, "appointments", id), { status });
       },
       remove(id) {
-        if (!fb) return Promise.reject(new Error("not-configured"));
+        if (!fb) return Promise.reject(new Error("not-connected"));
         return fb.fsM.deleteDoc(fb.fsM.doc(fb.db, "appointments", id));
       },
       lock() {
@@ -283,18 +307,23 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
       state.fb.authM.signOut(state.fb.auth).catch(() => {});
       state.fb = null;
     }
+    state.issue = null;
     clearTimeout(state.inactivityTimer);
     clearTimeout(state.warnTimer);
+    clearTimeout(state.swapTimer);
     clearWarn();
     mount.hidden = true;
+    mount.classList.remove("is-in");
     mount.replaceChildren();
     state.injected?.remove();
     state.injected = null;
     gate.hidden = false;
+    gate.classList.remove("is-open");
     pass.value = "";
     resetToggle();
     busy(false);
     if (message) say(message, false);
+    pass.focus();
   }
 
   /* -------------------------------------------------------------- unlock */
@@ -306,8 +335,22 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
     script.textContent = payload.code;
     state.injected = script;
     document.body.appendChild(script);
-    gate.hidden = true;
+    /* The gate plays its exit while the studio walks in behind it; the
+     * hidden attribute lands after the transition so the crossfade exists.
+     * Under reduced motion the CSS makes both steps instant and the timer
+     * only tidies the attribute. */
     mount.hidden = false;
+    mount.classList.add("is-in");
+    gate.classList.add("is-open");
+    clearTimeout(state.swapTimer);
+    state.swapTimer = window.setTimeout(() => {
+      gate.hidden = true;
+    }, 420);
+    const studio = document.getElementById("studio");
+    if (studio) {
+      studio.setAttribute("tabindex", "-1");
+      studio.focus({ preventScroll: true });
+    }
   }
 
   form.addEventListener("submit", async (e) => {
@@ -321,38 +364,57 @@ import { FIREBASE_CONFIG, ADMIN_EMAIL, FIREBASE_SDK } from "./firebase-config.js
     const delay = Math.min(state.fails * 900, 4500);
     if (delay) await new Promise((r) => setTimeout(r, delay));
 
+    let payload;
     try {
-      const payload = await decryptPayload(password);
+      payload = await decryptPayload(password);
       if (!payload?.html || !payload?.code) throw new Error("payload-shape");
-      state.fb = await connect(password);
-      state.fails = 0;
-      state.unlocked = true;
-      pass.value = "";
-      resetToggle();
-      say("");
-      inject(payload);
-      pokeActivity();
     } catch (err) {
       state.fails += 1;
       pass.value = "";
       resetToggle();
       busy(false);
       pass.focus();
-      const code = String(err?.code || "");
-      if (code === "auth/network-request-failed") {
-        say("Could not reach Firebase. Check the connection and try again.", true);
-      } else if (code.startsWith("auth/")) {
-        say(
-          "The studio opened but Firebase refused the sign-in. The admin account's password must match the studio password.",
-          true
-        );
-      } else if (err?.message === "payload-missing") {
-        say("The encrypted dashboard is missing. Rebuild admin/payload.js.", true);
-      } else {
-        say("That is not the password.", true);
-      }
+      shake();
+      say(
+        err?.message === "payload-missing"
+          ? "The encrypted dashboard is missing. Rebuild admin/payload.js."
+          : "That is not the password.",
+        true
+      );
       return;
     }
+
+    /* The password has proved itself. Everything past this line opens the
+     * studio; Firebase only decides whether it opens LIVE. */
+    state.fb = null;
+    state.issue = null;
+    if (FIREBASE_CONFIG) {
+      try {
+        state.fb = await connect(password);
+      } catch (err) {
+        const code = String(err?.code || "");
+        state.issue =
+          code === "auth/network-request-failed"
+            ? "network"
+            : code.startsWith("auth/")
+              ? "auth"
+              : "failed";
+      }
+    } else {
+      state.issue = "unconfigured";
+    }
+
+    state.fails = 0;
+    state.unlocked = true;
+    pass.value = "";
+    resetToggle();
+    say("");
+    inject(payload);
+    pokeActivity();
     busy(false);
   });
+
+  /* Armed last: the button shipped disabled so an un-armed form could never
+   * fall back to a native submit and reload the gate. */
+  submit.disabled = false;
 })();

@@ -1,7 +1,11 @@
 <!-- The Studio dashboard, the plaintext. This fragment never ships as is:
      scripts/admin-payload.js encrypts it (with dashboard.js beside it) into
      admin/payload.js, and the gate injects it only after the password has
-     proved itself. Edit here, then rebuild the payload. -->
+     proved itself. Edit here, then rebuild the payload.
+
+     Everything static in this file is the house's own furniture. Every
+     visitor-typed string is written into it by dashboard.js through
+     textContent, never through markup. -->
 <section class="studio" id="studio">
   <header class="studio__header">
     <h1 class="studio__brand">
@@ -23,9 +27,82 @@
     </button>
   </nav>
 
-  <div class="studio__panel">
-    <p class="studio__conn" id="st-conn">Connecting</p>
+  <p class="studio__conn" id="st-conn">Connecting</p>
 
+  <!-- The connection's honest voice. The studio OPENS whatever Firebase
+       says; this banner is where a refused sign-in, a missing config or a
+       rules rejection explains itself instead of masquerading as an empty
+       diary. -->
+  <div class="studio-banner" id="st-banner" hidden>
+    <p class="studio-banner__title" id="st-banner-title"></p>
+    <p class="studio-banner__copy" id="st-banner-copy"></p>
+  </div>
+
+  <div class="studio-stats">
+    <div class="studio-stat">
+      <span class="studio-stat__n" id="st-n-today">0</span>
+      <span class="studio-stat__l u-caps">Today</span>
+    </div>
+    <div class="studio-stat">
+      <span class="studio-stat__n" id="st-n-week">0</span>
+      <span class="studio-stat__l u-caps">Next 7 days</span>
+    </div>
+    <div class="studio-stat">
+      <span class="studio-stat__n" id="st-n-new">0</span>
+      <span class="studio-stat__l u-caps">Awaiting reply</span>
+    </div>
+  </div>
+
+  <div class="studio-seg studio-seg--mode" id="st-mode" role="tablist" aria-label="Studio views">
+    <button class="studio-seg__btn is-active" data-mode="diary" role="tab" aria-selected="true" type="button">
+      Diary
+    </button>
+    <button class="studio-seg__btn" data-mode="list" role="tab" aria-selected="false" type="button">
+      Requests <span class="studio-seg__count" id="st-mode-new">0</span>
+    </button>
+  </div>
+
+  <!-- THE DIARY. A month at a glance, then the chosen day opened to the
+       store's own grid: half-hour slots from 9:00 to the 4:00 that ends at
+       closing. The calendar carries counts, the day carries the people. -->
+  <section class="studio-view" id="st-view-diary">
+    <div class="studio-cal">
+      <header class="studio-cal__head">
+        <button class="studio-cal__nav" id="st-cal-prev" type="button" aria-label="Previous month">
+          &#8592;
+        </button>
+        <h2 class="studio-cal__title" id="st-cal-title">&nbsp;</h2>
+        <div class="studio-cal__tools">
+          <button class="studio-cal__todaybtn u-caps" id="st-cal-today" type="button">Today</button>
+          <button class="studio-cal__nav" id="st-cal-next" type="button" aria-label="Next month">
+            &#8594;
+          </button>
+        </div>
+      </header>
+      <div class="studio-cal__dow" aria-hidden="true">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+        <span>Thu</span><span>Fri</span><span>Sat</span>
+      </div>
+      <div class="studio-cal__grid" id="st-cal-grid"></div>
+      <p class="studio-cal__legend" aria-hidden="true">
+        <span class="studio-cal__key studio-cal__key--new">has new requests</span>
+        <span class="studio-cal__key">booked</span>
+      </p>
+    </div>
+
+    <section class="studio-day">
+      <header class="studio-day__head">
+        <h3 class="studio-day__title" id="st-day-title">&nbsp;</h3>
+        <p class="studio-day__sub" id="st-day-sub"></p>
+      </header>
+      <div class="studio-day__slots" id="st-day-slots"></div>
+    </section>
+  </section>
+
+  <!-- THE REQUESTS. The same appointments as a worked list: status views
+       with counts, search over everything a visitor typed, and the actions
+       that move a request through its life. -->
+  <section class="studio-view" id="st-view-list" hidden>
     <div class="studio-seg" id="st-views" role="tablist" aria-label="Appointment status">
       <button class="studio-seg__btn is-active" data-view="new" role="tab" aria-selected="true" type="button">
         New <span class="studio-seg__count" data-count="new">0</span>
@@ -61,5 +138,8 @@
 
     <div class="studio-list" id="st-list"></div>
     <div class="studio-empty" id="st-empty" hidden></div>
-  </div>
+  </section>
+
+  <!-- One quiet voice for refused writes; replaces window.alert. -->
+  <p class="studio-toast" id="st-toast" role="status" aria-live="polite" hidden></p>
 </section>

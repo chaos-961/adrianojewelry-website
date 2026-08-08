@@ -60,7 +60,19 @@
               </span>
             </label>
 
-            <button class="book__submit studio-gate__submit u-caps" id="gate-submit" type="submit">
+            <!-- Born disabled, armed by admin-gate.js the moment it loads.
+                 An un-armed form would fall back to a NATIVE submit, and a
+                 native submit on this page is a GET of the same URL: the
+                 gate reloads looking untouched, which reads as "the password
+                 did nothing". A dead button until the module is ready is the
+                 honest state, and it is also what stops an Enter pressed
+                 faster than the network from throwing the password away. -->
+            <button
+              class="book__submit studio-gate__submit u-caps"
+              id="gate-submit"
+              type="submit"
+              disabled
+            >
               Unlock
             </button>
 
@@ -71,6 +83,12 @@
             The dashboard is stored encrypted and opens only with the studio
             password. Locked again after fifteen quiet minutes.
           </p>
+          <noscript>
+            <p class="studio-gate__hint">
+              The Studio needs JavaScript: the dashboard is decrypted in the
+              browser, and nothing can be decrypted with scripting off.
+            </p>
+          </noscript>
         </div>
       </section>
 

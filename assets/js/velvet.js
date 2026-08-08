@@ -14,8 +14,9 @@
  * texture on the landing page would be seventeen screens tall, which the pixel
  * budget below would then have to answer by rendering it at roughly a quarter
  * scale and stretching it back up. Pinned to the viewport it is rendered at
- * 1:1 CSS pixels on every page the site has, which is also what lets the pile
- * be baked into the shader instead of composited over it.
+ * the panel's own density, 1:1 DEVICE pixels wherever the budget in paint()
+ * allows, which is also what lets the pile be baked into the shader instead
+ * of composited over it.
  *
  * WHY THE PILE IS IN THE SHADER. The source this is taken from carries its
  * fine pile as a second DOM layer, an SVG turbulence tile at mix-blend-mode:
@@ -224,11 +225,12 @@
      * properly instead of just adding noise: added noise turns a black ground
      * grey, and this ground's blacks are most of it.
      *
-     * n is white noise at one texel, and the texture is at 1:1 CSS pixels
+     * n is white noise at one texel, and the texture is at 1:1 DEVICE pixels
      * wherever the budget below allows, so this is a real tooth rather than a
      * blur. Rendering it any smaller is what a half-scale test looked like:
-     * coarse, blotchy sheen, and the reason resolution is not the knob to
-     * reach for here even though it looks like the obvious one. */
+     * coarse, blotchy sheen, and a dense phone panel fed CSS-sized texels
+     * was getting exactly that, which is why paint() sizes the texture to
+     * device pixels rather than CSS ones. */
     "  float n = hash12(gl_FragCoord.xy) - 0.5;",
     "  g += 0.34 * n * g * (1.0 - g) * 2.0;",
 
@@ -248,15 +250,26 @@
     var vh = window.innerHeight || document.documentElement.clientHeight;
     if (vw < 2 || vh < 2) return; // collapsed; the resize below retries
 
-    /* 1:1 CSS pixels wherever the budget allows, which is every viewport this
-     * site is likely to meet: a 1440x900 desktop is 1.3M and a phone is under
-     * half a million. The cap only bites on a very large monitor, and it is a
-     * memory and upload cap rather than a render one, because the draw itself
-     * is a millisecond at any of these sizes. */
-    var budget = coarse ? 1600000 : 4200000;
-    var s = Math.min(1, Math.sqrt(budget / (vw * vh)));
-    var texW = Math.max(2, Math.round(vw * s));
-    var texH = Math.max(2, Math.round(vh * s));
+    /* The panel's own density, wherever the budget allows. This painted at
+     * 1:1 CSS pixels until the reader reported the phone soft against the
+     * desktop, and a phone is exactly where a CSS pixel is not a pixel: at
+     * dpr 3 the pile's one-texel tooth was being stretched over nine device
+     * pixels, which is the "coarse, blotchy sheen" the half-scale test in
+     * the note above produced, shipped to every dense screen while a dpr-1
+     * desktop got the real thing. Capped at 3 for the same reason the film
+     * caps there: past three device pixels per CSS pixel there is nothing
+     * left for an eye to collect and cost still rises with the square.
+     *
+     * The budgets stay memory and upload caps rather than render ones (the
+     * draw is a millisecond at any of these sizes; see the head of this
+     * file). Coarse covers the largest phone at dpr 3 (430x932 is 3.6M);
+     * fine covers a dpr-2 laptop (1512x982 is 5.9M). Past either, s shares
+     * the shortfall evenly rather than letting one axis go soft. */
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+    var budget = coarse ? 3800000 : 6500000;
+    var s = Math.min(1, Math.sqrt(budget / (vw * vh * dpr * dpr)));
+    var texW = Math.max(2, Math.round(vw * dpr * s));
+    var texH = Math.max(2, Math.round(vh * dpr * s));
 
     var key = texW + "x" + texH;
     if (key === lastKey) return true;

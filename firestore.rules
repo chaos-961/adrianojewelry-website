@@ -59,11 +59,26 @@ service cloud.firestore {
         && request.resource.data.email.size() <= 120
         && (request.resource.data.email == ''
             || request.resource.data.email.matches('[^ ]+@[^ ]+[.][^ ]+'))
-        && request.resource.data.service in
-          ['custom', 'repair', 'restoration', 'consultation', 'other']
+        // BRACKET NOTATION, NOT data.service: `service` is a keyword of the
+        // rules language itself (this very file's first token), and the
+        // compiler refuses it after a dot with an error one token LATE,
+        // "Unexpected 'in'", which sent the first fix chasing line breaks.
+        // Proven against the real compiler (the Firestore emulator jar):
+        // data.service fails on one line or several; data['service'] parses
+        // and evaluates. Every other field name here is safe to dot, and
+        // multi-line lists after `in` are fine, both also proven.
+        && request.resource.data['service'] in
+          ['wedding', 'custom', 'repair', 'restoration', 'consultation', 'other']
         && request.resource.data.date is string
         && request.resource.data.date.matches('20[0-9][0-9]-[01][0-9]-[0-3][0-9]')
-        && request.resource.data.slot in ['morning', 'midday', 'afternoon', 'any']
+        // The diary's grid: half-hour visits inside the store's own hours,
+        // 9:00 am to 4:30 pm, so the last visit begins at 4:00. A concrete
+        // start time is what lets the studio's calendar place every request
+        // in a slot instead of guessing at "afternoon".
+        && request.resource.data.slot in
+          ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+           '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+           '15:00', '15:30', '16:00']
         && request.resource.data.message is string
         && request.resource.data.message.size() <= 600
         && request.resource.data.status == 'new'

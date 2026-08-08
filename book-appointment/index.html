@@ -26,6 +26,7 @@
     <meta property="og:image" content="https://adrianojewelry.com/assets/img/og.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="../assets/css/site.css" />
+    <link rel="stylesheet" href="../assets/css/booking.css" />
   </head>
   <body>
     <main class="page">
@@ -100,6 +101,7 @@
               <span class="book__label u-caps">What brings you in</span>
               <select class="book__input" id="bk-service" name="service" required>
                 <option value="" selected disabled>Choose one</option>
+                <option value="wedding">Wedding Ring</option>
                 <option value="custom">Custom design</option>
                 <option value="repair">A repair</option>
                 <option value="restoration">A restoration</option>
@@ -115,13 +117,34 @@
 
             <label class="book__field book__field--wide">
               <span class="book__label u-caps">Preferred time</span>
+              <!-- The diary's own grid: half-hour visits inside the store's
+                   hours, 9:00 am to 4:30 pm, so the last begins at 4:00.
+                   These values are the exact enum firestore.rules accepts;
+                   booking.js greys out times already gone by on the day
+                   chosen, but the list itself is complete without it. -->
               <select class="book__input" id="bk-slot" name="slot" required>
-                <option value="" selected disabled>Choose one</option>
-                <option value="morning">Morning, 9:00 to 11:00</option>
-                <option value="midday">Midday, 11:00 to 1:00</option>
-                <option value="afternoon">Afternoon, 1:00 to 4:30</option>
-                <option value="any">Whatever suits the bench</option>
+                <option value="" selected disabled>Choose a time</option>
+                <optgroup label="Morning">
+                  <option value="09:00">9:00 am</option>
+                  <option value="09:30">9:30 am</option>
+                  <option value="10:00">10:00 am</option>
+                  <option value="10:30">10:30 am</option>
+                  <option value="11:00">11:00 am</option>
+                  <option value="11:30">11:30 am</option>
+                </optgroup>
+                <optgroup label="Afternoon">
+                  <option value="12:00">12:00 pm</option>
+                  <option value="12:30">12:30 pm</option>
+                  <option value="13:00">1:00 pm</option>
+                  <option value="13:30">1:30 pm</option>
+                  <option value="14:00">2:00 pm</option>
+                  <option value="14:30">2:30 pm</option>
+                  <option value="15:00">3:00 pm</option>
+                  <option value="15:30">3:30 pm</option>
+                  <option value="16:00">4:00 pm</option>
+                </optgroup>
               </select>
+              <span class="book__hint">Visits run about half an hour; the last of the day begins at 4:00 pm.</span>
             </label>
 
             <label class="book__field book__field--wide">
@@ -160,9 +183,10 @@
         </form>
 
         <section class="book__done" id="book-done" hidden>
-          <h2 class="book__done-title">Request received.</h2>
+          <h2 class="book__done-title" id="bk-done-title" tabindex="-1">Request received.</h2>
           <p class="book__done-copy" id="bk-done-copy">
-            Thank you. We will call you to confirm the day and the time.
+            Thank you. We will call you to confirm the day and the time, and we
+            look forward to seeing you.
           </p>
           <p class="book__done-copy">
             If anything changes before then, call the store at
@@ -177,6 +201,41 @@
           <a href="../contact-us/">visit us at 333 Washington Street</a>.
         </p>
       </article>
+
+      <!-- The confirmation, shown by booking.js the moment a request lands.
+           It stands OUTSIDE the article on purpose: the article's children
+           carry an entrance animation, an animated ancestor traps
+           position: fixed, and a dialog pinned to a form would scroll away
+           with it. Hidden until then; nothing here renders without a
+           successful submit. -->
+      <div class="book-pop" id="book-pop" hidden>
+        <div class="book-pop__veil" id="bk-pop-veil"></div>
+        <div
+          class="book-pop__card"
+          id="bk-pop-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bk-pop-title"
+          aria-describedby="bk-pop-copy"
+          tabindex="-1"
+        >
+          <svg class="book-pop__mark" viewBox="0 0 64 44" aria-hidden="true" focusable="false">
+            <path class="book-pop__facet" d="M20 5h24l15 11-27 22L5 16Z" />
+            <path class="book-pop__facet book-pop__facet--inner" d="M5 16h54M20 5l12 11 12-11M32 16v22" />
+          </svg>
+          <h2 class="book-pop__title" id="bk-pop-title">Request received.</h2>
+          <p class="book-pop__copy" id="bk-pop-copy">
+            Thank you. We will call to confirm your visit.
+          </p>
+          <p class="book-pop__note">
+            A person confirms every appointment by phone before it is final.
+            We look forward to seeing you at 333 Washington Street.
+          </p>
+          <button type="button" class="book__submit book-pop__ok u-caps" id="bk-pop-ok">
+            Done
+          </button>
+        </div>
+      </div>
     </main>
 
     <script type="module" src="../assets/js/booking.js"></script>
@@ -241,7 +300,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.4.5</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.4.6</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

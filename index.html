@@ -147,20 +147,17 @@
                driven every frame of the film, and a pseudo-element can only be
                driven through a custom property on its originating element,
                which the pin's whole subtree then inherits, so every frame
-               invalidated the computed style of the beats, the two beams and
-               all seventy-four gallery pieces to move one gradient. As its own
-               element it takes a plain opacity, which touches nothing else. -->
+               would invalidate the computed style of every beat under the pin
+               to move one gradient. As its own element it takes a plain
+               opacity, which touches nothing else.
+
+               The showcase inside the diamond has no markup at all since
+               v0.4.6: the constellation renders inside the film's own canvas
+               as one instanced draw, so the seventy-four pieces and the two
+               beams that used to stand here as layers are part of the render
+               now. -->
           <div class="journey__vig" id="vig" aria-hidden="true"></div>
           <div class="journey__veil" id="veil" aria-hidden="true"></div>
-          <div class="gallery" id="gallery" aria-hidden="true"></div>
-
-          <!-- The crystal room's own two beams, carried out of the canvas and
-               across the drifting pieces. home.js runs the shader's own
-               arithmetic to place them, so these are those beams and not an
-               imitation of them; they screen, so the white room is untouched
-               and only a photographed piece ever flares. -->
-          <div class="beam beam--0" aria-hidden="true"></div>
-          <div class="beam beam--1" aria-hidden="true"></div>
 
           <div class="beat beat--hero" id="beat-hero" data-a="0" data-b="0.066">
             <p class="beat__eyebrow u-caps"><span class="bl__in" style="--i:0">Adriano Jewelry &middot; Boston</span></p>
@@ -348,7 +345,7 @@
         </nav>
 
         <div class="site-footer__meta">
-          <p class="site-footer__version"><span class="site-footer__v">v</span>0.4.5</p>
+          <p class="site-footer__version"><span class="site-footer__v">v</span>0.4.6</p>
           <!-- The year is authored here as a literal and corrected at runtime by
                the script below. Stamping it from Date() at build time instead would
                make `build.js --check` fail every New Year's Day and block the

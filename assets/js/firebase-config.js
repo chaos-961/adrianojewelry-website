@@ -1,27 +1,25 @@
 /* Firebase web configuration for the appointment system.
  *
- * PASTE THE PROJECT'S WEB CONFIG OBJECT over the null below, exactly as the
- * Firebase console prints it (Project settings, General, Your apps, Web).
- * A web config IDENTIFIES a project; it is not a credential and hiding it
- * buys nothing, which is why every Firebase site on earth ships it in the
- * open. The security of the system lives in firestore.rules, which the
- * server enforces whatever any client says, and in the admin's own sign-in.
+ * This is the project's web config exactly as the Firebase console printed
+ * it (Project settings, General, Your apps, Web). A web config IDENTIFIES a
+ * project; it is not a credential and hiding it buys nothing, which is why
+ * every Firebase site on earth ships it in the open. The security of the
+ * system lives in firestore.rules, which the server enforces whatever any
+ * client says, and in the admin's own sign-in.
  *
- * While this is null the site stays whole: the booking form explains itself
- * and offers the store's phone, and the admin studio opens in preview with
- * no data connection. Nothing else on the site touches Firebase, so no page
- * pays a byte for it until it is real.
- *
- * Example shape (all values from the console, none invented):
- *
- *   export const FIREBASE_CONFIG = {
- *     apiKey: "AIza...",
- *     authDomain: "adriano-jewelry.firebaseapp.com",
- *     projectId: "adriano-jewelry",
- *     appId: "1:1234567890:web:abc123",
- *   };
+ * Nothing else on the site touches Firebase, so no page pays a byte for it
+ * until the moment the booking form is submitted or the studio unlocks. If
+ * the project is ever rebuilt, paste the new config over this object; set
+ * it back to null and the form goes back to offering the store's phone.
  */
-export const FIREBASE_CONFIG = null;
+export const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD48Io2f5ZNtBl1JyE2zmcd_ciyAuK1neQ",
+  authDomain: "adriano-jewelry.firebaseapp.com",
+  projectId: "adriano-jewelry",
+  storageBucket: "adriano-jewelry.firebasestorage.app",
+  messagingSenderId: "1029373256576",
+  appId: "1:1029373256576:web:debb1f7236f9922c155765",
+};
 
 /* The one account the Firestore rules trust. Create it in the console
  * (Authentication, Users) BEFORE the rules go live, so nobody else can ever

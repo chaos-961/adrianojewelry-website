@@ -14,9 +14,9 @@
    run of long silver streaks with black between them.
 
    It is not an image file. assets/js/velvet.js paints it ONCE from a fragment
-   shader into a plain canvas, at 1:1 CSS pixels, and then throws the WebGL
-   context away, so the ground costs one draw at load and nothing at all after
-   that. It is pinned to the viewport rather than to the document, and the
+   shader into a plain canvas, at the panel's own density (1:1 device pixels
+   within its budget), and then throws the WebGL context away, so the ground
+   costs one draw at load and nothing at all after that. It is pinned to the viewport rather than to the document, and the
    reason is index.html: a 1700vh scroll track would want a texture seventeen
    screens tall. Every page carries it, so the site is one continuous surface
    from the landing film to the last line of the privacy policy.
@@ -372,9 +372,9 @@ body::before {
    that decides it: index.html is 1700vh, so a document-spanning texture there
    would be seventeen screens tall and the pixel budget in velvet.js would
    answer by rendering it at a quarter scale and stretching it back. Pinned, it
-   is 1:1 CSS pixels on every viewport the site meets, which is also what lets
-   the weave's pile be baked into the fragment instead of composited over it as
-   a second blended layer. A FIXED blended layer is re-composited against the
+   is 1:1 device pixels (within velvet.js's budget) on every viewport the site
+   meets, which is also what lets the weave's pile be baked into the fragment
+   instead of composited over it as a second blended layer. A FIXED blended layer is re-composited against the
    moving page on every scroll frame; this site has paid for that lesson once
    already, in the scroll cue's infinite animation. */
 .velvet {

@@ -15,6 +15,18 @@
  *   server time, every field typed and capped) and reject everything else,
  *   whoever wrote the client.
  *
+ * - A TIME IS A TIME. The slot enum is the diary's own half-hour grid,
+ *   9:00 am through the 4:00 pm visit that ends at closing, so the studio's
+ *   calendar can hang every request on a real hook. On the day itself the
+ *   times already gone by (plus an hour of grace for the confirming call)
+ *   are disabled in the picker and refused on submit, because offering
+ *   3:00 pm at 2:59 is a promise nobody can keep.
+ *
+ * - THE ANSWER IS A POP-UP, NOT AN EMAIL. The store confirms by phone, so
+ *   the machine sends nothing; the dialog thanks the visitor by name,
+ *   repeats the day and the time back, and says we look forward to seeing
+ *   them. Closing it rests the page on the same message in flow.
+ *
  * - THE HONEYPOT FAILS SILENTLY. A filled "company" field is software
  *   working through the raw form; it is shown the same thank-you and
  *   nothing is written. Telling a robot it was caught is free training.
@@ -35,9 +47,15 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
 
   const form = document.getElementById("book-form");
   const done = document.getElementById("book-done");
+  const doneTitle = document.getElementById("bk-done-title");
   const doneCopy = document.getElementById("bk-done-copy");
   const status = document.getElementById("bk-status");
   const submit = document.getElementById("bk-submit");
+  const pop = document.getElementById("book-pop");
+  const popCard = document.getElementById("bk-pop-card");
+  const popCopy = document.getElementById("bk-pop-copy");
+  const popOk = document.getElementById("bk-pop-ok");
+  const popVeil = document.getElementById("bk-pop-veil");
   if (!form || !done || !status || !submit) return;
 
   const field = (id) => document.getElementById(id);
@@ -52,10 +70,28 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
 
   const PHONE_RE = /^[0-9+()\-. ]{7,25}$/;
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const SERVICES = ["custom", "repair", "restoration", "consultation", "other"];
-  const SLOTS = ["morning", "midday", "afternoon", "any"];
+  const SERVICES = ["wedding", "custom", "repair", "restoration", "consultation", "other"];
+  /* The diary's grid, identical to the enum in firestore.rules: half-hour
+   * visits from opening to the last that still ends by 4:30. */
+  const SLOTS = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+    "15:00", "15:30", "16:00",
+  ];
+  /* How close to a time today's booking may cut it. The store confirms by
+   * phone before anything is final, and a call needs somewhere to land. */
+  const LEAD_MS = 60 * 60000;
   const THROTTLE_KEY = "adriano-book-at";
   const THROTTLE_MS = 60000;
+  /* Firestore does not fail, it WAITS: against an unreachable or not yet
+   * provisioned backend the SDK queues the write and retries forever, so an
+   * un-raced addDoc leaves a visitor staring at "Sending" until they give
+   * up (measured, not imagined: twenty seconds and still spinning). Twelve
+   * seconds is a lifetime on a working connection and the moment to offer
+   * the phone on a broken one. If the queued write lands after we have
+   * already apologised, the store gets a request and a call, which is a
+   * duplicate conversation, not a lost customer. */
+  const SEND_TIMEOUT_MS = 12000;
 
   /* The date field's window: from today to about six months out, written as
    * the input's own min/max so the picker offers only days the form would
@@ -73,6 +109,43 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
     date.min = iso(today);
     date.max = iso(horizon);
   }
+
+  const timeLabel = (t) => {
+    const h = Number(t.slice(0, 2));
+    const mer = h < 12 ? "am" : "pm";
+    const h12 = h % 12 || 12;
+    return h12 + ":" + t.slice(3) + " " + mer;
+  };
+
+  const dayLabel = (dv) =>
+    new Date(dv + "T12:00:00").toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+
+  /* A slot is bookable on a given day unless the day is today and the time
+   * is already inside the lead window. Pure so submit and the picker agree. */
+  function slotOpen(dv, t) {
+    if (dv !== iso(new Date())) return true;
+    const at = new Date(dv + "T" + t + ":00");
+    return at.getTime() - Date.now() >= LEAD_MS;
+  }
+
+  /* Grey out what today can no longer offer, the moment the day is chosen.
+   * The options themselves stay in the markup; this only decorates them. */
+  function refreshSlots() {
+    if (!date || !slot) return;
+    const dv = date.value;
+    for (const opt of slot.options) {
+      if (!opt.value) continue;
+      const closed = !!dv && /^\d{4}-\d{2}-\d{2}$/.test(dv) && !slotOpen(dv, opt.value);
+      opt.disabled = closed;
+      if (closed && slot.value === opt.value) slot.value = "";
+    }
+  }
+  date?.addEventListener("change", refreshSlots);
+  date?.addEventListener("input", refreshSlots);
 
   function say(text, isError, withPhone) {
     status.classList.toggle("is-error", !!isError);
@@ -105,6 +178,8 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dv) || dv < date.min || dv > date.max)
       return [date, "Pick a day from today up to six months out."];
     if (!SLOTS.includes(slot.value)) return [slot, "Pick a time that suits you."];
+    if (!slotOpen(dv, slot.value))
+      return [slot, "That time is too close for today. Pick a later one, or call the store."];
     if (message.value.length > 600)
       return [message, "Keep the note under six hundred characters."];
     return null;
@@ -118,7 +193,7 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
       import(FIREBASE_SDK + "firebase-app.js"),
       import(FIREBASE_SDK + "firebase-firestore.js"),
     ]);
-    const inst = app.initializeApp(FIREBASE_CONFIG);
+    const inst = app.getApps?.().length ? app.getApp() : app.initializeApp(FIREBASE_CONFIG);
     firebase = {
       db: fs.getFirestore(inst),
       collection: fs.collection,
@@ -128,33 +203,72 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
     return firebase;
   }
 
-  const SLOT_TEXT = {
-    morning: "in the morning",
-    midday: "around midday",
-    afternoon: "in the afternoon",
-    any: "at whatever time suits the bench",
-  };
+  /* ------------------------------------------------------- the pop-up */
+
+  let lastFocus = null;
+
+  function openPop() {
+    if (!pop || !popCard) return;
+    lastFocus = document.activeElement;
+    pop.hidden = false;
+    /* A forced style flush pins the start state so the class added on the
+     * next line transitions from it. requestAnimationFrame would be the
+     * idiomatic tool, but a hidden or backgrounded tab is never granted a
+     * frame, and a dialog waiting on one hangs invisible at opacity zero. */
+    void pop.offsetWidth;
+    pop.classList.add("is-on");
+    popCard.focus();
+    document.addEventListener("keydown", onPopKey);
+  }
+
+  function closePop() {
+    if (!pop || pop.hidden) return;
+    document.removeEventListener("keydown", onPopKey);
+    pop.classList.remove("is-on");
+    const hide = () => {
+      pop.hidden = true;
+      /* The page rests on the in-flow copy of the same message. */
+      if (doneTitle) doneTitle.focus();
+      else if (lastFocus?.focus) lastFocus.focus();
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) hide();
+    else setTimeout(hide, 380);
+  }
+
+  function onPopKey(e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closePop();
+      return;
+    }
+    /* One button lives in the dialog; Tab has nowhere else honest to go. */
+    if (e.key === "Tab" && pop && !pop.hidden) {
+      e.preventDefault();
+      popOk?.focus();
+    }
+  }
+
+  popOk?.addEventListener("click", closePop);
+  popVeil?.addEventListener("click", closePop);
 
   function finish(nv, dv, sv) {
-    const day = new Date(dv + "T12:00:00");
-    const dayText = day.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
-    doneCopy.textContent =
+    const line =
       "Thank you, " +
       nv +
-      ". We will call you at " +
+      ". We have " +
+      dayLabel(dv) +
+      " at " +
+      timeLabel(sv) +
+      " for you, and we will call " +
       phone.value.trim() +
-      " to confirm " +
-      dayText +
-      " " +
-      SLOT_TEXT[sv] +
-      ".";
+      " to confirm it.";
+    if (popCopy) popCopy.textContent = line;
+    doneCopy.textContent = line + " We look forward to seeing you.";
     form.hidden = true;
     done.hidden = false;
-    done.scrollIntoView({ block: "center", behavior: "smooth" });
+    say("");
+    if (pop && popCard) openPop();
+    else done.scrollIntoView({ block: "center", behavior: "smooth" });
   }
 
   let sending = false;
@@ -165,7 +279,11 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
     /* Software that fills every input it can see fills this one too. It is
      * thanked and nothing happens, which is the whole point. */
     if (company && company.value) {
-      finish(name.value.trim() || "you", date.value || iso(today), slot.value || "any");
+      finish(
+        name.value.trim() || "you",
+        /^\d{4}-\d{2}-\d{2}$/.test(date.value) ? date.value : iso(today),
+        SLOTS.includes(slot.value) ? slot.value : SLOTS[0]
+      );
       return;
     }
 
@@ -197,27 +315,35 @@ import { FIREBASE_CONFIG, FIREBASE_SDK } from "./firebase-config.js";
 
     sending = true;
     submit.disabled = true;
+    submit.classList.add("is-busy");
     say("Sending your request.");
     try {
-      const fb = await backend();
-      await fb.addDoc(fb.collection(fb.db, "appointments"), {
-        name: name.value.trim(),
-        phone: phone.value.trim(),
-        email: email.value.trim(),
-        service: service.value,
-        date: date.value,
-        slot: slot.value,
-        message: message.value.trim(),
-        status: "new",
-        createdAt: fb.serverTimestamp(),
-      });
+      await Promise.race([
+        (async () => {
+          const fb = await backend();
+          await fb.addDoc(fb.collection(fb.db, "appointments"), {
+            name: name.value.trim(),
+            phone: phone.value.trim(),
+            email: email.value.trim(),
+            service: service.value,
+            date: date.value,
+            slot: slot.value,
+            message: message.value.trim(),
+            status: "new",
+            createdAt: fb.serverTimestamp(),
+          });
+        })(),
+        new Promise((resolve, reject) =>
+          setTimeout(() => reject(new Error("send-timeout")), SEND_TIMEOUT_MS)
+        ),
+      ]);
       localStorage.setItem(THROTTLE_KEY, String(Date.now()));
-      say("");
       finish(name.value.trim(), date.value, slot.value);
     } catch (err) {
       say("The request could not be sent just now.", true, true);
       submit.disabled = false;
     }
+    submit.classList.remove("is-busy");
     sending = false;
   });
 })();

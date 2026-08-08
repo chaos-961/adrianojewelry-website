@@ -4,7 +4,7 @@ The site ships complete without Firebase: the booking form offers the phone,
 and the Studio opens in preview. Everything below is the one-time work that
 makes both live. It lives in `scripts/` so it deploys nowhere.
 
-## 1. Create the project
+## 1. Create the project (DONE, v0.4.6)
 
 - console.firebase.google.com, Add project. No Analytics needed.
 - Add a Web app (the `</>` icon). Copy the config object it prints.
@@ -12,6 +12,9 @@ makes both live. It lives in `scripts/` so it deploys nowhere.
   (`export const FIREBASE_CONFIG = { ... };`). The config identifies the
   project; it is not a secret, and every Firebase site ships it openly. The
   security is the rules and the sign-in, below.
+- This step is done: the `adriano-jewelry` project exists and its web
+  config is pasted in. Steps 2 and 3 are what remain, and the Studio's own
+  banner says so after every unlock until they are finished.
 
 ## 2. Firestore
 
@@ -73,6 +76,11 @@ makes both live. It lives in `scripts/` so it deploys nowhere.
   characters, email empty or sane and under 120, service and slot from
   their enums, date a `YYYY-MM-DD` string, message under 600, status born
   `"new"`, `createdAt` stamped by the server's clock, no extra keys.
+- The slot enum is the diary's own grid since v0.4.6: fifteen half-hour
+  start times, `"09:00"` through `"16:00"`, inside the store's 9:00 am to
+  4:30 pm. The service enum starts with `"wedding"` (Wedding Ring). Change
+  either in three places together or not at all: `firestore.rules`, the
+  booking form's markup and `booking.js`, and the studio's `dashboard.js`.
 - Nobody unauthenticated reads anything, not even their own submission.
 - The admin (matched by email, optionally pinned to UID) may read the
   list, may change ONLY the `status` field and only to one of its four

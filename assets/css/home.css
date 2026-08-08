@@ -41,7 +41,7 @@
    shading terms sum to a floor of 0.52 before tonemapping, which lands at
    #ea under the film's inside exposure, still clear of the #e6 those
    ratios were measured against; the ink beats also carry their own white
-   radial clearing over the gallery. The coda after the collapse returns
+   radial clearing over the showcase. The coda after the collapse returns
    to the ink ground above.
 
    Every measurement from a 320px phone to a wide monitor is clamp()ed, the
@@ -483,8 +483,6 @@ html.js .journey {
 .journey.is-fallback .journey__canvas,
 .journey.is-fallback .journey__vig,
 .journey.is-fallback .journey__veil,
-.journey.is-fallback .gallery,
-.journey.is-fallback .beam,
 .journey.is-fallback .beat,
 .journey.is-fallback .journey__cue {
   display: none;
@@ -730,8 +728,8 @@ html.js .journey {
 .beat--ink::before {
   content: "";
   position: absolute;
-  /* Under the beat's own text, above the gallery: the beat's z-index makes
-     it a stacking context, so -1 cannot fall behind the drifting pieces. */
+  /* Under the beat's own text, above the canvas the pieces render in: the
+     beat's z-index makes it a stacking context, so -1 stays inside it. */
   z-index: -1;
   left: 50%;
   top: 50%;
@@ -850,147 +848,20 @@ html.js .journey {
 
 /* ---------------------------------------------------------------- gallery */
 
-/* Inside the stone: the pieces, hung in the room as a drifting
-   constellation. home.js derives how many from the viewport's own area,
-   sizes each one in pixels at the largest it will ever be drawn, and
-   writes a transform per frame to the hung set; nothing in here is laid
-   out by hand. */
-.gallery {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  overflow: hidden;
-  visibility: hidden;
-  /* No mask. Nothing enters or leaves at an edge any more: the set is
-     hung for the whole chapter and only sways where it hangs, so there is
-     nothing to soften, and a mask over a viewport-sized layer is a whole
-     extra composite pass to say so. */
-}
-
-.gallery.is-on {
-  visibility: visible;
-}
-
-/* THE PIECES MUST NOT OUTLIVE THE CHAPTER, and without this rule they did
-   (v0.4.5, from a reader's screenshot of the hero with the showcase strewn
-   across it). Visibility is inherited, but a descendant's own EXPLICIT value
-   beats a hidden ancestor: home.js hangs a piece by writing
-   `visibility: visible` inline, so once the reader had been inside the
-   diamond and armed the images, scrolling back out left every hung piece
-   rendered over the dark room for the rest of the visit. The container's
-   hidden state has to win over the inline show while the chapter is off,
-   and !important is the one honest way an author rule outranks an inline
-   style. Inside the chapter the inline values work exactly as before. */
-.gallery:not(.is-on) .gallery__item {
-  visibility: hidden !important;
-}
-
-/* Each piece is its own layer, because each piece sways independently.
-   Membership is decided at layout and only a resize can change it: the
-   hung pieces are made visible once and stay visible for the whole
-   chapter, so nothing pops, and the rest stay `visibility: hidden`, which
-   the compositor does not draw and does not keep a tile for. Width is set
-   once in pixels by home.js at the largest the piece will ever be drawn;
-   the scale in the transform breathes strictly below one, so nothing is a
-   bitmap being enlarged. Opacity is not on the will-change list any more
-   because nothing animates it: the chapter's fade lives on the container
-   and a piece's own opacity never changes at all. */
-.gallery__item {
-  position: absolute;
-  left: 0;
-  top: 0;
-  visibility: hidden;
-  will-change: transform;
-}
-
-.gallery__item img {
-  display: block;
-  width: 100%;
-  height: auto;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
-}
-
-/* ------------------------------------------------------------------ beams */
-
-/* The crystal room sweeps two broad beams through itself, and until now
-   they stopped dead at the edge of the canvas, which is exactly what makes
-   an overlay read as subtitles rather than as type standing in a place.
-   These are the SAME two beams: home.js runs the shader's own arithmetic and
-   publishes each one's centre and angle, so they cross the pieces at the
-   moment the shader crosses the room behind them.
-
-   They screen, and that choice is the whole safety of it. On the room's own
-   near-white, screen changes nothing; on a photographed piece it is a flare
-   going past. So light lands on the world and on the ground the words stand
-   on, and the ink beats' measured contrast can only ever improve, never
-   fall. They sit above the gallery and below the beats, in the pin's own
-   stacking context so the pieces are actually in their backdrop, and they
-   are moved with transform alone so a frame of this costs no layout. */
-.beam {
-  position: absolute;
-  z-index: 4;
-  left: 0;
-  top: 0;
-  width: 260vmax;
-  height: var(--h);
-  transform: translate(
-      calc(var(--x, 50%) - 130vmax),
-      calc(var(--y, 50%) - var(--h) / 2)
-    )
-    rotate(var(--r, 0deg));
-  transform-origin: 130vmax calc(var(--h) / 2);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  visibility: hidden;
-  background: linear-gradient(
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, calc(var(--beam, 0) * var(--amp))) 50%,
-    rgba(255, 255, 255, 0)
-  );
-}
-
-.journey__pin.is-beamed .beam {
-  visibility: visible;
-}
-
-/* The amplitudes look high for a light effect and they are not. Screen is
-   asymmetric on purpose: a piece whose highlights are already at white
-   cannot be lifted at all, so almost all of this lands on the mid-tones and
-   the drop shadows: the gold, the coloured stones, the ground under a
-   piece. Which is exactly what a light passing over a photographed object
-   does, and the reason the beam reads as light rather than as a white
-   rectangle sliding by. */
-/* --x, --y, --r and --beam are written by home.js onto these two elements
-   directly, rather than onto the pin for these to inherit. An inherited
-   custom property changed on an ancestor invalidates the computed style of
-   everything under it, and under the pin are the beats, both beams and all
-   seventy-four gallery pieces: a hundred-odd elements restyled every frame
-   of the drift to slide two gradients. Written here they cost two. */
-.beam--0 {
-  --h: 44vmin;
-  --amp: 0.85;
-}
-
-.beam--1 {
-  --h: 62vmin;
-  --amp: 0.55;
-}
-
-/* One shadow for every piece, and no blur on any of them.
-
-   The three bands used to carry a depth of field: the far one blurred and
-   paled, the near one crisp. That is the right idea for a background and the
-   wrong one for a showcase, because it guaranteed that a third of the work
-   on screen could not be looked at. Depth is now carried entirely by SIZE,
-   which is the honest cue and the free one, and every piece is sharp at
-   every moment it is on screen. The shadow is a fixed filter rather than a
-   per-frame one, so it rasterises into the piece's layer once and rides the
-   transform from then on. */
-.gallery__item img {
-  filter: drop-shadow(0 16px 30px rgba(26, 26, 26, 0.22));
-}
+/* THERE IS NO GALLERY MARKUP ANY MORE (v0.4.6). The constellation inside
+   the diamond renders inside the film's own canvas as one instanced draw:
+   the pieces, their contact shadows, the room's beams crossing them and
+   the glints are all fragments of the render now, not layers over it.
+   What used to stand here: a .gallery container with seventy-four
+   absolutely-positioned items, each promoted to its own compositor layer
+   with a transform written per frame, and two full-viewport
+   screen-blended .beam elements the film steered with custom properties.
+   That was the chapter's real cost on a phone, and the ink beats' own
+   clearing (below, unchanged) is the only piece of the chapter that
+   remains DOM. If pieces ever need to stand over the canvas again, read
+   the v0.4.5 notes in git history first: the visibility !important guard,
+   the beam custom-property placement and the per-item layer rules all
+   existed for measured reasons. */
 
 /* ----------------------------------------------------------------- finale */
 
